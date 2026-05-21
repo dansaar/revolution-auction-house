@@ -1,0 +1,38 @@
+{
+  "name": "revolution-auction-house",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@opentelemetry/context-async-hooks": "^2.7.1",
+    "aws-amplify": "^6.16.4",
+    "browser-image-compression": "^2.0.2",
+    "lucide-react": "^1.14.0",
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "stripe": "^22.1.0"
+  },
+  "devDependencies": {
+    "@aws-amplify/backend": "^1.22.0",
+    "@aws-amplify/backend-cli": "^1.8.2",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^25.8.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "aws-cdk-lib": "^2.234.1",
+    "constructs": "^10.6.0",
+    "esbuild": "^0.28.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "prettier": "^3.8.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.22.2",
+    "typescript": "^5.9.3"
+  }
+}
