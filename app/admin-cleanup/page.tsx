@@ -25,55 +25,54 @@ export default function AdminCleanupPage() {
     setStatus(`Deleting ${items.length} ${modelName} records...`);
 
     for (const item of items) {
-      await model.delete(
-        { id: item.id },
-        { authMode: "apiKey" } as any,
-      );
+      await model.delete({ id: item.id }, { authMode: "apiKey" } as any);
     }
   }
 
   async function deleteS3Images() {
-  const confirmed = confirm("Delete all auction and marketplace images from S3?");
-  if (!confirmed) return;
+    const confirmed = confirm(
+      "Delete all auction and marketplace images from S3?",
+    );
+    if (!confirmed) return;
 
-  try {
-    setStatus("Loading S3 images...");
+    try {
+      setStatus("Loading S3 images...");
 
-    const folders = [
-      "auction-images/",
-      "auction-images/thumb/",
-      "auction-images/medium/",
-      "auction-images/full/",
-      "marketplace-images/",
-      "marketplace-images/thumb/",
-      "marketplace-images/medium/",
-      "marketplace-images/full/",
-    ];
+      const folders = [
+        "auction-images/",
+        "auction-images/thumb/",
+        "auction-images/medium/",
+        "auction-images/full/",
+        "marketplace-images/",
+        "marketplace-images/thumb/",
+        "marketplace-images/medium/",
+        "marketplace-images/full/",
+      ];
 
-    let deleted = 0;
+      let deleted = 0;
 
-    for (const folder of folders) {
-      const result = await list({
-        path: folder,
-      });
-
-      for (const item of result.items) {
-        if (!item.path) continue;
-
-        await remove({
-          path: item.path,
+      for (const folder of folders) {
+        const result = await list({
+          path: folder,
         });
 
-        deleted++;
-      }
-    }
+        for (const item of result.items) {
+          if (!item.path) continue;
 
-    setStatus(`Deleted ${deleted} images from S3.`);
-  } catch (err) {
-    console.error(err);
-    setStatus("S3 image cleanup failed. Check console.");
+          await remove({
+            path: item.path,
+          });
+
+          deleted++;
+        }
+      }
+
+      setStatus(`Deleted ${deleted} images from S3.`);
+    } catch (err) {
+      console.error(err);
+      setStatus("S3 image cleanup failed. Check console.");
+    }
   }
-}
 
   async function cleanup() {
     const confirmed = confirm(

@@ -48,8 +48,8 @@ export default function MarketplaceListingPage() {
               : [];
 
         const resolved = rawImages.map((path: string | null | undefined) =>
-  cdnUrl(path)
-);
+          cdnUrl(path),
+        );
 
         setImages(resolved);
 

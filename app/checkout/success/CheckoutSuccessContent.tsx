@@ -44,13 +44,9 @@ export default function CheckoutSuccessContent() {
       <div className="mx-auto max-w-2xl rounded-xl border border-white/10 bg-white/[0.03] p-8 text-center">
         <div className="text-5xl">✅</div>
 
-        <h1 className="mt-6 font-serif text-4xl">
-          Payment Successful
-        </h1>
+        <h1 className="mt-6 font-serif text-4xl">Payment Successful</h1>
 
-        <p className="mt-4 text-gray-400">
-          {status}
-        </p>
+        <p className="mt-4 text-gray-400">{status}</p>
 
         <Link href="/dashboard">
           <button className="mt-8 rounded bg-[#c0c0c0] px-6 py-3 font-semibold text-black hover:bg-white">

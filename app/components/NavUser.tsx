@@ -39,28 +39,31 @@ export default function NavUser() {
 
   if (!userEmail) {
     return (
-      <Link href="/signin" className="rounded border border-white/10 px-3 py-1 text-xs text-gray-400 transition hover:border-[#c0c0c0]/50 hover:text-white">
+      <Link
+        href="/signin"
+        className="rounded border border-white/10 px-3 py-1 text-xs text-gray-400 transition hover:border-[#c0c0c0]/50 hover:text-white"
+      >
         Sign In
       </Link>
     );
   }
 
-return (
-  <div className="flex items-center gap-3">
-    <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-[#c0c0c0]">
-      {userEmail.split("@")[0]}
-    </div>
+  return (
+    <div className="flex items-center gap-3">
+      <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-[#c0c0c0]">
+        {userEmail.split("@")[0]}
+      </div>
 
-    <button
-      onClick={async () => {
-        await signOut();
-        setUserEmail("");
-        window.location.href = "/";
-      }}
-      className="text-xs text-gray-500 transition hover:text-white"
-    >
-      Sign Out
-    </button>
-  </div>
-);
+      <button
+        onClick={async () => {
+          await signOut();
+          setUserEmail("");
+          window.location.href = "/";
+        }}
+        className="text-xs text-gray-500 transition hover:text-white"
+      >
+        Sign Out
+      </button>
+    </div>
+  );
 }

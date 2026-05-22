@@ -148,43 +148,43 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
     const expectedVersion = state.version || 1;
 
-const updateResult = await client.models.AuctionState.update(
-  {
-    auctionId,
-    currentPrice: formatMoney(visiblePrice),
+    const updateResult = await client.models.AuctionState.update(
+      {
+        auctionId,
+        currentPrice: formatMoney(visiblePrice),
 
-    leaderUserId: newLeaderUserId,
-    leaderMaxBid: formatMoney(newLeaderMaxBid),
+        leaderUserId: newLeaderUserId,
+        leaderMaxBid: formatMoney(newLeaderMaxBid),
 
-    secondUserId: newSecondUserId,
-    secondMaxBid: formatMoney(newSecondMaxBid),
+        secondUserId: newSecondUserId,
+        secondMaxBid: formatMoney(newSecondMaxBid),
 
-    bidCount: newBidCount,
-    version: expectedVersion + 1,
+        bidCount: newBidCount,
+        version: expectedVersion + 1,
 
-    endsAt: state.endsAt,
-    ended: state.ended || false,
-  },
-  {
-    authMode: "apiKey",
-    condition: {
-      version: {
-        eq: expectedVersion,
+        endsAt: state.endsAt,
+        ended: state.ended || false,
       },
-    },
-  } as any,
-);
+      {
+        authMode: "apiKey",
+        condition: {
+          version: {
+            eq: expectedVersion,
+          },
+        },
+      } as any,
+    );
 
-if (!updateResult.data) {
-  return {
-    success: false,
-    message: "Bid conflict detected. Please retry.",
-    currentPrice,
-    winner: state.leaderUserId
-      ? makeBidderDisplayName(state.leaderUserId)
-      : "",
-  };
-}
+    if (!updateResult.data) {
+      return {
+        success: false,
+        message: "Bid conflict detected. Please retry.",
+        currentPrice,
+        winner: state.leaderUserId
+          ? makeBidderDisplayName(state.leaderUserId)
+          : "",
+      };
+    }
 
     const bidCreateResult = await client.models.Bid.create(
       {

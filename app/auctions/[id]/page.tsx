@@ -92,7 +92,6 @@ export default function LiveAuctionPage() {
   const [auctionMessage, setAuctionMessage] = useState("");
   const [flashOutbid, setFlashOutbid] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const finalizedRef = useRef(false);
   const refreshingRef = useRef(false);
   const pendingRefreshRef = useRef(false);
   const refreshBidsRef = useRef<(() => void) | null>(null);
@@ -351,58 +350,11 @@ export default function LiveAuctionPage() {
       const diff = new Date(auction.endsAt).getTime() - Date.now();
 
       if (diff <= 0) {
-        // FIX #12  set a clean string; never shows "0days 0hr..." on last tick
         setTimeLeft("Ended");
         setTimeColor("text-red-500");
         setAuctionMessage("Auction Ended");
-        setAuctionEnded(true); // FIX #3
+        setAuctionEnded(true);
         clearInterval(interval);
-
-        // FIX #4  double-checked guard; only one client finalizes
-        if (!auction.ended && !finalizedRef.current) {
-          finalizedRef.current = true;
-          try {
-            const latest = await client.models.Auction.get(
-              { id: auction.id },
-              { authMode: "apiKey" },
-            );
-            if (latest.data?.ended) return; // another client beat us
-            const reserve = moneyToNumber(latest.data?.reservePrice || 0);
-            const final = moneyToNumber(
-              latest.data?.price || auction?.price || 0,
-            );
-
-            const finalizeResult = await client.mutations.finalizeAuction(
-              {
-                auctionId: auction.id,
-              },
-              {
-                authMode: "apiKey",
-              } as any,
-            );
-
-            if (!finalizeResult.data?.success) {
-              throw new Error(
-                finalizeResult.data?.message || "Finalize failed",
-              );
-            }
-
-            setAuction((prev: any) => ({
-              ...(prev || {}),
-              ended: true,
-              status: finalizeResult.data?.status || "ENDED",
-            }));
-
-            setAuction((prev: any) => ({
-              ...(prev || {}),
-              ended: true,
-              status: reserveMet ? "ENDED" : "RESERVE_NOT_MET",
-            }));
-          } catch (err) {
-            console.error("Failed to finalize auction", err);
-            finalizedRef.current = false; // allow retry
-          }
-        }
         return;
       }
 
@@ -654,14 +606,14 @@ export default function LiveAuctionPage() {
 
     try {
       const result = await client.mutations.placeBid(
-  {
-    auctionId: id,
-    maxBid: enteredMaxBid,
-  },
-  {
-    authMode: "userPool",
-  } as any,
-);
+        {
+          auctionId: id,
+          maxBid: enteredMaxBid,
+        },
+        {
+          authMode: "userPool",
+        } as any,
+      );
 
       if (!result.data?.success) {
         alert(result.data?.message || "Bid failed");
