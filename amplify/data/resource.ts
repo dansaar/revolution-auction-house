@@ -150,7 +150,7 @@ const schema = a.schema({
         winner: a.string(),
       }),
     )
-    .authorization((allow) => [allow.publicApiKey(), allow.authenticated()])
+    .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(placeBid)),
 
   finalizeAuction: a
@@ -165,7 +165,7 @@ const schema = a.schema({
         status: a.string(),
       }),
     )
-    .authorization((allow) => [allow.publicApiKey(), allow.authenticated()])
+    .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(finalizeAuction)),
 });
 

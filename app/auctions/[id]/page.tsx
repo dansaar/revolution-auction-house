@@ -653,10 +653,15 @@ export default function LiveAuctionPage() {
     setIsSubmitting(true);
 
     try {
-      const result = await client.mutations.placeBid({
-        auctionId: id,
-        maxBid: enteredMaxBid,
-      });
+      const result = await client.mutations.placeBid(
+  {
+    auctionId: id,
+    maxBid: enteredMaxBid,
+  },
+  {
+    authMode: "userPool",
+  } as any,
+);
 
       if (!result.data?.success) {
         alert(result.data?.message || "Bid failed");
