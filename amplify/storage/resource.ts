@@ -4,8 +4,12 @@ export const storage = defineStorage({
   name: "auctionImages",
   access: (allow) => ({
     "auction-images/*": [
-      allow.guest.to(["read"]),
-      allow.authenticated.to(["read", "write", "delete"]),
+      allow.guest.to(["get", "list"]),
+      allow.authenticated.to(["get", "list", "write", "delete"]),
+    ],
+    "marketplace-images/*": [
+      allow.guest.to(["get", "list"]),
+      allow.authenticated.to(["get", "list", "write", "delete"]),
     ],
   }),
 });
