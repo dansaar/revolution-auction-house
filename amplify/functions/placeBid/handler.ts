@@ -41,208 +41,238 @@ function makeBidderDisplayName(value: string) {
 
 export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
   try {
-    const { auctionId, maxBid } = event.arguments;
-    const identity = event.identity as any;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { auctionId, maxBid } = event.arguments;
+      const identity = event.identity as any;
 
-    const bidderUserId =
-      identity?.sub ||
-      identity?.claims?.sub ||
-      identity?.username ||
-      identity?.claims?.["cognito:username"] ||
-      "guest";
+      const bidderUserId =
+        identity?.sub ||
+        identity?.claims?.sub ||
+        identity?.username ||
+        identity?.claims?.["cognito:username"] ||
+        "guest";
 
-    const bidderEmail =
-      identity?.claims?.email ||
-      identity?.claims?.["cognito:email"] ||
-      `user-${bidderUserId}`;
+      const bidderEmail =
+        identity?.claims?.email ||
+        identity?.claims?.["cognito:email"] ||
+        `user-${bidderUserId}`;
 
-    const bidderDisplayName = makeBidderDisplayName(bidderUserId);
+      const bidderDisplayName = makeBidderDisplayName(bidderUserId);
 
-    const stateResult = await client.models.AuctionState.get(
-      { auctionId },
-      { authMode: "apiKey" },
-    );
-
-    const state = stateResult.data;
-
-    if (!state) {
-      return {
-        success: false,
-        message: "Auction state not found",
-        currentPrice: 0,
-        winner: "",
-      };
-    }
-
-    if (state.ended) {
-      return {
-        success: false,
-        message: "Auction has ended",
-        currentPrice: moneyToNumber(state.currentPrice),
-        winner: state.leaderUserId
-          ? makeBidderDisplayName(state.leaderUserId)
-          : "",
-      };
-    }
-
-    const currentPrice = moneyToNumber(state.currentPrice);
-    const minimumBid = currentPrice + getIncrement(currentPrice);
-
-    if (maxBid < minimumBid) {
-      return {
-        success: false,
-        message: `Minimum bid is ${formatMoney(minimumBid)}`,
-        currentPrice,
-        winner: state.leaderUserId
-          ? makeBidderDisplayName(state.leaderUserId)
-          : "",
-      };
-    }
-
-    const leaderUserId = state.leaderUserId || "";
-    const leaderMaxBid = moneyToNumber(state.leaderMaxBid);
-    const secondUserId = state.secondUserId || "";
-    const secondMaxBid = moneyToNumber(state.secondMaxBid);
-
-    let newLeaderUserId = leaderUserId;
-    let newLeaderMaxBid = leaderMaxBid;
-    let newSecondUserId = secondUserId;
-    let newSecondMaxBid = secondMaxBid;
-    let visiblePrice = currentPrice;
-    let proxyUserId = "";
-
-    if (!leaderUserId) {
-      newLeaderUserId = bidderUserId;
-      newLeaderMaxBid = maxBid;
-      visiblePrice = minimumBid;
-    } else if (bidderUserId === leaderUserId) {
-      newLeaderMaxBid = Math.max(leaderMaxBid, maxBid);
-      visiblePrice = currentPrice;
-    } else if (maxBid > leaderMaxBid) {
-      newSecondUserId = leaderUserId;
-      newSecondMaxBid = leaderMaxBid;
-
-      newLeaderUserId = bidderUserId;
-      newLeaderMaxBid = maxBid;
-
-      visiblePrice = Math.min(
-        maxBid,
-        leaderMaxBid + getIncrement(leaderMaxBid),
+      const stateResult = await client.models.AuctionState.get(
+        { auctionId },
+        { authMode: "apiKey" },
       );
-    } else if (maxBid === leaderMaxBid) {
-      newSecondUserId = bidderUserId;
-      newSecondMaxBid = maxBid;
 
-      visiblePrice = leaderMaxBid;
-      proxyUserId = leaderUserId;
-    } else {
-      newSecondUserId = bidderUserId;
-      newSecondMaxBid = Math.max(secondMaxBid, maxBid);
+      const state = stateResult.data;
 
-      visiblePrice = Math.min(leaderMaxBid, maxBid + getIncrement(maxBid));
+      if (!state) {
+        return {
+          success: false,
+          message: "Auction state not found",
+          currentPrice: 0,
+          winner: "",
+        };
+      }
 
-      proxyUserId = leaderUserId;
-    }
+      if (state.ended) {
+        return {
+          success: false,
+          message: "Auction has ended",
+          currentPrice: moneyToNumber(state.currentPrice),
+          winner: state.leaderUserId
+            ? makeBidderDisplayName(state.leaderUserId)
+            : "",
+        };
+      }
 
-    const newBidCount = (state.bidCount || 0) + (proxyUserId ? 2 : 1);
+      const currentPrice = moneyToNumber(state.currentPrice);
+      const minimumBid = currentPrice + getIncrement(currentPrice);
 
-    const expectedVersion = state.version || 1;
+      if (maxBid < minimumBid) {
+        return {
+          success: false,
+          message: `Minimum bid is ${formatMoney(minimumBid)}`,
+          currentPrice,
+          winner: state.leaderUserId
+            ? makeBidderDisplayName(state.leaderUserId)
+            : "",
+        };
+      }
 
-    const updateResult = await client.models.AuctionState.update(
-      {
-        auctionId,
-        currentPrice: formatMoney(visiblePrice),
+      const leaderUserId = state.leaderUserId || "";
+      const leaderMaxBid = moneyToNumber(state.leaderMaxBid);
+      const secondUserId = state.secondUserId || "";
+      const secondMaxBid = moneyToNumber(state.secondMaxBid);
 
-        leaderUserId: newLeaderUserId,
-        leaderMaxBid: formatMoney(newLeaderMaxBid),
+      let newLeaderUserId = leaderUserId;
+      let newLeaderMaxBid = leaderMaxBid;
+      let newSecondUserId = secondUserId;
+      let newSecondMaxBid = secondMaxBid;
+      let visiblePrice = currentPrice;
+      let proxyUserId = "";
 
-        secondUserId: newSecondUserId,
-        secondMaxBid: formatMoney(newSecondMaxBid),
+      if (!leaderUserId) {
+        newLeaderUserId = bidderUserId;
+        newLeaderMaxBid = maxBid;
+        visiblePrice = minimumBid;
+      } else if (bidderUserId === leaderUserId) {
+        newLeaderMaxBid = Math.max(leaderMaxBid, maxBid);
+        visiblePrice = currentPrice;
+      } else if (maxBid > leaderMaxBid) {
+        newSecondUserId = leaderUserId;
+        newSecondMaxBid = leaderMaxBid;
 
-        bidCount: newBidCount,
-        version: expectedVersion + 1,
+        newLeaderUserId = bidderUserId;
+        newLeaderMaxBid = maxBid;
 
-        endsAt: state.endsAt,
-        ended: state.ended || false,
-      },
-      {
-        authMode: "apiKey",
-        condition: {
-          version: {
-            eq: expectedVersion,
-          },
-        },
-      } as any,
-    );
+        visiblePrice = Math.min(
+          maxBid,
+          leaderMaxBid + getIncrement(leaderMaxBid),
+        );
+      } else if (maxBid === leaderMaxBid) {
+        newSecondUserId = bidderUserId;
+        newSecondMaxBid = maxBid;
 
-    if (!updateResult.data) {
-      return {
-        success: false,
-        message: "Bid conflict detected. Please retry.",
-        currentPrice,
-        winner: state.leaderUserId
-          ? makeBidderDisplayName(state.leaderUserId)
-          : "",
-      };
-    }
+        visiblePrice = leaderMaxBid;
+        proxyUserId = leaderUserId;
+      } else {
+        newSecondUserId = bidderUserId;
+        newSecondMaxBid = Math.max(secondMaxBid, maxBid);
 
-    const bidCreateResult = await client.models.Bid.create(
-      {
-        auctionId,
-        bidderUserId: bidderUserId,
-        bidderEmail: bidderEmail,
-        bidderName: bidderDisplayName,
-        amount: formatMoney(visiblePrice),
-        maxBid: formatMoney(maxBid),
-        isProxy: false,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        authMode: "apiKey",
-      },
-    );
+        visiblePrice = Math.min(leaderMaxBid, maxBid + getIncrement(maxBid));
 
-    console.log("BID CREATE RESULT", JSON.stringify(bidCreateResult));
+        proxyUserId = leaderUserId;
+      }
 
-    if (proxyUserId) {
-      await client.models.Bid.create(
+      const newBidCount = (state.bidCount || 0) + (proxyUserId ? 2 : 1);
+      const SOFT_CLOSE_WINDOW_SEC = 30;
+      const SOFT_CLOSE_EXTENSION_SEC = 30;
+
+      let updatedEndsAt = state.endsAt;
+
+      if (state.endsAt) {
+        const remainingMs = new Date(state.endsAt).getTime() - Date.now();
+
+        if (remainingMs > 0 && remainingMs <= SOFT_CLOSE_WINDOW_SEC * 1000) {
+          updatedEndsAt = new Date(
+            Date.now() + SOFT_CLOSE_EXTENSION_SEC * 1000,
+          ).toISOString();
+        }
+      }
+
+      const expectedVersion = state.version || 1;
+
+      const updateResult = await client.models.AuctionState.update(
         {
           auctionId,
-          bidderUserId: proxyUserId,
-          bidderEmail: "proxy-bid",
-          bidderName: makeBidderDisplayName(proxyUserId),
+          currentPrice: formatMoney(visiblePrice),
+
+          leaderUserId: newLeaderUserId,
+          leaderMaxBid: formatMoney(newLeaderMaxBid),
+
+          secondUserId: newSecondUserId,
+          secondMaxBid: formatMoney(newSecondMaxBid),
+
+          bidCount: newBidCount,
+          version: expectedVersion + 1,
+
+          endsAt: updatedEndsAt,
+          ended: state.ended || false,
+        },
+        {
+          authMode: "apiKey",
+          condition: {
+            version: {
+              eq: expectedVersion,
+            },
+          },
+        } as any,
+      );
+
+      if (!updateResult.data) {
+        console.log("Bid conflict, retrying...", attempt + 1);
+
+        if (attempt === 2) {
+          return {
+            success: false,
+            message: "High bidding activity. Please retry.",
+            currentPrice,
+            winner: state.leaderUserId
+              ? makeBidderDisplayName(state.leaderUserId)
+              : "",
+          };
+        }
+
+        continue;
+      }
+
+      const bidCreateResult = await client.models.Bid.create(
+        {
+          auctionId,
+          bidderUserId: bidderUserId,
+          bidderEmail: bidderEmail,
+          bidderName: bidderDisplayName,
           amount: formatMoney(visiblePrice),
-          maxBid: formatMoney(leaderMaxBid),
-          isProxy: true,
+          maxBid: formatMoney(maxBid),
+          isProxy: false,
           createdAt: new Date().toISOString(),
         },
         {
           authMode: "apiKey",
         },
       );
+
+      console.log("BID CREATE RESULT", JSON.stringify(bidCreateResult));
+
+      if (proxyUserId) {
+        await client.models.Bid.create(
+          {
+            auctionId,
+            bidderUserId: proxyUserId,
+            bidderEmail: "proxy-bid",
+            bidderName: makeBidderDisplayName(proxyUserId),
+            amount: formatMoney(visiblePrice),
+            maxBid: formatMoney(leaderMaxBid),
+            isProxy: true,
+            createdAt: new Date().toISOString(),
+          },
+          {
+            authMode: "apiKey",
+          },
+        );
+      }
+
+      await client.models.Auction.update(
+        {
+          id: auctionId,
+          price: formatMoney(visiblePrice),
+          bids: newBidCount,
+
+          winnerUserId: newLeaderUserId,
+          winnerDisplayName: makeBidderDisplayName(newLeaderUserId),
+          winnerEmail: newLeaderUserId === bidderUserId ? bidderEmail : "",
+          winningBid: formatMoney(visiblePrice),
+          endsAt: updatedEndsAt,
+        },
+        {
+          authMode: "apiKey",
+        },
+      );
+
+      return {
+        success: true,
+        message: "Bid placed",
+        currentPrice: visiblePrice,
+        winner: makeBidderDisplayName(newLeaderUserId),
+      };
     }
 
-    await client.models.Auction.update(
-      {
-        id: auctionId,
-        price: formatMoney(visiblePrice),
-        bids: newBidCount,
-
-        winnerUserId: newLeaderUserId,
-        winnerDisplayName: makeBidderDisplayName(newLeaderUserId),
-        winnerEmail: newLeaderUserId === bidderUserId ? bidderEmail : "",
-        winningBid: formatMoney(visiblePrice),
-      },
-      {
-        authMode: "apiKey",
-      },
-    );
-
     return {
-      success: true,
-      message: "Bid placed",
-      currentPrice: visiblePrice,
-      winner: makeBidderDisplayName(newLeaderUserId),
+      success: false,
+      message: "High bidding activity. Please retry.",
+      currentPrice: 0,
+      winner: "",
     };
   } catch (err: any) {
     console.error("PLACE BID LAMBDA ERROR", err);
