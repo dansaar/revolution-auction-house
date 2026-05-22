@@ -58,6 +58,27 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         `user-${bidderUserId}`;
 
       const bidderDisplayName = makeBidderDisplayName(bidderUserId);
+      const recentUserBids = await client.models.Bid.bidsByBidder(
+        { bidderUserId },
+        {
+          authMode: "apiKey",
+          limit: 5,
+        } as any,
+      );
+
+      const tooRecent = (recentUserBids.data || []).some((bid: any) => {
+        if (bid.auctionId !== auctionId || !bid.createdAt) return false;
+        return Date.now() - new Date(bid.createdAt).getTime() < 3000;
+      });
+
+      if (tooRecent) {
+        return {
+          success: false,
+          message: "Please wait a few seconds before bidding again.",
+          currentPrice: 0,
+          winner: "",
+        };
+      }
 
       const stateResult = await client.models.AuctionState.get(
         { auctionId },
