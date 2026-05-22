@@ -146,27 +146,45 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
     const newBidCount = (state.bidCount || 0) + (proxyUserId ? 2 : 1);
 
-    await client.models.AuctionState.update(
-      {
-        auctionId,
-        currentPrice: formatMoney(visiblePrice),
+    const expectedVersion = state.version || 1;
 
-        leaderUserId: newLeaderUserId,
-        leaderMaxBid: formatMoney(newLeaderMaxBid),
+const updateResult = await client.models.AuctionState.update(
+  {
+    auctionId,
+    currentPrice: formatMoney(visiblePrice),
 
-        secondUserId: newSecondUserId,
-        secondMaxBid: formatMoney(newSecondMaxBid),
+    leaderUserId: newLeaderUserId,
+    leaderMaxBid: formatMoney(newLeaderMaxBid),
 
-        bidCount: newBidCount,
-        version: (state.version || 1) + 1,
+    secondUserId: newSecondUserId,
+    secondMaxBid: formatMoney(newSecondMaxBid),
 
-        endsAt: state.endsAt,
-        ended: state.ended || false,
+    bidCount: newBidCount,
+    version: expectedVersion + 1,
+
+    endsAt: state.endsAt,
+    ended: state.ended || false,
+  },
+  {
+    authMode: "apiKey",
+    condition: {
+      version: {
+        eq: expectedVersion,
       },
-      {
-        authMode: "apiKey",
-      },
-    );
+    },
+  } as any,
+);
+
+if (!updateResult.data) {
+  return {
+    success: false,
+    message: "Bid conflict detected. Please retry.",
+    currentPrice,
+    winner: state.leaderUserId
+      ? makeBidderDisplayName(state.leaderUserId)
+      : "",
+  };
+}
 
     const bidCreateResult = await client.models.Bid.create(
       {
