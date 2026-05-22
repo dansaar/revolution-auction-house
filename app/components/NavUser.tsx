@@ -45,26 +45,22 @@ export default function NavUser() {
     );
   }
 
-  return (
-    <div className="flex items-center gap-3">
-      <Link href="/seller" className="text-xs text-[#c0c0c0] hover:text-white">
-        Seller Dashboard
-      </Link>
-
-      <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-[#c0c0c0]">
-        {userEmail.split("@")[0]}
-      </div>
-
-      <button
-        onClick={async () => {
-          await signOut();
-          setUserEmail("");
-          window.location.href = "/";
-        }}
-        className="text-xs text-gray-500 transition hover:text-white"
-      >
-        Sign Out
-      </button>
+return (
+  <div className="flex items-center gap-3">
+    <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-[#c0c0c0]">
+      {userEmail.split("@")[0]}
     </div>
-  );
+
+    <button
+      onClick={async () => {
+        await signOut();
+        setUserEmail("");
+        window.location.href = "/";
+      }}
+      className="text-xs text-gray-500 transition hover:text-white"
+    >
+      Sign Out
+    </button>
+  </div>
+);
 }
