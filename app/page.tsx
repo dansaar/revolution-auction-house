@@ -190,10 +190,10 @@ export default function RevolutionAuctionHouseHomepage() {
                   loading="eager"
                   fetchPriority="high"
                   decoding="async"
-                  src={featuredAuction?.imageUrl || "/home_logo.jpeg"}
+                  src={featuredAuction?.imageUrl || "/logo.png"}
                   alt={featuredAuction?.title || "Featured auction"}
                   onError={(e) => {
-                    e.currentTarget.src = "/home_logo.jpeg";
+                    e.currentTarget.src = "/logo.png";
                   }}
                   className="relative z-10 h-72 w-full object-contain"
                 />
