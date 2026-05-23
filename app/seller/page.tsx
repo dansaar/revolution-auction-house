@@ -508,7 +508,7 @@ function MarketplaceSection({ listings }: any) {
           {listings.map((listing: any) => (
             <Link
               key={listing.id}
-              href={`/marketplace/${listing.id}`}
+              href={`/sell/listing/${listing.id}/edit`}
               className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-[#c0c0c0]/40"
             >
               <div className="h-72 bg-black">
