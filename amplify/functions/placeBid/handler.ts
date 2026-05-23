@@ -231,6 +231,11 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
           secondUserId: newSecondUserId,
           secondMaxBid: formatMoney(newSecondMaxBid),
 
+          leaderEmail:
+            newLeaderUserId === bidderUserId ? bidderEmail : state.leaderEmail,
+          secondEmail:
+            newSecondUserId === bidderUserId ? bidderEmail : state.secondEmail,
+
           bidCount: newBidCount,
           version: expectedVersion + 1,
 
