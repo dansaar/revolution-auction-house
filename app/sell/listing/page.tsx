@@ -52,6 +52,23 @@ export default function CreateListingPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function moveImage(index: number, direction: "left" | "right") {
+    const newIndex = direction === "left" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= imageFiles.length) return;
+
+    setImageFiles((prev) => {
+      const copy = [...prev];
+      [copy[index], copy[newIndex]] = [copy[newIndex], copy[index]];
+      return copy;
+    });
+
+    setPreviews((prev) => {
+      const copy = [...prev];
+      [copy[index], copy[newIndex]] = [copy[newIndex], copy[index]];
+      return copy;
+    });
+  }
+
   async function handleSubmit() {
     if (!form.title || !form.price) {
       alert("Missing required fields");
@@ -263,7 +280,6 @@ export default function CreateListingPage() {
                         setImageFiles((prev) =>
                           prev.filter((_, i) => i !== index),
                         );
-
                         setPreviews((prev) =>
                           prev.filter((_, i) => i !== index),
                         );
@@ -272,6 +288,27 @@ export default function CreateListingPage() {
                     >
                       ✕
                     </button>
+
+                    <div className="absolute bottom-2 left-2 right-2 z-10 flex justify-between gap-2">
+                      <button
+                        type="button"
+                        disabled={index === 0}
+                        onClick={() => moveImage(index, "left")}
+                        className="rounded bg-black/80 px-2 py-1 text-xs font-bold text-white disabled:opacity-30"
+                      >
+                        ←
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={index === previews.length - 1}
+                        onClick={() => moveImage(index, "right")}
+                        className="rounded bg-black/80 px-2 py-1 text-xs font-bold text-white disabled:opacity-30"
+                      >
+                        →
+                      </button>
+                    </div>
+
                     <img
                       src={src}
                       alt={`Preview ${index + 1}`}
