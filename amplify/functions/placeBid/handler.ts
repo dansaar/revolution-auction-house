@@ -85,12 +85,48 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         { authMode: "apiKey" },
       );
 
-      const state = stateResult.data;
+      let state = stateResult.data;
+
+      if (!state) {
+        const auctionResult = await client.models.Auction.get(
+          { id: auctionId },
+          { authMode: "apiKey" },
+        );
+
+        const auction = auctionResult.data;
+
+        if (!auction) {
+          return {
+            success: false,
+            message: "Auction not found",
+            currentPrice: 0,
+            winner: "",
+          };
+        }
+
+        const createdState = await client.models.AuctionState.create(
+          {
+            auctionId,
+            currentPrice: auction.price || "$0",
+            leaderUserId: null,
+            leaderMaxBid: null,
+            secondUserId: null,
+            secondMaxBid: null,
+            bidCount: auction.bids || 0,
+            version: 1,
+            endsAt: auction.endsAt,
+            ended: auction.ended || false,
+          },
+          { authMode: "apiKey" },
+        );
+
+        state = createdState.data;
+      }
 
       if (!state) {
         return {
           success: false,
-          message: "Auction state not found",
+          message: "Could not initialize auction state",
           currentPrice: 0,
           winner: "",
         };
