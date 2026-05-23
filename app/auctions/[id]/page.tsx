@@ -321,6 +321,7 @@ export default function LiveAuctionPage() {
         setAuction((prev: any) => ({
           ...(prev || {}),
           price: state.currentPrice,
+          endsAt: state.endsAt || prev?.endsAt,
           winnerUserId: state.leaderUserId,
           winnerDisplayName: makeBidderDisplayName(state.leaderUserId || ""),
           winnerEmail: state.leaderUserId,
@@ -591,6 +592,7 @@ export default function LiveAuctionPage() {
     setAuction((prev: any) => ({
       ...(prev || {}),
       price: state.currentPrice,
+      endsAt: state.endsAt || prev?.endsAt,
       winnerUserId: state.leaderUserId,
       winnerDisplayName: makeBidderDisplayName(state.leaderUserId || ""),
       winnerEmail: state.leaderUserId,
