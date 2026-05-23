@@ -206,8 +206,12 @@ export default function CreateListingPage() {
               const files = Array.from(e.dataTransfer.files).filter((file) =>
                 file.type.startsWith("image/"),
               );
-              setImageFiles(files);
-              setPreviews(files.map((file) => URL.createObjectURL(file)));
+              setImageFiles((prev) => [...prev, ...files]);
+
+              setPreviews((prev) => [
+                ...prev,
+                ...files.map((file) => URL.createObjectURL(file)),
+              ]);
             }}
             className="rounded-2xl border border-dashed border-white/15 bg-gradient-to-b from-white/[0.03] to-white/[0.01] p-10 text-center transition hover:border-[#c0c0c0]/40"
           >
@@ -228,8 +232,12 @@ export default function CreateListingPage() {
                   multiple
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
-                    setImageFiles(files);
-                    setPreviews(files.map((file) => URL.createObjectURL(file)));
+                    setImageFiles((prev) => [...prev, ...files]);
+
+                    setPreviews((prev) => [
+                      ...prev,
+                      ...files.map((file) => URL.createObjectURL(file)),
+                    ]);
                   }}
                   className="hidden"
                 />
@@ -248,6 +256,22 @@ export default function CreateListingPage() {
                         Cover
                       </div>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageFiles((prev) =>
+                          prev.filter((_, i) => i !== index),
+                        );
+
+                        setPreviews((prev) =>
+                          prev.filter((_, i) => i !== index),
+                        );
+                      }}
+                      className="absolute right-2 top-2 z-10 rounded bg-red-500/90 px-2 py-1 text-xs font-bold text-white"
+                    >
+                      ✕
+                    </button>
                     <img
                       src={src}
                       alt={`Preview ${index + 1}`}
