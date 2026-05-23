@@ -152,13 +152,11 @@ export default function CreateAuctionPage() {
       }
 
       const finalImages =
-        imageUrls.length > 0
-          ? imageUrls
-          : existingImagePaths.length > 0
-            ? existingImagePaths
-            : form.image
-              ? [form.image]
-              : ["/logo.png"];
+        existingImagePaths.length > 0 || imageUrls.length > 0
+          ? [...existingImagePaths, ...imageUrls]
+          : form.image
+            ? [form.image]
+            : ["/logo.png"];
 
       const mainImage = finalImages[0];
 
@@ -205,6 +203,9 @@ export default function CreateAuctionPage() {
 
           image: mainImage,
           images: finalImages,
+          thumbImages: finalImages,
+          mediumImages: finalImages,
+          fullImages: finalImages,
 
           endsAt: new Date(form.endsAt).toISOString(),
         },
@@ -351,11 +352,15 @@ export default function CreateAuctionPage() {
                 file.type.startsWith("image/"),
               );
 
-              const limited = files.slice(0, 12);
+              const remainingSlots = 12 - previews.length;
+              const limited = files.slice(0, remainingSlots);
 
-              setImageFiles(limited);
+              setImageFiles((prev) => [...prev, ...limited]);
 
-              setPreviews(limited.map((file) => URL.createObjectURL(file)));
+              setPreviews((prev) => [
+                ...prev,
+                ...limited.map((file) => URL.createObjectURL(file)),
+              ]);
             }}
             className="rounded-2xl border border-dashed border-white/15 bg-gradient-to-b from-white/[0.03] to-white/[0.01] p-10 text-center transition hover:border-[#c0c0c0]/40"
           >
@@ -380,13 +385,17 @@ export default function CreateAuctionPage() {
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
 
-                    const limited = files.slice(0, 12);
+                    const remainingSlots = 12 - previews.length;
+                    const limited = files.slice(0, remainingSlots);
 
-                    setImageFiles(limited);
+                    setImageFiles((prev) => [...prev, ...limited]);
 
-                    setPreviews(
-                      limited.map((file) => URL.createObjectURL(file)),
-                    );
+                    setPreviews((prev) => [
+                      ...prev,
+                      ...limited.map((file) => URL.createObjectURL(file)),
+                    ]);
+
+                    e.currentTarget.value = "";
                   }}
                   className="hidden"
                 />
