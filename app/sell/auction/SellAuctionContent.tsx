@@ -403,11 +403,15 @@ export default function SellAuctionContent() {
                 file.type.startsWith("image/"),
               );
 
-              const limited = files.slice(0, 12);
+              const remainingSlots = 12 - previews.length;
+              const limited = files.slice(0, remainingSlots);
 
-              setImageFiles(limited);
+              setImageFiles((prev) => [...prev, ...limited]);
 
-              setPreviews(limited.map((file) => URL.createObjectURL(file)));
+              setPreviews((prev) => [
+                ...prev,
+                ...limited.map((file) => URL.createObjectURL(file)),
+              ]);
             }}
             className="rounded-2xl border border-dashed border-white/15 bg-gradient-to-b from-white/[0.03] to-white/[0.01] p-10 text-center transition hover:border-[#c0c0c0]/40"
           >
@@ -432,13 +436,17 @@ export default function SellAuctionContent() {
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
 
-                    const limited = files.slice(0, 12);
+                    const remainingSlots = 12 - previews.length;
+                    const limited = files.slice(0, remainingSlots);
 
-                    setImageFiles(limited);
+                    setImageFiles((prev) => [...prev, ...limited]);
 
-                    setPreviews(
-                      limited.map((file) => URL.createObjectURL(file)),
-                    );
+                    setPreviews((prev) => [
+                      ...prev,
+                      ...limited.map((file) => URL.createObjectURL(file)),
+                    ]);
+
+                    e.currentTarget.value = "";
                   }}
                   className="hidden"
                 />
