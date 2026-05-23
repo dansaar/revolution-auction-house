@@ -318,6 +318,18 @@ export default function LiveAuctionPage() {
 
         setDisplayPrice(moneyToNumber(state.currentPrice || 0));
 
+        const newLeader = state.leaderUserId || "";
+
+        if (rawUserKey && myMaxBid && newLeader && newLeader !== rawUserKey) {
+          setFlashOutbid(true);
+
+          const audio = new Audio("/outbid.mp3");
+          audio.volume = 0.35;
+          audio.play().catch(() => {});
+
+          setTimeout(() => setFlashOutbid(false), 1500);
+        }
+
         setAuction((prev: any) => ({
           ...(prev || {}),
           price: state.currentPrice,
