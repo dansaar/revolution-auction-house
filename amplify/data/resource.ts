@@ -60,7 +60,6 @@ const schema = a.schema({
 
       endsAt: a.datetime(),
       ended: a.boolean().default(false),
-
     })
     .identifier(["auctionId"])
     .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
