@@ -21,85 +21,79 @@ function makeBidderDisplayName(value: string) {
   return `Bidder ${value.slice(0, 4).toUpperCase()}`;
 }
 
-export const handler = async (event: any) => {
+async function finalizeOneAuction(auction: any) {
+  const auctionId = auction.id;
+
+  if (!auctionId || auction.ended) return;
+
+  const stateResult = await client.models.AuctionState.get(
+    { auctionId },
+    { authMode: "apiKey" },
+  );
+
+  const state = stateResult.data;
+
+  const finalPrice = moneyToNumber(state?.currentPrice || auction.price || 0);
+  const reservePrice = moneyToNumber(auction.reservePrice || 0);
+  const reserveMet = reservePrice === 0 || finalPrice >= reservePrice;
+
+  const winnerUserId =
+    state?.leaderUserId || auction.winnerUserId || auction.winnerEmail || "";
+
+  const finalStatus = reserveMet ? "ENDED" : "RESERVE_NOT_MET";
+
+  await client.models.Auction.update(
+    {
+      id: auctionId,
+      ended: true,
+      status: finalStatus,
+      reserveMet,
+      winningBid: `$${finalPrice.toLocaleString()}`,
+      winnerUserId,
+      winnerDisplayName: makeBidderDisplayName(winnerUserId),
+      winnerEmail: auction.winnerEmail || "",
+    },
+    { authMode: "apiKey" },
+  );
+
+  await client.models.AuctionState.update(
+    {
+      auctionId,
+      currentPrice: `$${finalPrice.toLocaleString()}`,
+      ended: true,
+    },
+    { authMode: "apiKey" },
+  );
+}
+
+export const handler = async () => {
   try {
-    const { auctionId } = event.arguments;
+    const now = Date.now();
 
-    const auctionResult = await client.models.Auction.get(
-      { id: auctionId },
-      { authMode: "apiKey" },
-    );
+    const result = await client.models.Auction.list({
+      authMode: "apiKey",
+      limit: 1000,
+    } as any);
 
-    const auction = auctionResult.data;
+    const endedOpenAuctions = (result.data || []).filter((auction: any) => {
+      if (!auction.endsAt || auction.ended) return false;
+      return new Date(auction.endsAt).getTime() <= now;
+    });
 
-    if (!auction) {
-      return {
-        success: false,
-        message: "Auction not found",
-        status: "NOT_FOUND",
-      };
+    for (const auction of endedOpenAuctions) {
+      await finalizeOneAuction(auction);
     }
-
-    if (auction.ended) {
-      return {
-        success: true,
-        message: "Auction already finalized",
-        status: auction.status || "ENDED",
-      };
-    }
-
-    const stateResult = await client.models.AuctionState.get(
-      { auctionId },
-      { authMode: "apiKey" },
-    );
-
-    const state = stateResult.data;
-
-    const finalPrice = moneyToNumber(state?.currentPrice || auction.price || 0);
-
-    const reservePrice = moneyToNumber(auction.reservePrice || 0);
-    const reserveMet = reservePrice === 0 || finalPrice >= reservePrice;
-
-    const winnerUserId =
-      state?.leaderUserId || auction.winnerUserId || auction.winnerEmail || "";
-
-    const finalStatus = reserveMet ? "ENDED" : "RESERVE_NOT_MET";
-
-    await client.models.Auction.update(
-      {
-        id: auctionId,
-        ended: true,
-        status: finalStatus,
-        reserveMet,
-        winningBid: `$${finalPrice.toLocaleString()}`,
-        winnerUserId,
-        winnerDisplayName: makeBidderDisplayName(winnerUserId),
-        winnerEmail: auction.winnerEmail || "",
-      },
-      { authMode: "apiKey" },
-    );
-
-    await client.models.AuctionState.update(
-      {
-        auctionId,
-        currentPrice: `$${finalPrice.toLocaleString()}`,
-        ended: true,
-      },
-      { authMode: "apiKey" },
-    );
 
     return {
       success: true,
-      message: "Auction finalized",
-      status: finalStatus,
+      finalized: endedOpenAuctions.length,
     };
-  } catch (err: any) {
-    console.error("FINALIZE AUCTION ERROR", err);
+  } catch (err) {
+    console.error("SCHEDULED FINALIZE ERROR", err);
 
     return {
       success: false,
-      message: err?.message || "Failed to finalize auction",
-      status: "ERROR",
+      finalized: 0,
     };
   }
 };
