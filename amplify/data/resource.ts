@@ -47,9 +47,11 @@ const schema = a.schema({
 
       leaderUserId: a.string(),
       leaderDisplayName: a.string(),
+      leaderEmail: a.string(),
       leaderMaxBid: a.string(),
 
       secondUserId: a.string(),
+      secondEmail: a.string(),
       secondMaxBid: a.string(),
 
       bidCount: a.integer().default(0),
@@ -58,6 +60,7 @@ const schema = a.schema({
 
       endsAt: a.datetime(),
       ended: a.boolean().default(false),
+
     })
     .identifier(["auctionId"])
     .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
