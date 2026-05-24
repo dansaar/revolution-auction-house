@@ -33,6 +33,9 @@ export default function MarketplacePage() {
     async function loadListings() {
       try {
         const result = await client.models.MarketplaceListing.list({
+          filter: {
+            status: { eq: "ACTIVE" },
+          },
           authMode: "apiKey",
         } as any);
 
