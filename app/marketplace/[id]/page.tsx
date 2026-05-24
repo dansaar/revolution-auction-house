@@ -8,6 +8,7 @@ import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
+import { getCurrentUser } from "aws-amplify/auth";
 
 const client = generateClient<Schema>();
 
@@ -80,6 +81,30 @@ export default function MarketplaceListingPage() {
         Listing not found
       </main>
     );
+  }
+
+  async function handleBuyNow() {
+    try {
+      await getCurrentUser();
+
+      const confirmed = confirm("Buy this item now?");
+      if (!confirmed) return;
+
+      await client.models.MarketplaceListing.update(
+        {
+          id,
+          sold: true,
+          status: "SOLD",
+        },
+        { authMode: "userPool" } as any,
+      );
+
+      alert("Purchase recorded.");
+      window.location.href = "/dashboard";
+    } catch (err) {
+      console.error(err);
+      window.location.href = "/signin";
+    }
   }
 
   return (
@@ -174,8 +199,12 @@ export default function MarketplaceListingPage() {
               </div>
             )}
 
-            <button className="mt-10 w-full rounded bg-[#c0c0c0] py-4 font-semibold text-black transition hover:bg-white">
-              Buy Now
+            <button
+              onClick={handleBuyNow}
+              disabled={listing.sold || listing.status === "SOLD"}
+              className="mt-10 w-full rounded bg-[#c0c0c0] py-4 font-semibold text-black transition hover:bg-white disabled:opacity-50"
+            >
+              {listing.sold || listing.status === "SOLD" ? "Sold" : "Buy Now"}
             </button>
 
             <button className="mt-4 w-full rounded border border-white/10 bg-white/[0.03] py-4 font-semibold text-white transition hover:bg-white/[0.06]">
