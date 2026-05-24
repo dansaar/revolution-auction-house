@@ -680,6 +680,17 @@ function MarketplaceSection({ listings, client }: any) {
                 <div className="mt-3 font-serif text-3xl text-[#c0c0c0]">
                   {listing.price}
                 </div>
+
+                {listing.paid && (
+                  <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+                    Paid
+                    {listing.buyerEmail && (
+                      <div className="mt-1 text-xs text-gray-300">
+                        Buyer: {listing.buyerEmail}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <Link
                   href={`/marketplace/${listing.id}`}
                   className="mt-4 block rounded border border-white/10 px-4 py-2 text-center text-sm text-white transition hover:bg-white/[0.05]"

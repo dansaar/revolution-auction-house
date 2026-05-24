@@ -112,6 +112,8 @@ export default function AuctionResultsPage() {
 
     if (data.url) {
       window.location.href = data.url;
+    } else {
+      alert(data.error || "Checkout failed");
     }
   }
 
