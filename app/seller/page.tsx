@@ -183,6 +183,29 @@ export default function SellerPage() {
           Manage your live and completed auctions.
         </p>
 
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/sell/auction"
+            className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-5 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+          >
+            Create Auction
+          </Link>
+
+          <Link
+            href="/sell/listing"
+            className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-5 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+          >
+            Create Listing
+          </Link>
+
+          <Link
+            href="/auctions/results"
+            className="rounded border border-white/10 px-5 py-3 text-sm text-white hover:bg-white/[0.05]"
+          >
+            View Results Archive
+          </Link>
+        </div>
+
         <div className="mt-10 grid gap-5 md:grid-cols-4">
           <Stat label="Total Auctions" value={String(auctions.length)} />
           <Stat label="Live Auctions" value={String(liveAuctions.length)} />
@@ -222,7 +245,7 @@ export default function SellerPage() {
           client={client}
         />
 
-        <MarketplaceSection listings={marketplaceListings} />
+        <MarketplaceSection listings={marketplaceListings} client={client} />
       </div>
     </main>
   );
@@ -485,7 +508,7 @@ function SellerAuctionCard({ auction, client }: any) {
   );
 }
 
-function MarketplaceSection({ listings }: any) {
+function MarketplaceSection({ listings, client }: any) {
   return (
     <section className="mt-14">
       <div className="mb-5 flex items-center justify-between">
@@ -506,9 +529,8 @@ function MarketplaceSection({ listings }: any) {
       ) : (
         <div className="grid gap-6 md:grid-cols-3">
           {listings.map((listing: any) => (
-            <Link
+            <div
               key={listing.id}
-              href={`/sell/listing/${listing.id}/edit`}
               className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-[#c0c0c0]/40"
             >
               <div className="h-72 bg-black">
@@ -545,15 +567,99 @@ function MarketplaceSection({ listings }: any) {
                 <div className="mt-3 font-serif text-3xl text-[#c0c0c0]">
                   {listing.price}
                 </div>
-                <div className="mt-4 rounded border border-white/10 px-4 py-2 text-center text-sm text-white transition hover:bg-white/[0.05]">
+                <Link
+                  href={`/marketplace/${listing.id}`}
+                  className="mt-4 block rounded border border-white/10 px-4 py-2 text-center text-sm text-white transition hover:bg-white/[0.05]"
+                >
                   View Listing
-                </div>
+                </Link>
 
-                <div className="mt-3 rounded border border-[#d6aa55]/20 bg-[#1a1408] px-4 py-2 text-center text-sm text-[#e7c77f] transition hover:bg-[#221909]">
+                <Link
+                  href={`/sell/listing/${listing.id}/edit`}
+                  className="mt-3 block rounded border border-[#d6aa55]/20 bg-[#1a1408] px-4 py-2 text-center text-sm text-[#e7c77f] transition hover:bg-[#221909]"
+                >
                   Edit Listing
+                </Link>
+
+                <div className="mt-3 flex gap-2">
+                  {listing.status === "ACTIVE" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await client.models.MarketplaceListing.update(
+                              {
+                                id: listing.id,
+                                status: "PAUSED",
+                              },
+                              { authMode: "apiKey" } as any,
+                            );
+
+                            window.location.reload();
+                          } catch (err) {
+                            console.error(err);
+                            alert("Failed to pause listing");
+                          }
+                        }}
+                        className="flex-1 rounded border border-yellow-500/20 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-300 hover:bg-yellow-500/20"
+                      >
+                        Pause
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await client.models.MarketplaceListing.update(
+                              {
+                                id: listing.id,
+                                status: "SOLD",
+                                sold: true,
+                              },
+                              { authMode: "apiKey" } as any,
+                            );
+
+                            window.location.reload();
+                          } catch (err) {
+                            console.error(err);
+                            alert("Failed to mark sold");
+                          }
+                        }}
+                        className="flex-1 rounded border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300 hover:bg-emerald-500/20"
+                      >
+                        Mark Sold
+                      </button>
+                    </>
+                  )}
+
+                  {listing.status === "PAUSED" && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await client.models.MarketplaceListing.update(
+                            {
+                              id: listing.id,
+                              status: "ACTIVE",
+                            },
+                            { authMode: "apiKey" } as any,
+                          );
+
+                          window.location.reload();
+                        } catch (err) {
+                          console.error(err);
+                          alert("Failed to activate listing");
+                        }
+                      }}
+                      className="w-full rounded border border-[#d6aa55]/20 bg-[#1a1408] px-4 py-2 text-sm text-[#e7c77f] hover:bg-[#221909]"
+                    >
+                      Activate
+                    </button>
+                  )}
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
