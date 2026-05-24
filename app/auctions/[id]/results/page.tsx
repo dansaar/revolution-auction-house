@@ -88,7 +88,8 @@ export default function AuctionResultsPage() {
   }
 
   const winner = bids[0];
-  const isWinner = winner?.bidderName === user?.username;
+  const userKey = user?.userId || user?.username || "";
+  const isWinner = !!userKey && auction.winnerUserId === userKey;
   const reserveMet =
     auction.reservePrice && auction.price
       ? moneyToNumber(auction.price) >= moneyToNumber(auction.reservePrice)

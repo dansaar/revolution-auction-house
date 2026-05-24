@@ -407,6 +407,12 @@ export default function AuctionsPage() {
         <p className="max-w-xl text-gray-400">
           Bid on curated, high-end Pokémon cards from verified sellers.
         </p>
+        <Link
+          href="/auctions/results"
+          className="mt-5 inline-flex rounded border border-white/10 px-5 py-3 text-sm uppercase tracking-[0.18em] text-[#c0c0c0] transition hover:border-[#c0c0c0]/40 hover:bg-white/[0.04]"
+        >
+          View Auction Results Archive →
+        </Link>
       </div>
 
       <div className="mx-auto mb-8 flex max-w-7xl items-center justify-between">

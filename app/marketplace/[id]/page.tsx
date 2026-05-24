@@ -19,6 +19,9 @@ export default function MarketplaceListingPage() {
   const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const [offerAmount, setOfferAmount] = useState("");
+  const [submittingOffer, setSubmittingOffer] = useState(false);
+
   const [images, setImages] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
@@ -81,6 +84,55 @@ export default function MarketplaceListingPage() {
         Listing not found
       </main>
     );
+  }
+
+  async function handleMakeOffer() {
+    try {
+      const currentUser = await getCurrentUser();
+
+      const buyerEmail =
+        currentUser.signInDetails?.loginId || currentUser.username || "";
+
+      if (!buyerEmail) {
+        window.location.href = "/signin";
+        return;
+      }
+
+      if (!offerAmount) {
+        alert("Enter an offer amount");
+        return;
+      }
+
+      setSubmittingOffer(true);
+
+      await client.models.Offer.create(
+        {
+          listingId: listing.id,
+
+          buyerUserId: buyerEmail,
+          buyerEmail,
+          buyerDisplayName: buyerEmail,
+
+          sellerUserId: listing.sellerEmail || "",
+          sellerEmail: listing.sellerEmail || "",
+
+          amount: `$${Number(offerAmount).toLocaleString()}`,
+
+          status: "PENDING",
+        },
+        {
+          authMode: "userPool",
+        } as any,
+      );
+
+      alert("Offer submitted");
+      setOfferAmount("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit offer");
+    } finally {
+      setSubmittingOffer(false);
+    }
   }
 
   async function handleBuyNow() {
@@ -207,9 +259,30 @@ export default function MarketplaceListingPage() {
               {listing.sold || listing.status === "SOLD" ? "Sold" : "Buy Now"}
             </button>
 
-            <button className="mt-4 w-full rounded border border-white/10 bg-white/[0.03] py-4 font-semibold text-white transition hover:bg-white/[0.06]">
-              Make Offer
-            </button>
+            <div className="mt-4 rounded border border-white/10 bg-white/[0.03] p-4">
+              <div className="mb-3 text-xs uppercase tracking-[0.18em] text-gray-500">
+                Make Offer
+              </div>
+
+              <div className="flex gap-3">
+                <input
+                  value={offerAmount}
+                  onChange={(e) => setOfferAmount(e.target.value)}
+                  placeholder="Offer Amount"
+                  className="flex-1 rounded border border-white/10 bg-black px-4 py-3 text-white"
+                />
+
+                <button
+                  onClick={handleMakeOffer}
+                  disabled={
+                    submittingOffer || listing.sold || listing.status === "SOLD"
+                  }
+                  className="rounded border border-white/10 bg-white/[0.05] px-6 py-3 font-semibold text-white transition hover:bg-white/[0.08] disabled:opacity-50"
+                >
+                  {submittingOffer ? "Sending..." : "Submit"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
