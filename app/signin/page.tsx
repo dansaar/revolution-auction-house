@@ -8,6 +8,8 @@ import { signIn, confirmSignIn } from "aws-amplify/auth";
 
 export default function SignInPage() {
   const router = useRouter();
+  const next = "/";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -15,6 +17,10 @@ export default function SignInPage() {
   const [needsNewPassword, setNeedsNewPassword] = useState(false);
 
   const [error, setError] = useState("");
+
+  function goNext() {
+    window.location.href = next;
+  }
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
@@ -44,7 +50,7 @@ export default function SignInPage() {
         return;
       }
 
-      router.push("/dashboard");
+      goNext();
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Sign in failed");
@@ -62,7 +68,7 @@ export default function SignInPage() {
       });
 
       if (result.isSignedIn) {
-        router.push("/dashboard");
+        goNext();
       }
     } catch (err: any) {
       setError(err.message || "Could not set new password");
