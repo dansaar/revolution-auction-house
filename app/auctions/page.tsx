@@ -30,7 +30,7 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
               ? "border-red-500 bg-red-500/5"
               : time.urgency === "warning"
                 ? "border-yellow-400 bg-yellow-400/5"
-                : "border-white/10 bg-white/[0.03] hover:border-[#c0c0c0]/50"
+                : "border-white/10 bg-white/[0.03] hover:border-[#c0c0c0]/50 hover:shadow-[0_0_40px_rgba(192,192,192,0.12)] hover:-translate-y-1"
       }`}
     >
       <div className="relative bg-black">
@@ -129,6 +129,9 @@ export default function AuctionsPage() {
   const [now, setNow] = useState(Date.now());
   const [watchedIds, setWatchedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<
+    "ALL" | "ENDING_SOON" | "HIGH_VALUE" | "PSA_10"
+  >("ALL");
 
   function isWatching(auctionId: string) {
     return watchedIds.includes(auctionId);
@@ -350,6 +353,34 @@ export default function AuctionsPage() {
     return new Date(a.endsAt).getTime() <= now;
   });
 
+  function applyFilter(items: any[]) {
+    if (filter === "ENDING_SOON") {
+      return [...items].sort(
+        (a, b) =>
+          new Date(a.endsAt || 0).getTime() - new Date(b.endsAt || 0).getTime(),
+      );
+    }
+
+    if (filter === "HIGH_VALUE") {
+      return [...items].sort(
+        (a, b) => moneyToNumber(b.price || 0) - moneyToNumber(a.price || 0),
+      );
+    }
+
+    if (filter === "PSA_10") {
+      return items.filter((item) =>
+        String(item.grade || "")
+          .toLowerCase()
+          .includes("10"),
+      );
+    }
+
+    return items;
+  }
+
+  const visibleLiveAuctions = applyFilter(liveAuctions);
+  const visibleEndedAuctions = applyFilter(endedAuctions);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#050607] px-6 py-12 text-white">
@@ -380,13 +411,40 @@ export default function AuctionsPage() {
 
       <div className="mx-auto mb-8 flex max-w-7xl items-center justify-between">
         <div className="flex gap-3">
-          <button className="rounded border border-white/20 px-4 py-2 hover:border-[#c0c0c0]">
+          <button
+            onClick={() =>
+              setFilter(filter === "ENDING_SOON" ? "ALL" : "ENDING_SOON")
+            }
+            className={`rounded border px-4 py-2 ${
+              filter === "ENDING_SOON"
+                ? "border-[#c0c0c0] bg-white/[0.08] text-white"
+                : "border-white/20 hover:border-[#c0c0c0]"
+            }`}
+          >
             Ending Soon
           </button>
-          <button className="rounded border border-white/20 px-4 py-2 hover:border-[#c0c0c0]">
+
+          <button
+            onClick={() =>
+              setFilter(filter === "HIGH_VALUE" ? "ALL" : "HIGH_VALUE")
+            }
+            className={`rounded border px-4 py-2 ${
+              filter === "HIGH_VALUE"
+                ? "border-[#c0c0c0] bg-white/[0.08] text-white"
+                : "border-white/20 hover:border-[#c0c0c0]"
+            }`}
+          >
             High Value
           </button>
-          <button className="rounded border border-white/20 px-4 py-2 hover:border-[#c0c0c0]">
+
+          <button
+            onClick={() => setFilter(filter === "PSA_10" ? "ALL" : "PSA_10")}
+            className={`rounded border px-4 py-2 ${
+              filter === "PSA_10"
+                ? "border-[#c0c0c0] bg-white/[0.08] text-white"
+                : "border-white/20 hover:border-[#c0c0c0]"
+            }`}
+          >
             PSA 10
           </button>
         </div>
@@ -401,7 +459,7 @@ export default function AuctionsPage() {
         <h2 className="mb-4 font-serif text-2xl">Live Auctions</h2>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {liveAuctions.map((item) => (
+          {visibleLiveAuctions.map((item) => (
             <Link key={item.id} href={`/auctions/${item.id}`}>
               <AuctionCard
                 item={item}
@@ -416,11 +474,11 @@ export default function AuctionsPage() {
           Ended Auctions
         </h2>
 
-        {endedAuctions.length === 0 ? (
+        {visibleEndedAuctions.length === 0 ? (
           <p className="text-gray-600">No ended auctions yet.</p>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {endedAuctions.map((item) => (
+            {visibleEndedAuctions.map((item) => (
               <Link key={item.id} href={`/auctions/${item.id}/results`}>
                 <AuctionCard
                   item={item}
