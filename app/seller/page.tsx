@@ -362,7 +362,7 @@ function OfferSection({ offers, client }: any) {
                             id: offer.id,
                             status: "DECLINED",
                           },
-                          { authMode: "apiKey" } as any,
+                          { authMode: "userPool" } as any,
                         );
 
                         window.location.reload();
