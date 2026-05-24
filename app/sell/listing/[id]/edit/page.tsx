@@ -136,8 +136,11 @@ export default function EditListingPage() {
       let fullUrls: string[] = [];
 
       if (imageFiles.length > 0) {
-        for (const file of imageFiles) {
-          const safeName = file.name.replaceAll(" ", "-");
+        for (const file of imageFiles.filter(Boolean)) {
+          const safeName = (file.name || "listing-image.jpg").replaceAll(
+            " ",
+            "-",
+          );
           const baseName = `${Date.now()}-${safeName}`;
 
           const thumbFile = await imageCompression(file, {
