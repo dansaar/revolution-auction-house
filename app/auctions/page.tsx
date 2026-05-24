@@ -60,23 +60,24 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
         >
           {ended ? "Ended" : "Live"}
         </div>
+        {!ended && (
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
 
-        <button
-          type="button"
-          onClick={async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            await toggleWatchlist(item);
-          }}
-          className={`absolute right-4 top-4 z-10 rounded-full border p-3 transition hover:scale-110 active:scale-90 ${
-            watching
-              ? "border-red-500 bg-red-600/30 text-red-300 shadow-[0_0_25px_rgba(239,68,68,0.4)]"
-              : "border-white/10 bg-black/60 text-white hover:text-red-300"
-          }`}
-        >
-          <span className="text-xl">{watching ? "❤️" : "♡"}</span>
-        </button>
+              await toggleWatchlist(item);
+            }}
+            className={`absolute right-4 top-4 z-10 rounded-full border p-3 transition hover:scale-110 active:scale-90 ${
+              watching
+                ? "border-red-500 bg-red-600/30 text-red-300 shadow-[0_0_25px_rgba(239,68,68,0.4)]"
+                : "border-white/10 bg-black/60 text-white hover:text-red-300"
+            }`}
+          >
+            <span className="text-xl">{watching ? "❤️" : "♡"}</span>
+          </button>
+        )}
 
         <div className="absolute bottom-3 left-3 z-20 rounded bg-black/70 px-3 py-1 text-xs text-[#c0c0c0]">
           {ended ? "Final Results" : `⏱ ${time.label}`}
