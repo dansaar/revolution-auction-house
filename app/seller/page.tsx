@@ -32,7 +32,7 @@ export default function SellerPage() {
           filter: {
             sellerEmail: { eq: email },
           },
-          authMode: "apiKey",
+          authMode: "userPool",
         } as any);
 
         setOffers(offerResult.data || []);
@@ -330,7 +330,7 @@ function OfferSection({ offers, client }: any) {
                             id: offer.id,
                             status: "ACCEPTED",
                           },
-                          { authMode: "apiKey" } as any,
+                          { authMode: "userPool" } as any,
                         );
 
                         await client.models.MarketplaceListing.update(
