@@ -9,10 +9,15 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
+import { moneyToNumber } from "@/lib/money";
 
 function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
   const time = getTimeLeft(item.endsAt);
   const watching = isWatching(item.id);
+  const reservePrice = moneyToNumber(item.reservePrice || 0);
+  const currentPrice = moneyToNumber(item.price || 0);
+  const hasReserve = reservePrice > 0;
+  const reserveMet = !hasReserve || currentPrice >= reservePrice;
 
   return (
     <div
@@ -74,7 +79,7 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
         </button>
 
         <div className="absolute bottom-3 left-3 z-20 rounded bg-black/70 px-3 py-1 text-xs text-[#c0c0c0]">
-          {ended ? "Final" : `⏱ ${time.label}`}
+          {ended ? "Final Results" : `⏱ ${time.label}`}
         </div>
       </div>
 
@@ -92,6 +97,23 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
 
           <div className="text-sm text-gray-400">{item.bids || 0} bids</div>
         </div>
+        {ended && (
+          <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
+            <span className="text-xs uppercase tracking-[0.16em] text-gray-500">
+              Result
+            </span>
+
+            {reserveMet ? (
+              <span className="rounded bg-emerald-500/15 px-2 py-1 text-[11px] uppercase text-emerald-300">
+                Reserve Met
+              </span>
+            ) : (
+              <span className="rounded bg-yellow-500/15 px-2 py-1 text-[11px] uppercase text-yellow-300">
+                Reserve Not Met
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
