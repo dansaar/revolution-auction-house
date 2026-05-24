@@ -763,12 +763,6 @@ export default function LiveAuctionPage() {
               {formatMoney(displayPrice)}
             </div>
 
-            {myMaxBid && (
-              <div className="mt-2 text-sm text-gray-400">
-                Your max bid:{" "}
-                <span className="font-semibold text-[#c0c0c0]">{myMaxBid}</span>
-              </div>
-            )}
             {user && !auctionEnded && userIsWinning && (
               <div className="mt-5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-300">
                 You are currently the highest bidder
@@ -814,6 +808,11 @@ export default function LiveAuctionPage() {
                           user?.userId || user?.username || "",
                         )}
                       </span>
+                      {myMaxBid && (
+                        <span className="rounded-full border border-[#d6aa55]/50 bg-gradient-to-r from-[#1a1408] to-[#241909] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f5d487] shadow-[0_0_24px_rgba(214,170,85,0.18)]">
+                          Your Max Bid {myMaxBid}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

@@ -10,7 +10,22 @@ function moneyToCents(value: string) {
 }
 
 export async function POST(req: Request) {
-  const { auctionId, title, amount } = await req.json();
+  const { auctionId, listingId, title, amount } = await req.json();
+
+  if (!title || !amount) {
+    return NextResponse.json(
+      { error: "Missing title or amount" },
+      { status: 400 },
+    );
+  }
+
+  const successUrl = listingId
+    ? `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}&type=listing`
+    : `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}&type=auction`;
+
+  const cancelUrl = listingId
+    ? `${process.env.NEXT_PUBLIC_SITE_URL}/marketplace/${listingId}`
+    : `${process.env.NEXT_PUBLIC_SITE_URL}/auctions/${auctionId}/results`;
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -27,10 +42,11 @@ export async function POST(req: Request) {
       },
     ],
     metadata: {
-      auctionId,
+      auctionId: auctionId || "",
+      listingId: listingId || "",
     },
-    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/auctions/${auctionId}/results`,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
   });
 
   return NextResponse.json({ url: session.url });

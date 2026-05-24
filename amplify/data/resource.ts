@@ -82,6 +82,12 @@ const schema = a.schema({
       featured: a.boolean().default(false),
       status: a.string().default("ACTIVE"),
       sold: a.boolean().default(false),
+
+      buyerEmail: a.string(),
+      paid: a.boolean().default(false),
+      paidAt: a.datetime(),
+      stripeSessionId: a.string(),
+
       sellerUserId: a.string(),
       sellerDisplayName: a.string(),
       sellerEmail: a.string(),

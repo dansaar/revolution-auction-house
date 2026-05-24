@@ -142,17 +142,23 @@ export default function MarketplaceListingPage() {
       const confirmed = confirm("Buy this item now?");
       if (!confirmed) return;
 
-      await client.models.MarketplaceListing.update(
-        {
-          id,
-          sold: true,
-          status: "SOLD",
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        { authMode: "userPool" } as any,
-      );
+        body: JSON.stringify({
+          listingId: id,
+          title: listing.title,
+          amount: listing.price,
+        }),
+      });
 
-      alert("Purchase recorded.");
-      window.location.href = "/dashboard";
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      }
     } catch (err) {
       console.error(err);
       window.location.href = "/signin";

@@ -610,6 +610,34 @@
               "isRequired": false,
               "attributes": []
             },
+            "buyerEmail": {
+              "name": "buyerEmail",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "paid": {
+              "name": "paid",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "paidAt": {
+              "name": "paidAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "stripeSessionId": {
+              "name": "stripeSessionId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "sellerUserId": {
               "name": "sellerUserId",
               "isArray": false,

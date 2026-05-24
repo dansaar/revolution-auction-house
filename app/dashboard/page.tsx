@@ -34,6 +34,7 @@ export default function DashboardPage() {
 
   const [bids, setBids] = useState<any[]>([]);
   const [auctions, setAuctions] = useState<any[]>([]);
+  const [marketplacePurchases, setMarketplacePurchases] = useState<any[]>([]);
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -106,7 +107,29 @@ export default function DashboardPage() {
             imageUrl: resolveAuctionImage(auction),
           };
         });
+        const marketplaceResult = await client.models.MarketplaceListing.list({
+          filter: {
+            buyerEmail: { eq: userKey },
+          },
+          authMode: "apiKey",
+        } as any);
 
+        const resolvedMarketplacePurchases = (marketplaceResult.data || []).map(
+          (listing: any) => {
+            const rawImage =
+              listing.thumbImages?.[0] ||
+              listing.image ||
+              listing.images?.[0] ||
+              "";
+
+            return {
+              ...listing,
+              imageUrl: cdnUrl(rawImage),
+            };
+          },
+        );
+
+        setMarketplacePurchases(resolvedMarketplacePurchases);
         const combinedBids = [
           ...(bidResult.data || []),
           ...(emailBidResult.data || []),
@@ -364,6 +387,8 @@ export default function DashboardPage() {
       },
       body: JSON.stringify({
         auctionId: auction.id,
+        title: auction.title,
+        amount: auction.price,
       }),
     });
 
@@ -533,6 +558,15 @@ export default function DashboardPage() {
                   auctions={auctions}
                   trophy
                 />
+              ))
+            )}
+          </Panel>
+          <Panel title="Marketplace Purchases">
+            {marketplacePurchases.length === 0 ? (
+              <Empty text="No marketplace purchases yet." />
+            ) : (
+              marketplacePurchases.map((listing: any) => (
+                <MarketplacePurchaseRow key={listing.id} listing={listing} />
               ))
             )}
           </Panel>
@@ -792,6 +826,49 @@ function LostAuctionRow({ auction }: any) {
         </div>
 
         <div className="font-serif text-xl text-[#c0c0c0]">{auction.price}</div>
+      </div>
+    </Link>
+  );
+}
+function MarketplacePurchaseRow({ listing }: any) {
+  return (
+    <Link
+      href={`/marketplace/${listing.id}`}
+      className="mb-3 block rounded border border-emerald-500/30 bg-emerald-500/10 p-4"
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <img
+            loading="lazy"
+            src={listing.imageUrl || "/logo.png"}
+            onError={(e) => {
+              e.currentTarget.src = "/logo.png";
+            }}
+            className="h-16 w-16 rounded object-cover"
+          />
+
+          <div>
+            <div className="font-semibold">{listing.title}</div>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {listing.paid ? (
+                <span className="rounded bg-green-500/10 px-2 py-0.5 text-xs text-green-400">
+                  Paid
+                </span>
+              ) : (
+                <span className="rounded bg-yellow-400/10 px-2 py-0.5 text-xs text-yellow-300">
+                  Payment Pending
+                </span>
+              )}
+
+              <span className="rounded bg-white/10 px-2 py-0.5 text-xs text-gray-300">
+                Marketplace
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="font-serif text-xl text-[#c0c0c0]">{listing.price}</div>
       </div>
     </Link>
   );

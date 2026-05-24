@@ -25,23 +25,48 @@ export async function POST(req: Request) {
   }
 
   const auctionId = session.metadata?.auctionId;
+  const listingId = session.metadata?.listingId;
+  const buyerEmail =
+    session.customer_details?.email || session.customer_email || "";
 
-  if (!auctionId) {
-    return NextResponse.json({ error: "Missing auctionId" }, { status: 400 });
+  if (listingId) {
+    await client.models.MarketplaceListing.update(
+      {
+        id: listingId,
+        sold: true,
+        paid: true,
+        paidAt: new Date().toISOString(),
+        stripeSessionId: sessionId,
+        buyerEmail,
+        status: "SOLD",
+      },
+      {
+        authMode: "apiKey",
+      } as any,
+    );
+
+    return NextResponse.json({ paid: true, listingId });
   }
 
-  await client.models.Auction.update(
-    {
-      id: auctionId,
-      paid: true,
-      paidAt: new Date().toISOString(),
-      stripeSessionId: sessionId,
-      status: "PAID",
-    },
-    {
-      authMode: "apiKey",
-    } as any,
-  );
+  if (auctionId) {
+    await client.models.Auction.update(
+      {
+        id: auctionId,
+        paid: true,
+        paidAt: new Date().toISOString(),
+        stripeSessionId: sessionId,
+        status: "PAID",
+      },
+      {
+        authMode: "apiKey",
+      } as any,
+    );
 
-  return NextResponse.json({ paid: true, auctionId });
+    return NextResponse.json({ paid: true, auctionId });
+  }
+
+  return NextResponse.json(
+    { error: "Missing auctionId or listingId" },
+    { status: 400 },
+  );
 }
