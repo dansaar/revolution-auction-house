@@ -449,7 +449,7 @@ function SellerAuctionCard({ auction, client }: any) {
             e.currentTarget.onerror = null;
             e.currentTarget.src = "/logo.png";
           }}
-          className="h-64 w-full rounded-xl object-contain bg-black lg:w-72"
+          className="h-52 w-full rounded-xl object-contain bg-black sm:h-64 lg:w-72"
         />
 
         <div className="flex flex-1 flex-col justify-between">
@@ -480,7 +480,7 @@ function SellerAuctionCard({ auction, client }: any) {
                 ))}
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <div>
                 <div className="text-xs uppercase text-gray-500">
                   Current Price
@@ -539,16 +539,16 @@ function SellerAuctionCard({ auction, client }: any) {
             </div>
           </div>
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href={`/auctions/${auction.id}`}
-              className="rounded border border-white/10 px-5 py-3 text-sm text-white hover:bg-white/[0.05]"
+              className="rounded border border-white/10 px-4 py-3 text-sm text-white hover:bg-white/[0.05]"
             >
               View Auction
             </Link>
             <Link
               href={`/sell/auction/${auction.id}/edit`}
-              className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-5 py-3 text-sm text-[#e7c77f] hover:bg-[#221909]"
+              className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-3 text-sm text-[#e7c77f] hover:bg-[#221909]"
             >
               Edit Auction
             </Link>
@@ -562,7 +562,7 @@ function SellerAuctionCard({ auction, client }: any) {
 
                 alert("Auction link copied");
               }}
-              className="rounded border border-white/10 px-5 py-3 text-sm text-white hover:bg-white/[0.05]"
+              className="rounded border border-white/10 px-4 py-3 text-sm text-white hover:bg-white/[0.05]"
             >
               Copy Link
             </button>
@@ -587,7 +587,7 @@ function SellerAuctionCard({ auction, client }: any) {
                     alert("Failed to end auction");
                   }
                 }}
-                className="rounded border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-red-300 hover:bg-red-500/20"
+                className="rounded border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300 hover:bg-red-500/20"
               >
                 End Auction
               </button>
@@ -640,13 +640,13 @@ function MarketplaceSection({ listings, client }: any) {
       {listings.length === 0 ? (
         <p className="text-gray-500">No marketplace listings.</p>
       ) : (
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {listings.map((listing: any) => (
             <div
               key={listing.id}
               className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-[#c0c0c0]/40"
             >
-              <div className="h-72 bg-black">
+              <div className="h-56 bg-black sm:h-72">
                 <img
                   loading="lazy"
                   src={

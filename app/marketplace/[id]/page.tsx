@@ -169,7 +169,7 @@ export default function MarketplaceListingPage() {
           ← Marketplace
         </Link>
 
-        <div className="grid gap-10 lg:grid-cols-2">
+        <div className="grid gap-8 lg:grid-cols-2">
           {/* LEFT */}
           <div>
             <button
@@ -181,14 +181,14 @@ export default function MarketplaceListingPage() {
                 loading="eager"
                 src={selectedImage || "/logo.png"}
                 alt={listing.title}
-                className="relative z-10 h-[600px] w-full object-contain"
+                className="relative z-10 h-[320px] w-full object-contain md:h-[600px]"
               />
               <div className="pointer-events-none absolute bottom-3 right-3 rounded bg-black/70 px-3 py-1 text-xs text-[#c0c0c0] opacity-0 transition group-hover:opacity-100">
                 Click to fullscreen
               </div>
             </button>
 
-            <div className="mt-4 grid grid-cols-4 gap-3">
+            <div className="mt-4 grid grid-cols-4 gap-2 md:gap-3">
               {images.map((src, i) => (
                 <button
                   key={i}
@@ -204,7 +204,7 @@ export default function MarketplaceListingPage() {
                     loading="lazy"
                     src={src}
                     alt={`${listing.title} ${i + 1}`}
-                    className="h-24 w-full object-cover"
+                    className="h-16 w-full object-cover md:h-24"
                   />
                 </button>
               ))}

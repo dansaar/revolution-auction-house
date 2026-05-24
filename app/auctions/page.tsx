@@ -48,7 +48,7 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
             e.currentTarget.src = "/logo.png";
           }}
           alt={item.title}
-          className={`relative z-10 h-64 w-full object-cover transition ${
+          className={`relative z-10 h-52 w-full object-cover transition sm:h-64 ${
             ended ? "grayscale opacity-60" : ""
           }`}
         />
@@ -84,8 +84,10 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
         </div>
       </div>
 
-      <div className="p-4">
-        <div className="font-semibold text-white">{item.title}</div>
+      <div className="p-3 sm:p-4">
+        <div className="text-sm font-semibold text-white sm:text-base">
+          {item.title}
+        </div>
         <div className="text-sm text-gray-400">{item.subtitle}</div>
 
         <div className="mt-4 flex items-end justify-between">
@@ -415,8 +417,8 @@ export default function AuctionsPage() {
         </Link>
       </div>
 
-      <div className="mx-auto mb-8 flex max-w-7xl items-center justify-between">
-        <div className="flex gap-3">
+      <div className="mx-auto mb-8 flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() =>
               setFilter(filter === "ENDING_SOON" ? "ALL" : "ENDING_SOON")

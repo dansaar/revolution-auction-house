@@ -490,7 +490,7 @@ export default function DashboardPage() {
             )}
           </Panel>
 
-          <Panel title="All Wins">
+          <Panel title="Won Auctions">
             {myWins.length === 0 ? (
               <Empty text="No wins yet." />
             ) : (

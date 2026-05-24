@@ -83,7 +83,7 @@ export default function AuctionResultsArchivePage() {
             No completed auctions yet.
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {results.map((auction: any) => {
               const reserveMet =
                 !auction.reservePrice ||
@@ -96,7 +96,7 @@ export default function AuctionResultsArchivePage() {
                   href={`/auctions/${auction.id}/results`}
                   className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-[#c0c0c0]/40 hover:shadow-[0_0_40px_rgba(192,192,192,0.10)]"
                 >
-                  <div className="relative h-72 bg-black">
+                  <div className="relative h-56 bg-black sm:h-72">
                     <img
                       loading="lazy"
                       src={auction.imageUrl || "/logo.png"}
@@ -110,7 +110,9 @@ export default function AuctionResultsArchivePage() {
                   </div>
 
                   <div className="p-5">
-                    <h2 className="font-serif text-2xl">{auction.title}</h2>
+                    <h2 className="font-serif text-xl sm:text-2xl">
+                      {auction.title}
+                    </h2>
 
                     {auction.subtitle && (
                       <p className="mt-2 text-sm text-gray-400">

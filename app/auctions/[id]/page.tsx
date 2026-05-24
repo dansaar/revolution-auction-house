@@ -673,7 +673,7 @@ export default function LiveAuctionPage() {
       )}
 
       <main className="max-w-6xl mx-auto">
-        <div className="mb-14 flex items-center justify-between border-b border-white/10 pb-8">
+        <div className="mb-10 flex flex-col gap-3 border-b border-white/10 pb-8 sm:flex-row sm:items-center sm:justify-between">
           <Link
             href="/auctions"
             className="rounded-full border border-white/10 px-6 py-3 text-sm uppercase tracking-[0.22em] text-white transition hover:border-white/30 hover:bg-white/[0.03]"
@@ -835,7 +835,7 @@ export default function LiveAuctionPage() {
                   Your Maximum Bid
                 </label>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
                   <input
                     disabled={auctionEnded || isSubmitting}
                     value={input}
