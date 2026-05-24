@@ -469,27 +469,6 @@ export default function AuctionsPage() {
             </Link>
           ))}
         </div>
-
-        <h2 className="mb-4 mt-12 font-serif text-2xl text-gray-500">
-          Ended Auctions
-        </h2>
-
-        {visibleEndedAuctions.length === 0 ? (
-          <p className="text-gray-600">No ended auctions yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {visibleEndedAuctions.map((item) => (
-              <Link key={item.id} href={`/auctions/${item.id}/results`}>
-                <AuctionCard
-                  item={item}
-                  ended
-                  isWatching={isWatching}
-                  toggleWatchlist={toggleWatchlist}
-                />
-              </Link>
-            ))}
-          </div>
-        )}
       </section>
 
       <div className="mx-auto mt-16 max-w-7xl text-center">
