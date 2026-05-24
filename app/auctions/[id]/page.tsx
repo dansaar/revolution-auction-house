@@ -612,6 +612,11 @@ export default function LiveAuctionPage() {
   }
 
   async function placeBid() {
+    if (!user) {
+      window.location.href = `/signin?next=/auctions/${id}`;
+      return;
+    }
+
     if (isSubmitting) return;
 
     const enteredMaxBid = moneyToNumber(input);
