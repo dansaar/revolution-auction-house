@@ -109,6 +109,7 @@ const schema = a.schema({
       message: a.string(),
 
       status: a.string().default("PENDING"),
+      read: a.boolean().default(false),
     })
     .authorization((allow) => [allow.authenticated()]),
 

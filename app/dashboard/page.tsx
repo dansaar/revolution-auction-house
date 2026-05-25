@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const [auctions, setAuctions] = useState<any[]>([]);
   const [marketplacePurchases, setMarketplacePurchases] = useState<any[]>([]);
   const [acceptedOffers, setAcceptedOffers] = useState<any[]>([]);
+  const [buyerOffers, setBuyerOffers] = useState<any[]>([]);
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -129,6 +130,15 @@ export default function DashboardPage() {
             };
           },
         );
+
+        const buyerOfferResult = await client.models.Offer.list({
+          filter: {
+            buyerEmail: { eq: userKey },
+          },
+          authMode: "userPool",
+        } as any);
+
+        setBuyerOffers(buyerOfferResult.data || []);
 
         setMarketplacePurchases(resolvedMarketplacePurchases);
         const acceptedMarketplaceResult =
@@ -461,6 +471,24 @@ export default function DashboardPage() {
     window.dispatchEvent(new Event("watchlist-updated"));
   }
 
+  async function dismissOfferNotification(offerId: string) {
+    await client.models.Offer.update(
+      {
+        id: offerId,
+        read: true,
+      },
+      {
+        authMode: "userPool",
+      } as any,
+    );
+
+    setBuyerOffers((prev: any[]) =>
+      prev.map((offer: any) =>
+        offer.id === offerId ? { ...offer, read: true } : offer,
+      ),
+    );
+  }
+
   if (loadingUser) {
     return (
       <div className="min-h-screen bg-[#050607] p-10 text-white">
@@ -694,6 +722,22 @@ export default function DashboardPage() {
             )}
           </Panel>
 
+          <Panel title="Offer Notifications">
+            {buyerOffers.length === 0 ? (
+              <Empty text="No offer updates yet." />
+            ) : (
+              buyerOffers
+                .filter((offer: any) => offer.read !== true)
+                .map((offer: any) => (
+                  <OfferNotificationRow
+                    key={offer.id}
+                    offer={offer}
+                    onDismiss={dismissOfferNotification}
+                  />
+                ))
+            )}
+          </Panel>
+
           <Panel title="Marketplace Purchases">
             {marketplacePurchases.length === 0 ? (
               <Empty text="No marketplace purchases yet." />
@@ -896,6 +940,79 @@ function LostAuctionRow({ auction }: any) {
     </Link>
   );
 }
+
+function OfferNotificationRow({ offer, onDismiss }: any) {
+  return (
+    <div
+      className="
+    mb-4 rounded-2xl
+    border border-white/10
+    bg-gradient-to-br from-white/[0.05] to-white/[0.02]
+    p-5
+    shadow-[0_10px_40px_rgba(0,0,0,0.35)]
+    backdrop-blur-sm
+  "
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <div className="font-serif text-lg text-[#d7d7d7]">
+            Marketplace Offer
+          </div>
+
+          <div className="mt-2 text-sm text-gray-400">
+            Offer amount: {offer.amount}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {offer.status === "ACCEPTED" ? (
+            <span className="rounded bg-green-500/10 px-2 py-1 text-xs text-green-400">
+              Accepted
+            </span>
+          ) : offer.status === "DECLINED" ? (
+            <span className="rounded bg-red-500/10 px-2 py-1 text-xs text-red-300">
+              Declined
+            </span>
+          ) : (
+            <span className="rounded bg-yellow-400/10 px-2 py-1 text-xs text-yellow-300">
+              Pending
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onDismiss(offer.id)}
+            className="
+    group relative overflow-hidden rounded-xl
+    border border-white/10
+    bg-gradient-to-b from-white/[0.08] to-white/[0.03]
+    px-4 py-2
+    text-xs font-semibold uppercase tracking-[0.18em]
+    text-[#d7d7d7]
+    transition-all duration-300
+    hover:border-[#c0c0c0]/40
+    hover:bg-white/[0.08]
+    hover:text-white
+    hover:shadow-[0_0_30px_rgba(192,192,192,0.12)]
+    active:scale-[0.97]
+  "
+          >
+            <span className="relative z-10">Dismiss</span>
+
+            <div
+              className="
+      absolute inset-0 opacity-0 transition-opacity duration-300
+      group-hover:opacity-100
+      bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_65%)]
+    "
+            />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MarketplacePurchaseRow({ listing }: any) {
   return (
     <Link
