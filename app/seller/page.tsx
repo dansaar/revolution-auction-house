@@ -185,6 +185,21 @@ export default function SellerPage() {
         moneyToNumber(a.price || 0) < moneyToNumber(a.reservePrice || 0)),
   );
 
+  const activeListings = marketplaceListings.filter(
+    (l) =>
+      l.status === "ACTIVE" ||
+      l.status === "PAUSED" ||
+      l.status === "OFFER_PENDING",
+  );
+
+  const pendingPaymentListings = marketplaceListings.filter(
+    (l) => l.status === "OFFER_ACCEPTED",
+  );
+
+  const soldListings = marketplaceListings.filter(
+    (l) => l.status === "SOLD" || l.sold,
+  );
+
   return (
     <main className="min-h-screen bg-[#050607] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
@@ -258,7 +273,23 @@ export default function SellerPage() {
 
         <OfferSection offers={offers} client={client} />
 
-        <MarketplaceSection listings={marketplaceListings} client={client} />
+        <MarketplaceSection
+          title="Active Listings"
+          listings={activeListings}
+          client={client}
+        />
+
+        <MarketplaceSection
+          title="Pending Payment"
+          listings={pendingPaymentListings}
+          client={client}
+        />
+
+        <MarketplaceSection
+          title="Sold Listings"
+          listings={soldListings}
+          client={client}
+        />
       </div>
     </main>
   );
@@ -631,13 +662,11 @@ function SellerAuctionCard({ auction, client }: any) {
   );
 }
 
-function MarketplaceSection({ listings, client }: any) {
+function MarketplaceSection({ title, listings, client }: any) {
   return (
     <section className="mt-14">
       <div className="mb-5 flex items-center justify-between">
-        <h2 className="font-serif text-3xl text-[#c0c0c0]">
-          Marketplace Listings
-        </h2>
+        <h2 className="font-serif text-3xl text-[#c0c0c0]">{title}</h2>
 
         <Link
           href="/sell/listing"
@@ -674,9 +703,17 @@ function MarketplaceSection({ listings, client }: any) {
                     Marketplace
                   </div>
 
-                  {listing.sold ? (
+                  {listing.status === "SOLD" ? (
                     <span className="rounded bg-red-500/20 px-2 py-1 text-[10px] uppercase text-red-300">
                       Sold
+                    </span>
+                  ) : listing.status === "OFFER_PENDING" ? (
+                    <span className="rounded bg-yellow-500/20 px-2 py-1 text-[10px] uppercase text-yellow-300">
+                      Offer Pending
+                    </span>
+                  ) : listing.status === "OFFER_ACCEPTED" ? (
+                    <span className="rounded bg-blue-500/20 px-2 py-1 text-[10px] uppercase text-blue-300">
+                      Pending Payment
                     </span>
                   ) : (
                     <span className="rounded bg-emerald-500/20 px-2 py-1 text-[10px] uppercase text-emerald-300">
