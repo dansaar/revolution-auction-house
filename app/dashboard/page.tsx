@@ -446,7 +446,7 @@ export default function DashboardPage() {
       body: JSON.stringify({
         listingId: listing.id,
         title: listing.title,
-        amount: listing.price,
+        amount: listing.acceptedOfferAmount || listing.price,
         buyerEmail: userKey,
       }),
     });
@@ -1051,7 +1051,9 @@ function MarketplacePurchaseRow({ listing }: any) {
           </div>
         </div>
 
-        <div className="font-serif text-xl text-[#c0c0c0]">{listing.price}</div>
+        <div className="font-serif text-xl text-[#c0c0c0]">
+          {listing.acceptedOfferAmount || listing.offerAmount || listing.price}
+        </div>
       </div>
     </Link>
   );
@@ -1081,7 +1083,9 @@ function AcceptedMarketplaceRow({ listing, onCheckout }: any) {
           </div>
         </div>
 
-        <div className="font-serif text-xl text-[#c0c0c0]">{listing.price}</div>
+        <div className="font-serif text-xl text-[#c0c0c0]">
+          {listing.acceptedOfferAmount || listing.price}
+        </div>
       </div>
 
       <button

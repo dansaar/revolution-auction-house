@@ -79,6 +79,7 @@ const schema = a.schema({
       fullImages: a.string().array(),
       quantity: a.integer().default(1),
       acceptsOffers: a.boolean().default(false),
+      acceptedOfferAmount: a.string(),
       featured: a.boolean().default(false),
       status: a.string().default("ACTIVE"),
       sold: a.boolean().default(false),
