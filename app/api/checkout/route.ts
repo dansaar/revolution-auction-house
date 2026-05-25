@@ -9,7 +9,9 @@ function moneyToCents(value: string | number) {
 
 export async function POST(req: Request) {
   try {
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    const stripeSecretKey =
+      process.env.STRIPE_SECRET_KEY || process.env.AMPLIFY_STRIPE_SECRET_KEY;
+
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
     if (!stripeSecretKey) {
