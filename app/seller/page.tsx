@@ -371,6 +371,7 @@ function OfferSection({ offers, client }: any) {
                             status: "OFFER_ACCEPTED",
                             buyerEmail:
                               offer.buyerEmail || offer.buyerDisplayName || "",
+                            acceptedOfferAmount: offer.amount,
                           },
                           { authMode: "apiKey" } as any,
                         );
@@ -725,7 +726,7 @@ function MarketplaceSection({ title, listings, client }: any) {
                 <h3 className="mt-2 font-serif text-2xl">{listing.title}</h3>
 
                 <div className="mt-3 font-serif text-3xl text-[#c0c0c0]">
-                  {listing.price}
+                  {listing.acceptedOfferAmount || listing.price}
                 </div>
 
                 {listing.paid && (
