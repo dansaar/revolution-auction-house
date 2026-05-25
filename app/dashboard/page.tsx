@@ -438,6 +438,11 @@ export default function DashboardPage() {
   }
 
   async function handleMarketplaceCheckout(listing: any) {
+    console.log("CHECKOUT LISTING", listing);
+    console.log(
+      "CHECKOUT AMOUNT",
+      listing.acceptedOfferAmount || listing.offerAmount || listing.price,
+    );
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: {
