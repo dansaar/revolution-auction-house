@@ -38,6 +38,32 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
 
     const auctionId = session.metadata?.auctionId;
+    const listingId = session.metadata?.listingId;
+    const buyerEmail =
+      session.customer_details?.email || session.customer_email || "";
+
+    if (listingId) {
+      try {
+        await client.models.MarketplaceListing.update(
+          {
+            id: listingId,
+            sold: true,
+            paid: true,
+            paidAt: new Date().toISOString(),
+            stripeSessionId: session.id,
+            buyerEmail,
+            status: "SOLD",
+          },
+          {
+            authMode: "apiKey",
+          } as any,
+        );
+
+        console.log("Marketplace listing marked paid", listingId);
+      } catch (err) {
+        console.error("Failed to update marketplace listing", err);
+      }
+    }
 
     if (auctionId) {
       try {
