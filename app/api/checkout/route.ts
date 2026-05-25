@@ -10,7 +10,7 @@ function moneyToCents(value: string) {
 }
 
 export async function POST(req: Request) {
-  const { auctionId, listingId, title, amount } = await req.json();
+  const { auctionId, listingId, title, amount, buyerEmail } = await req.json();
 
   if (!title || !amount) {
     return NextResponse.json(
@@ -44,6 +44,7 @@ export async function POST(req: Request) {
     metadata: {
       auctionId: auctionId || "",
       listingId: listingId || "",
+      buyerEmail: buyerEmail || "",
     },
     success_url: successUrl,
     cancel_url: cancelUrl,

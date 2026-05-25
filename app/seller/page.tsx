@@ -336,8 +336,10 @@ function OfferSection({ offers, client }: any) {
                         await client.models.MarketplaceListing.update(
                           {
                             id: offer.listingId,
-                            sold: true,
-                            status: "SOLD",
+                            sold: false,
+                            status: "OFFER_ACCEPTED",
+                            buyerEmail:
+                              offer.buyerEmail || offer.buyerDisplayName || "",
                           },
                           { authMode: "apiKey" } as any,
                         );
@@ -363,6 +365,14 @@ function OfferSection({ offers, client }: any) {
                             status: "DECLINED",
                           },
                           { authMode: "userPool" } as any,
+                        );
+
+                        await client.models.MarketplaceListing.update(
+                          {
+                            id: offer.listingId,
+                            status: "ACTIVE",
+                          },
+                          { authMode: "apiKey" } as any,
                         );
 
                         window.location.reload();

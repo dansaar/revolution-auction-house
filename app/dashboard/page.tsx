@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const [bids, setBids] = useState<any[]>([]);
   const [auctions, setAuctions] = useState<any[]>([]);
   const [marketplacePurchases, setMarketplacePurchases] = useState<any[]>([]);
+  const [acceptedOffers, setAcceptedOffers] = useState<any[]>([]);
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -130,6 +131,31 @@ export default function DashboardPage() {
         );
 
         setMarketplacePurchases(resolvedMarketplacePurchases);
+        const acceptedMarketplaceResult =
+          await client.models.MarketplaceListing.list({
+            filter: {
+              buyerEmail: { eq: userKey },
+              status: { eq: "OFFER_ACCEPTED" },
+            },
+            authMode: "apiKey",
+          } as any);
+
+        const resolvedAcceptedOffers = (
+          acceptedMarketplaceResult.data || []
+        ).map((listing: any) => {
+          const rawImage =
+            listing.thumbImages?.[0] ||
+            listing.image ||
+            listing.images?.[0] ||
+            "";
+
+          return {
+            ...listing,
+            imageUrl: cdnUrl(rawImage),
+          };
+        });
+
+        setAcceptedOffers(resolvedAcceptedOffers);
         const combinedBids = [
           ...(bidResult.data || []),
           ...(emailBidResult.data || []),
@@ -396,6 +422,31 @@ export default function DashboardPage() {
 
     if (data.url) {
       window.location.href = data.url;
+    } else {
+      alert(data.error || "Checkout failed");
+    }
+  }
+
+  async function handleMarketplaceCheckout(listing: any) {
+    const res = await fetch("/api/checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        listingId: listing.id,
+        title: listing.title,
+        amount: listing.price,
+        buyerEmail: userKey,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert(data.error || "Checkout failed");
     }
   }
 
@@ -561,15 +612,6 @@ export default function DashboardPage() {
               ))
             )}
           </Panel>
-          <Panel title="Marketplace Purchases">
-            {marketplacePurchases.length === 0 ? (
-              <Empty text="No marketplace purchases yet." />
-            ) : (
-              marketplacePurchases.map((listing: any) => (
-                <MarketplacePurchaseRow key={listing.id} listing={listing} />
-              ))
-            )}
-          </Panel>
 
           <Panel title="Watchlist">
             {watchlist.length === 0 ? (
@@ -649,6 +691,30 @@ export default function DashboardPage() {
                     </div>
                   );
                 })
+            )}
+          </Panel>
+
+          <Panel title="Marketplace Purchases">
+            {marketplacePurchases.length === 0 ? (
+              <Empty text="No marketplace purchases yet." />
+            ) : (
+              marketplacePurchases.map((listing: any) => (
+                <MarketplacePurchaseRow key={listing.id} listing={listing} />
+              ))
+            )}
+          </Panel>
+
+          <Panel title="Accepted Marketplace Offers">
+            {acceptedOffers.length === 0 ? (
+              <Empty text="No accepted marketplace offers." />
+            ) : (
+              acceptedOffers.map((listing: any) => (
+                <AcceptedMarketplaceRow
+                  key={listing.id}
+                  listing={listing}
+                  onCheckout={handleMarketplaceCheckout}
+                />
+              ))
             )}
           </Panel>
 
@@ -871,6 +937,44 @@ function MarketplacePurchaseRow({ listing }: any) {
         <div className="font-serif text-xl text-[#c0c0c0]">{listing.price}</div>
       </div>
     </Link>
+  );
+}
+function AcceptedMarketplaceRow({ listing, onCheckout }: any) {
+  return (
+    <div className="mb-3 rounded border border-yellow-400/30 bg-yellow-400/10 p-4">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <img
+            loading="lazy"
+            src={listing.imageUrl || "/logo.png"}
+            onError={(e) => {
+              e.currentTarget.src = "/logo.png";
+            }}
+            className="h-16 w-16 rounded object-cover"
+          />
+
+          <div>
+            <div className="font-semibold">{listing.title}</div>
+
+            <div className="mt-2 flex gap-2">
+              <span className="rounded bg-yellow-400/10 px-2 py-0.5 text-xs text-yellow-300">
+                Offer Accepted
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="font-serif text-xl text-[#c0c0c0]">{listing.price}</div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onCheckout(listing)}
+        className="mt-4 w-full rounded bg-[#c0c0c0] px-4 py-3 font-semibold text-black hover:bg-white"
+      >
+        Pay Now
+      </button>
+    </div>
   );
 }
 

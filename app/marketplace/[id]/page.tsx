@@ -125,6 +125,19 @@ export default function MarketplaceListingPage() {
         } as any,
       );
 
+      await client.models.MarketplaceListing.update(
+        {
+          id: listing.id,
+          status: "OFFER_PENDING",
+        },
+        { authMode: "apiKey" } as any,
+      );
+
+      setListing((prev: any) => ({
+        ...prev,
+        status: "OFFER_PENDING",
+      }));
+
       alert("Offer submitted");
       setOfferAmount("");
     } catch (err) {
@@ -136,9 +149,19 @@ export default function MarketplaceListingPage() {
   }
 
   async function handleBuyNow() {
-    try {
-      await getCurrentUser();
+    let buyerEmail = "";
 
+    try {
+      const currentUser = await getCurrentUser();
+
+      buyerEmail =
+        currentUser.signInDetails?.loginId || currentUser.username || "";
+    } catch {
+      window.location.href = "/signin";
+      return;
+    }
+
+    try {
       const confirmed = confirm("Buy this item now?");
       if (!confirmed) return;
 
@@ -151,6 +174,7 @@ export default function MarketplaceListingPage() {
           listingId: id,
           title: listing.title,
           amount: listing.price,
+          buyerEmail,
         }),
       });
 
@@ -158,10 +182,12 @@ export default function MarketplaceListingPage() {
 
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        alert(data.error || "Checkout failed");
       }
     } catch (err) {
-      console.error(err);
-      window.location.href = "/signin";
+      console.error("BUY NOW CHECKOUT ERROR", err);
+      alert("Checkout failed. Check console.");
     }
   }
 
@@ -259,10 +285,21 @@ export default function MarketplaceListingPage() {
 
             <button
               onClick={handleBuyNow}
-              disabled={listing.sold || listing.status === "SOLD"}
+              disabled={
+                listing.sold ||
+                listing.status === "SOLD" ||
+                listing.status === "OFFER_PENDING" ||
+                listing.status === "OFFER_ACCEPTED"
+              }
               className="mt-10 w-full rounded bg-[#c0c0c0] py-4 font-semibold text-black transition hover:bg-white disabled:opacity-50"
             >
-              {listing.sold || listing.status === "SOLD" ? "Sold" : "Buy Now"}
+              {listing.sold || listing.status === "SOLD"
+                ? "Sold"
+                : listing.status === "OFFER_PENDING"
+                  ? "Offer Pending"
+                  : listing.status === "OFFER_ACCEPTED"
+                    ? "Offer Accepted"
+                    : "Buy Now"}
             </button>
 
             <div className="mt-4 rounded border border-white/10 bg-white/[0.03] p-4">
@@ -281,7 +318,11 @@ export default function MarketplaceListingPage() {
                 <button
                   onClick={handleMakeOffer}
                   disabled={
-                    submittingOffer || listing.sold || listing.status === "SOLD"
+                    submittingOffer ||
+                    listing.sold ||
+                    listing.status === "SOLD" ||
+                    listing.status === "OFFER_PENDING" ||
+                    listing.status === "OFFER_ACCEPTED"
                   }
                   className="rounded border border-white/10 bg-white/[0.05] px-6 py-3 font-semibold text-white transition hover:bg-white/[0.08] disabled:opacity-50"
                 >

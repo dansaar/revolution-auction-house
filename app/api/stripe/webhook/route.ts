@@ -40,7 +40,10 @@ export async function POST(req: Request) {
     const auctionId = session.metadata?.auctionId;
     const listingId = session.metadata?.listingId;
     const buyerEmail =
-      session.customer_details?.email || session.customer_email || "";
+      session.metadata?.buyerEmail ||
+      session.customer_details?.email ||
+      session.customer_email ||
+      "";
 
     if (listingId) {
       try {
