@@ -621,12 +621,33 @@ export default function LiveAuctionPage() {
 
     const enteredMaxBid = moneyToNumber(input);
 
+    const auctionIdForBid =
+      typeof auction?.id === "string" && auction.id.trim()
+        ? auction.id
+        : typeof id === "string" && id.trim()
+          ? id
+          : Array.isArray(id) && id[0]
+            ? id[0]
+            : "";
+
+    console.log("PLACE BID FRONTEND DEBUG", {
+      routeId: id,
+      loadedAuctionId: auction?.id,
+      auctionIdForBid,
+      url: window.location.href,
+    });
+
+    if (!auctionIdForBid) {
+      alert("Could not find auction ID for bid.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const result = await client.mutations.placeBid(
         {
-          auctionId: id,
+          auctionId: auctionIdForBid,
           maxBid: enteredMaxBid,
         },
         {

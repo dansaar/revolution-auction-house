@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     console.error("Missing STRIPE_SECRET_KEY");
     return NextResponse.json(
       { error: "Server is missing STRIPE_SECRET_KEY." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     console.error("Missing STRIPE_WEBHOOK_SECRET");
     return NextResponse.json(
       { error: "Server is missing STRIPE_WEBHOOK_SECRET." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   if (!signature) {
     return NextResponse.json(
       { error: "Missing Stripe signature." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -42,17 +42,13 @@ export async function POST(request: Request) {
   try {
     const rawBody = await request.text();
 
-    event = stripe.webhooks.constructEvent(
-      rawBody,
-      signature,
-      webhookSecret
-    );
+    event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (error) {
     console.error("Stripe webhook signature verification failed:", error);
 
     return NextResponse.json(
       { error: "Invalid webhook signature." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -90,7 +86,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { error: "Webhook handler failed." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

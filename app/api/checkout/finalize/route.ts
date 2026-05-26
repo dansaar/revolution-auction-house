@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     if (!sessionId || typeof sessionId !== "string") {
       return NextResponse.json(
         { error: "Missing checkout session id." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
           error: "Checkout session has not been paid.",
           paymentStatus: session.payment_status,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { error: "Failed to finalize checkout." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

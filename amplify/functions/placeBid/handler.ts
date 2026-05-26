@@ -43,6 +43,10 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
   try {
     for (let attempt = 0; attempt < 3; attempt++) {
       const { auctionId, maxBid } = event.arguments;
+      console.log(
+        "PLACE BID EVENT ARGUMENTS:",
+        JSON.stringify(event.arguments),
+      );
       const identity = event.identity as any;
 
       const bidderUserId =
