@@ -40,16 +40,30 @@ export default function AdminAuctionsPage() {
     load();
   }, []);
 
-  if (checking) return <main className="min-h-screen bg-[#050607] p-10 text-white">Checking admin access...</main>;
+  if (checking)
+    return (
+      <main className="min-h-screen bg-[#050607] p-10 text-white">
+        Checking admin access...
+      </main>
+    );
 
-  if (!isAdmin) return <main className="min-h-screen bg-[#050607] p-10 text-white">Admin access required.</main>;
+  if (!isAdmin)
+    return (
+      <main className="min-h-screen bg-[#050607] p-10 text-white">
+        Admin access required.
+      </main>
+    );
 
   return (
     <main className="min-h-screen bg-[#050607] px-6 py-12 text-white">
       <div className="mx-auto max-w-7xl">
-        <Link href="/admin" className="text-sm text-[#c0c0c0]">← Back to Admin</Link>
+        <Link href="/admin" className="text-sm text-[#c0c0c0]">
+          ← Back to Admin
+        </Link>
 
-        <h1 className="mt-6 font-serif text-5xl text-[#c0c0c0]">Manage Auctions</h1>
+        <h1 className="mt-6 font-serif text-5xl text-[#c0c0c0]">
+          Manage Auctions
+        </h1>
 
         <div className="mt-8 overflow-hidden rounded-2xl border border-white/10">
           <table className="w-full text-left text-sm">
@@ -67,12 +81,23 @@ export default function AdminAuctionsPage() {
               {auctions.map((auction) => (
                 <tr key={auction.id} className="border-t border-white/10">
                   <td className="p-4 text-white">{auction.title}</td>
-                  <td className="p-4 text-[#c0c0c0]">{auction.price || "$0"}</td>
-                  <td className="p-4 text-gray-300">{auction.status || (auction.ended ? "ENDED" : "ACTIVE")}</td>
-                  <td className="p-4 text-gray-400">{auction.endsAt ? new Date(auction.endsAt).toLocaleString() : "—"}</td>
+                  <td className="p-4 text-[#c0c0c0]">
+                    {auction.price || "$0"}
+                  </td>
+                  <td className="p-4 text-gray-300">
+                    {auction.status || (auction.ended ? "ENDED" : "ACTIVE")}
+                  </td>
+                  <td className="p-4 text-gray-400">
+                    {auction.endsAt
+                      ? new Date(auction.endsAt).toLocaleString()
+                      : "—"}
+                  </td>
                   <td className="p-4 text-gray-400">{auction.bids || 0}</td>
                   <td className="p-4">
-                    <Link href={`/auctions/${auction.id}`} className="text-[#c0c0c0] hover:text-white">
+                    <Link
+                      href={`/auctions/${auction.id}`}
+                      className="text-[#c0c0c0] hover:text-white"
+                    >
                       View →
                     </Link>
                   </td>

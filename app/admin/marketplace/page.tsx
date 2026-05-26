@@ -83,17 +83,10 @@ export default function AdminMarketplacePage() {
 
             <tbody>
               {listings.map((listing) => (
-                <tr
-                  key={listing.id}
-                  className="border-t border-white/10"
-                >
-                  <td className="p-4 text-white">
-                    {listing.title}
-                  </td>
+                <tr key={listing.id} className="border-t border-white/10">
+                  <td className="p-4 text-white">{listing.title}</td>
 
-                  <td className="p-4 text-[#c0c0c0]">
-                    {listing.price}
-                  </td>
+                  <td className="p-4 text-[#c0c0c0]">{listing.price}</td>
 
                   <td className="p-4 text-gray-400">
                     {listing.sellerEmail || "—"}
@@ -105,9 +98,7 @@ export default function AdminMarketplacePage() {
 
                   <td className="p-4 text-gray-400">
                     {listing.createdAt
-                      ? new Date(
-                          listing.createdAt,
-                        ).toLocaleString()
+                      ? new Date(listing.createdAt).toLocaleString()
                       : "—"}
                   </td>
 

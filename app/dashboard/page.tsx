@@ -11,6 +11,24 @@ import { BadgeCheck, Gavel, Heart, Trophy } from "lucide-react";
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
 
+function trackingUrl(carrier: string, trackingNumber: string) {
+  const c = carrier.toLowerCase();
+
+  if (c.includes("ups")) {
+    return `https://www.ups.com/track?tracknum=${trackingNumber}`;
+  }
+
+  if (c.includes("fedex")) {
+    return `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber}`;
+  }
+
+  if (c.includes("usps")) {
+    return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}`;
+  }
+
+  return "";
+}
+
 function makeBidderDisplayName(value: string) {
   if (!value) return "";
 
@@ -438,11 +456,6 @@ export default function DashboardPage() {
   }
 
   async function handleMarketplaceCheckout(listing: any) {
-    console.log("CHECKOUT LISTING", listing);
-    console.log(
-      "CHECKOUT AMOUNT",
-      listing.acceptedOfferAmount || listing.offerAmount || listing.price,
-    );
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: {
@@ -451,7 +464,8 @@ export default function DashboardPage() {
       body: JSON.stringify({
         listingId: listing.id,
         title: listing.title,
-        amount: listing.acceptedOfferAmount || listing.price,
+        amount:
+          listing.acceptedOfferAmount || listing.offerAmount || listing.price,
         buyerEmail: userKey,
       }),
     });
@@ -556,6 +570,29 @@ export default function DashboardPage() {
               Identity Verified
             </div>
           </div>
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href="/dashboard/invoices"
+            className="
+      rounded-xl
+      border border-[#d6aa55]/30
+      bg-[#1a1408]
+      px-5 py-3
+      text-sm font-semibold
+      tracking-[0.08em]
+      text-[#e7c77f]
+      transition-all duration-300
+      hover:border-[#f1d28a]/50
+      hover:bg-[#221909]
+      hover:text-[#f5dfac]
+      hover:shadow-[0_0_30px_rgba(214,170,85,0.18)]
+      active:scale-[0.98]
+    "
+          >
+            View Invoices
+          </Link>
         </div>
 
         <section className="mt-10 grid gap-5 md:grid-cols-4">
@@ -902,12 +939,48 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
                 </span>
               )}
             </div>
+
+            {auction?.shippingStatus && (
+              <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
+                <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500">
+                  Shipping
+                </div>
+
+                <div className="mt-2 flex items-center gap-3 text-sm text-[#d7d7d7]">
+                  <span>{auction.shippingStatus}</span>
+
+                  {trackingUrl(
+                    auction.carrier || "",
+                    auction.trackingNumber || "",
+                  ) && (
+                    <a
+                      href={trackingUrl(
+                        auction.carrier || "",
+                        auction.trackingNumber || "",
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs font-semibold text-[#e7c77f] hover:text-white"
+                    >
+                      Track Package →
+                    </a>
+                  )}
+                </div>
+
+                {auction?.trackingNumber && (
+                  <div className="mt-3 text-xs text-gray-500">
+                    {auction.carrier} · {auction.trackingNumber}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
+      </div>
 
-        <div className="font-serif text-xl text-[#c0c0c0]">
-          {auction?.price || bid.amount}
-        </div>
+      <div className="font-serif text-xl text-[#c0c0c0]">
+        {auction?.price || bid.amount}
       </div>
 
       {showPayButton && auction && !auction.paid && (
@@ -1053,6 +1126,42 @@ function MarketplacePurchaseRow({ listing }: any) {
                 Marketplace
               </span>
             </div>
+
+            {listing.shippingStatus && (
+              <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
+                <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500">
+                  Shipping
+                </div>
+
+                <div className="mt-2 flex items-center gap-3 text-sm text-[#d7d7d7]">
+                  <span>{listing.shippingStatus}</span>
+
+                  {trackingUrl(
+                    listing.carrier || "",
+                    listing.trackingNumber || "",
+                  ) && (
+                    <a
+                      href={trackingUrl(
+                        listing.carrier || "",
+                        listing.trackingNumber || "",
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs font-semibold text-[#e7c77f] hover:text-white"
+                    >
+                      Track Package →
+                    </a>
+                  )}
+                </div>
+
+                {listing.trackingNumber && (
+                  <div className="mt-3 text-xs text-gray-500">
+                    {listing.carrier} · {listing.trackingNumber}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

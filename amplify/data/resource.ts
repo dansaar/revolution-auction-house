@@ -37,6 +37,11 @@ const schema = a.schema({
       cardNumber: a.string(),
       population: a.string(),
       provenance: a.string(),
+      shippingStatus: a.string(),
+      trackingNumber: a.string(),
+      carrier: a.string(),
+      shippedAt: a.datetime(),
+      deliveredAt: a.datetime(),
     })
     .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
   AuctionState: a
@@ -92,6 +97,11 @@ const schema = a.schema({
       sellerUserId: a.string(),
       sellerDisplayName: a.string(),
       sellerEmail: a.string(),
+      shippingStatus: a.string(),
+      trackingNumber: a.string(),
+      carrier: a.string(),
+      shippedAt: a.datetime(),
+      deliveredAt: a.datetime(),
     })
     .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
 
@@ -177,6 +187,21 @@ const schema = a.schema({
     )
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(finalizeAuction)),
+
+  Invoice: a
+    .model({
+      type: a.string(),
+      auctionId: a.string(),
+      listingId: a.string(),
+      title: a.string(),
+      buyerEmail: a.string(),
+      sellerEmail: a.string(),
+      amount: a.string(),
+      status: a.string(),
+      stripeSessionId: a.string(),
+      paidAt: a.datetime(),
+    })
+    .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

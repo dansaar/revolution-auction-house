@@ -158,9 +158,7 @@ function AdminCard({
     >
       <h2 className="font-serif text-2xl text-white">{title}</h2>
       <p className="mt-3 text-sm text-gray-400">{description}</p>
-      <div className="mt-6 text-sm font-semibold text-[#c0c0c0]">
-        Open →
-      </div>
+      <div className="mt-6 text-sm font-semibold text-[#c0c0c0]">Open →</div>
     </Link>
   );
 }

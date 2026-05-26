@@ -10,6 +10,24 @@ import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
 
+function trackingUrl(carrier: string, trackingNumber: string) {
+  const c = carrier.toLowerCase();
+
+  if (c.includes("ups")) {
+    return `https://www.ups.com/track?tracknum=${trackingNumber}`;
+  }
+
+  if (c.includes("fedex")) {
+    return `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber}`;
+  }
+
+  if (c.includes("usps")) {
+    return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}`;
+  }
+
+  return "";
+}
+
 export default function SellerPage() {
   const clientRef = React.useRef(generateClient<Schema>());
   const client = clientRef.current;
@@ -226,9 +244,24 @@ export default function SellerPage() {
 
           <Link
             href="/auctions/results"
-            className="rounded border border-white/10 px-5 py-3 text-sm text-white hover:bg-white/[0.05]"
+            className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-5 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
           >
             View Results Archive
+          </Link>
+
+          <Link
+            href="/seller/invoices"
+            className="
+    rounded border border-[#d6aa55]/30
+    bg-[#1a1408]
+    px-5 py-3
+    text-sm font-semibold
+    text-[#e7c77f]
+    transition
+    hover:bg-[#221909]
+  "
+          >
+            View Invoices
           </Link>
         </div>
 
@@ -643,6 +676,71 @@ function SellerAuctionCard({ auction, client }: any) {
                 View Results
               </Link>
             )}
+            {ended && auction.paid && (
+              <div className="mt-6 rounded-xl border border-white/10 bg-black/30 p-4">
+                <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                  Shipping
+                </div>
+
+                <div className="mt-2 flex items-center gap-3 text-sm text-gray-300">
+                  <span>Status: {auction.shippingStatus || "PAID"}</span>
+
+                  {trackingUrl(
+                    auction.carrier || "",
+                    auction.trackingNumber || "",
+                  ) && (
+                    <a
+                      href={trackingUrl(
+                        auction.carrier || "",
+                        auction.trackingNumber || "",
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-semibold text-[#e7c77f] hover:text-white"
+                    >
+                      Track Package →
+                    </a>
+                  )}
+                </div>
+
+                {auction.trackingNumber && (
+                  <div className="mt-3 text-xs text-gray-500">
+                    Tracking: {auction.carrier} {auction.trackingNumber}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const carrier = prompt(
+                      "Carrier? Example: USPS, UPS, FedEx",
+                    );
+                    if (!carrier) return;
+
+                    const trackingNumber = prompt("Tracking number?");
+                    if (!trackingNumber) return;
+
+                    await client.models.Auction.update(
+                      {
+                        id: auction.id,
+                        shippingStatus: "SHIPPED",
+                        carrier,
+                        trackingNumber,
+                        shippedAt: new Date().toISOString(),
+                      },
+                      { authMode: "apiKey" } as any,
+                    );
+
+                    window.location.reload();
+                  }}
+                  className="mt-4 w-full rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                >
+                  {auction.trackingNumber
+                    ? "Update Shipping Info"
+                    : "Enter Shipping Info"}
+                </button>
+              </div>
+            )}
 
             {ended &&
               (!auction.winnerUserId ||
@@ -737,6 +835,72 @@ function MarketplaceSection({ title, listings, client }: any) {
                         Buyer: {listing.buyerEmail}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {listing.paid && (
+                  <div className="mt-3 rounded-xl border border-white/10 bg-black/30 p-4">
+                    <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                      Shipping
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-3 text-sm text-gray-300">
+                      <span>Status: {listing.shippingStatus || "PAID"}</span>
+
+                      {trackingUrl(
+                        listing.carrier || "",
+                        listing.trackingNumber || "",
+                      ) && (
+                        <a
+                          href={trackingUrl(
+                            listing.carrier || "",
+                            listing.trackingNumber || "",
+                          )}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-semibold text-[#e7c77f] hover:text-white"
+                        >
+                          Track Package →
+                        </a>
+                      )}
+                    </div>
+
+                    {listing.trackingNumber && (
+                      <div className="mt-3 text-xs text-gray-500">
+                        Tracking: {listing.carrier} {listing.trackingNumber}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const carrier = prompt(
+                          "Carrier? Example: USPS, UPS, FedEx",
+                        );
+                        if (!carrier) return;
+
+                        const trackingNumber = prompt("Tracking number?");
+                        if (!trackingNumber) return;
+
+                        await client.models.MarketplaceListing.update(
+                          {
+                            id: listing.id,
+                            shippingStatus: "SHIPPED",
+                            carrier,
+                            trackingNumber,
+                            shippedAt: new Date().toISOString(),
+                          },
+                          { authMode: "apiKey" } as any,
+                        );
+
+                        window.location.reload();
+                      }}
+                      className="mt-4 w-full rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                    >
+                      {listing.trackingNumber
+                        ? "Update Shipping Info"
+                        : "Enter Shipping Info"}
+                    </button>
                   </div>
                 )}
                 <Link

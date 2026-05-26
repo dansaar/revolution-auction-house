@@ -28,11 +28,19 @@ export default function AdminSellersPage() {
   }, []);
 
   if (checking) {
-    return <main className="min-h-screen bg-[#050607] p-10 text-white">Checking admin access...</main>;
+    return (
+      <main className="min-h-screen bg-[#050607] p-10 text-white">
+        Checking admin access...
+      </main>
+    );
   }
 
   if (!isAdmin) {
-    return <main className="min-h-screen bg-[#050607] p-10 text-white">Admin access required.</main>;
+    return (
+      <main className="min-h-screen bg-[#050607] p-10 text-white">
+        Admin access required.
+      </main>
+    );
   }
 
   return (
@@ -47,12 +55,16 @@ export default function AdminSellersPage() {
         </h1>
 
         <p className="mt-4 text-gray-400">
-          Current approved sellers. For now, seller access is controlled in code.
+          Current approved sellers. For now, seller access is controlled in
+          code.
         </p>
 
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03]">
           {APPROVED_SELLERS.map((email) => (
-            <div key={email} className="border-b border-white/10 p-5 last:border-b-0">
+            <div
+              key={email}
+              className="border-b border-white/10 p-5 last:border-b-0"
+            >
               <div className="text-white">{email}</div>
               <div className="mt-1 text-xs uppercase tracking-[0.18em] text-emerald-400">
                 Approved Seller
