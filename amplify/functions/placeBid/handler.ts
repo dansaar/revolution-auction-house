@@ -68,7 +68,6 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       const recentUserBids = await client.models.Bid.bidsByBidder(
         { bidderUserId },
         {
-          authMode: "apiKey",
           limit: 5,
         } as any,
       );
@@ -87,18 +86,14 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         };
       }
 
-      const stateResult = await client.models.AuctionState.get(
-        { auctionId },
-        { authMode: "apiKey" },
-      );
+      const stateResult = await client.models.AuctionState.get({ auctionId });
 
       let state = stateResult.data;
 
       if (!state) {
-        const auctionResult = await client.models.Auction.get(
-          { id: auctionId },
-          { authMode: "apiKey" },
-        );
+        const auctionResult = await client.models.Auction.get({
+          id: auctionId,
+        });
 
         const auction = auctionResult.data;
 
@@ -111,21 +106,18 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
           };
         }
 
-        const createdState = await client.models.AuctionState.create(
-          {
-            auctionId,
-            currentPrice: auction.price || "$0",
-            leaderUserId: null,
-            leaderMaxBid: null,
-            secondUserId: null,
-            secondMaxBid: null,
-            bidCount: auction.bids || 0,
-            version: 1,
-            endsAt: auction.endsAt,
-            ended: auction.ended || false,
-          },
-          { authMode: "apiKey" },
-        );
+        const createdState = await client.models.AuctionState.create({
+          auctionId,
+          currentPrice: auction.price || "$0",
+          leaderUserId: null,
+          leaderMaxBid: null,
+          secondUserId: null,
+          secondMaxBid: null,
+          bidCount: auction.bids || 0,
+          version: 1,
+          endsAt: auction.endsAt,
+          ended: auction.ended || false,
+        });
 
         state = createdState.data;
       }
@@ -249,7 +241,6 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
           ended: state.ended || false,
         },
         {
-          authMode: "apiKey",
           condition: {
             version: {
               eq: expectedVersion,
@@ -275,58 +266,43 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         continue;
       }
 
-      const bidCreateResult = await client.models.Bid.create(
-        {
-          auctionId,
-          bidderUserId: bidderUserId,
-          bidderEmail: bidderEmail,
-          bidderName: bidderDisplayName,
-          amount: formatMoney(visiblePrice),
-          maxBid: formatMoney(maxBid),
-          isProxy: false,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          authMode: "apiKey",
-        },
-      );
+      const bidCreateResult = await client.models.Bid.create({
+        auctionId,
+        bidderUserId: bidderUserId,
+        bidderEmail: bidderEmail,
+        bidderName: bidderDisplayName,
+        amount: formatMoney(visiblePrice),
+        maxBid: formatMoney(maxBid),
+        isProxy: false,
+        createdAt: new Date().toISOString(),
+      });
 
       console.log("BID CREATE RESULT", JSON.stringify(bidCreateResult));
 
       if (proxyUserId) {
-        await client.models.Bid.create(
-          {
-            auctionId,
-            bidderUserId: proxyUserId,
-            bidderEmail: "proxy-bid",
-            bidderName: makeBidderDisplayName(proxyUserId),
-            amount: formatMoney(visiblePrice),
-            maxBid: formatMoney(leaderMaxBid),
-            isProxy: true,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            authMode: "apiKey",
-          },
-        );
+        await client.models.Bid.create({
+          auctionId,
+          bidderUserId: proxyUserId,
+          bidderEmail: "proxy-bid",
+          bidderName: makeBidderDisplayName(proxyUserId),
+          amount: formatMoney(visiblePrice),
+          maxBid: formatMoney(leaderMaxBid),
+          isProxy: true,
+          createdAt: new Date().toISOString(),
+        });
       }
 
-      await client.models.Auction.update(
-        {
-          id: auctionId,
-          price: formatMoney(visiblePrice),
-          bids: newBidCount,
+      await client.models.Auction.update({
+        id: auctionId,
+        price: formatMoney(visiblePrice),
+        bids: newBidCount,
 
-          winnerUserId: newLeaderUserId,
-          winnerDisplayName: makeBidderDisplayName(newLeaderUserId),
-          winnerEmail: newLeaderUserId === bidderUserId ? bidderEmail : "",
-          winningBid: formatMoney(visiblePrice),
-          endsAt: updatedEndsAt,
-        },
-        {
-          authMode: "apiKey",
-        },
-      );
+        winnerUserId: newLeaderUserId,
+        winnerDisplayName: makeBidderDisplayName(newLeaderUserId),
+        winnerEmail: newLeaderUserId === bidderUserId ? bidderEmail : "",
+        winningBid: formatMoney(visiblePrice),
+        endsAt: updatedEndsAt,
+      });
 
       return {
         success: true,
