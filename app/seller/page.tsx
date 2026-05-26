@@ -555,192 +555,171 @@ function SellerAuctionCard({ auction, client }: any) {
                 ))}
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-4 grid gap-6 xl:grid-cols-[1fr_320px]">
               <div>
-                <div className="text-xs uppercase text-gray-500">
-                  Current Price
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <div>
+                    <div className="text-xs uppercase text-gray-500">
+                      Current Price
+                    </div>
+                    <div className="mt-1 text-xl font-serif text-[#c0c0c0]">
+                      {auction.price}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs uppercase text-gray-500">
+                      Leading Bidder
+                    </div>
+                    <div className="mt-1 text-sm text-[#c0c0c0]">
+                      {auction.winnerDisplayName ||
+                        auction.winnerUserId ||
+                        "No bids"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs uppercase text-gray-500">
+                      Max Bid
+                    </div>
+                    <div className="mt-1 text-sm text-[#c0c0c0]">
+                      {auction.winningBid || "—"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs uppercase text-gray-500">
+                      Total Bids
+                    </div>
+                    <div className="mt-1 text-xl">{auction.bids || 0}</div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs uppercase text-gray-500">
+                      Reserve
+                    </div>
+                    <div className="mt-1 text-sm">
+                      {auction.reservePrice || "No Reserve"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs uppercase text-gray-500">Ends</div>
+                    <div className="mt-1 text-sm">
+                      <span
+                        className={ended ? "text-red-400" : "text-yellow-300"}
+                      >
+                        {timeLeft}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-1 text-xl font-serif text-[#c0c0c0]">
-                  {auction.price}
-                </div>
-              </div>
+                <div className="mt-6 flex flex-wrap items-start gap-3">
+                  <Link
+                    href={`/auctions/${auction.id}`}
+                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium tracking-wide text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
+                  >
+                    View Auction
+                  </Link>
 
-              <div>
-                <div className="text-xs uppercase text-gray-500">
-                  Leading Bidder
-                </div>
+                  <Link
+                    href={`/sell/auction/${auction.id}/edit`}
+                    className="rounded-lg border border-[#d6aa55]/30 bg-white/5 px-4 py-2 text-sm font-medium tracking-wide text-[#e7c77f] backdrop-blur-sm transition hover:border-[#d6aa55]/50 hover:bg-white/10"
+                  >
+                    Edit Auction
+                  </Link>
 
-                <div className="mt-1 text-sm text-[#c0c0c0]">
-                  {auction.winnerDisplayName ||
-                    auction.winnerUserId ||
-                    "No bids"}
-                </div>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `${window.location.origin}/auctions/${auction.id}`,
+                      );
+                      alert("Auction link copied");
+                    }}
+                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium tracking-wide text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
+                  >
+                    Copy Link
+                  </button>
 
-              <div>
-                <div className="text-xs uppercase text-gray-500">Max Bid</div>
-
-                <div className="mt-1 text-sm text-[#c0c0c0]">
-                  {auction.winningBid || "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-xs uppercase text-gray-500">
-                  Total Bids
-                </div>
-
-                <div className="mt-1 text-xl">{auction.bids || 0}</div>
-              </div>
-
-              <div>
-                <div className="text-xs uppercase text-gray-500">Reserve</div>
-
-                <div className="mt-1 text-sm">
-                  {auction.reservePrice || "No Reserve"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-xs uppercase text-gray-500">Ends</div>
-
-                <div className="mt-1 text-sm">
-                  <span className={ended ? "text-red-400" : "text-yellow-300"}>
-                    {timeLeft}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href={`/auctions/${auction.id}`}
-              className="rounded border border-white/10 px-4 py-3 text-sm text-white hover:bg-white/[0.05]"
-            >
-              View Auction
-            </Link>
-            <Link
-              href={`/sell/auction/${auction.id}/edit`}
-              className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-3 text-sm text-[#e7c77f] hover:bg-[#221909]"
-            >
-              Edit Auction
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(
-                  `${window.location.origin}/auctions/${auction.id}`,
-                );
-
-                alert("Auction link copied");
-              }}
-              className="rounded border border-white/10 px-4 py-3 text-sm text-white hover:bg-white/[0.05]"
-            >
-              Copy Link
-            </button>
-
-            {!ended && (
-              <button
-                type="button"
-                onClick={async () => {
-                  const confirmed = confirm("End this auction now?");
-                  if (!confirmed) return;
-
-                  try {
-                    await client.mutations.finalizeAuction(
-                      { auctionId: auction.id },
-                      { authMode: "apiKey" } as any,
-                    );
-
-                    alert("Auction ended");
-                    window.location.reload();
-                  } catch (err) {
-                    console.error(err);
-                    alert("Failed to end auction");
-                  }
-                }}
-                className="rounded border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300 hover:bg-red-500/20"
-              >
-                End Auction
-              </button>
-            )}
-
-            {ended && (
-              <Link
-                href={`/auctions/${auction.id}/results`}
-                className="rounded border border-white/10 px-5 py-3"
-              >
-                View Results
-              </Link>
-            )}
-            {ended && auction.paid && (
-              <div className="mt-6 rounded-xl border border-white/10 bg-black/30 p-4">
-                <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                  Shipping
-                </div>
-
-                <div className="mt-2 flex items-center gap-3 text-sm text-gray-300">
-                  <span>Status: {auction.shippingStatus || "PAID"}</span>
-
-                  {trackingUrl(
-                    auction.carrier || "",
-                    auction.trackingNumber || "",
-                  ) && (
-                    <a
-                      href={trackingUrl(
-                        auction.carrier || "",
-                        auction.trackingNumber || "",
-                      )}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs font-semibold text-[#e7c77f] hover:text-white"
+                  {ended && (
+                    <Link
+                      href={`/auctions/${auction.id}/results`}
+                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium tracking-wide text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
                     >
-                      Track Package →
-                    </a>
+                      View Results
+                    </Link>
                   )}
                 </div>
-
-                {auction.trackingNumber && (
-                  <div className="mt-3 text-xs text-gray-500">
-                    Tracking: {auction.carrier} {auction.trackingNumber}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const carrier = prompt(
-                      "Carrier? Example: USPS, UPS, FedEx",
-                    );
-                    if (!carrier) return;
-
-                    const trackingNumber = prompt("Tracking number?");
-                    if (!trackingNumber) return;
-
-                    await client.models.Auction.update(
-                      {
-                        id: auction.id,
-                        shippingStatus: "SHIPPED",
-                        carrier,
-                        trackingNumber,
-                        shippedAt: new Date().toISOString(),
-                      },
-                      { authMode: "apiKey" } as any,
-                    );
-
-                    window.location.reload();
-                  }}
-                  className="mt-4 w-full rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
-                >
-                  {auction.trackingNumber
-                    ? "Update Shipping Info"
-                    : "Enter Shipping Info"}
-                </button>
               </div>
-            )}
+
+              {ended && auction.paid && (
+                <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+                  <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                    Shipping
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-3 text-sm text-gray-300">
+                    <span>Status: {auction.shippingStatus || "PAID"}</span>
+
+                    {trackingUrl(
+                      auction.carrier || "",
+                      auction.trackingNumber || "",
+                    ) && (
+                      <a
+                        href={trackingUrl(
+                          auction.carrier || "",
+                          auction.trackingNumber || "",
+                        )}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-semibold text-[#e7c77f] hover:text-white"
+                      >
+                        Track Package →
+                      </a>
+                    )}
+                  </div>
+
+                  {auction.trackingNumber && (
+                    <div className="mt-3 text-xs text-gray-500">
+                      Tracking: {auction.carrier} {auction.trackingNumber}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const carrier = prompt(
+                        "Carrier? Example: USPS, UPS, FedEx",
+                      );
+                      if (!carrier) return;
+
+                      const trackingNumber = prompt("Tracking number?");
+                      if (!trackingNumber) return;
+
+                      await client.models.Auction.update(
+                        {
+                          id: auction.id,
+                          shippingStatus: "SHIPPED",
+                          carrier,
+                          trackingNumber,
+                          shippedAt: new Date().toISOString(),
+                        },
+                        { authMode: "apiKey" } as any,
+                      );
+
+                      window.location.reload();
+                    }}
+                    className="mt-4 w-full rounded-lg border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                  >
+                    {auction.trackingNumber
+                      ? "Update Shipping Info"
+                      : "Enter Shipping Info"}
+                  </button>
+                </div>
+              )}
+            </div>
 
             {ended &&
               (!auction.winnerUserId ||
