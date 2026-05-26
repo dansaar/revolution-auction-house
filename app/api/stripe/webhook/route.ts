@@ -1,158 +1,96 @@
+// app/api/stripe/webhook/route.ts
+
+import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { headers } from "next/headers";
 
-import { Amplify } from "aws-amplify";
-import { generateClient } from "aws-amplify/data";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-import outputs from "@/amplify_outputs.json";
-import type { Schema } from "@/amplify/data/resource";
+export async function POST(request: Request) {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-Amplify.configure(outputs);
+  if (!stripeSecretKey) {
+    console.error("Missing STRIPE_SECRET_KEY");
+    return NextResponse.json(
+      { error: "Server is missing STRIPE_SECRET_KEY." },
+      { status: 500 }
+    );
+  }
 
-const client = generateClient<Schema>();
+  if (!webhookSecret) {
+    console.error("Missing STRIPE_WEBHOOK_SECRET");
+    return NextResponse.json(
+      { error: "Server is missing STRIPE_WEBHOOK_SECRET." },
+      { status: 500 }
+    );
+  }
 
-const stripeSecretKey =
-  process.env.STRIPE_SECRET_KEY || process.env.AMPLIFY_STRIPE_SECRET_KEY;
-
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
-if (!endpointSecret) {
-  throw new Error("Missing STRIPE_WEBHOOK_SECRET");
-}
-
-if (!stripeSecretKey || !endpointSecret) {
-  throw new Error("Missing Stripe webhook env vars");
-}
-
-const stripe = new Stripe(stripeSecretKey);
-
-export async function POST(req: Request) {
-  const body = await req.text();
-  const signature = (await headers()).get("stripe-signature");
+  const signature = request.headers.get("stripe-signature");
 
   if (!signature) {
-    return new Response("Missing stripe signature", { status: 400 });
+    return NextResponse.json(
+      { error: "Missing Stripe signature." },
+      { status: 400 }
+    );
   }
+
+  const stripe = new Stripe(stripeSecretKey);
 
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
-  } catch (err: any) {
-    console.error("Webhook signature failed", err.message);
-    return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+    const rawBody = await request.text();
+
+    event = stripe.webhooks.constructEvent(
+      rawBody,
+      signature,
+      webhookSecret
+    );
+  } catch (error) {
+    console.error("Stripe webhook signature verification failed:", error);
+
+    return NextResponse.json(
+      { error: "Invalid webhook signature." },
+      { status: 400 }
+    );
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
 
-    const auctionId = session.metadata?.auctionId || "";
-    const listingId = session.metadata?.listingId || "";
-    const buyerEmail =
-      session.metadata?.buyerEmail ||
-      session.customer_details?.email ||
-      session.customer_email ||
-      "";
+        console.log("Checkout session completed:", session.id);
 
-    const amount = session.amount_total
-      ? `$${(session.amount_total / 100).toFixed(2)}`
-      : "$0.00";
+        // TODO:
+        // - Mark order as paid
+        // - Save payment intent/session id
+        // - Clear user's cart
+        // - Mark auction/listing as sold if applicable
 
-    const existingInvoices = await client.models.Invoice.list({
-      filter: {
-        stripeSessionId: {
-          eq: session.id,
-        },
-      },
-      authMode: "apiKey",
-    } as any);
-
-    const invoiceAlreadyExists = (existingInvoices.data || []).length > 0;
-
-    if (listingId) {
-      try {
-        const listingResult = await client.models.MarketplaceListing.get(
-          { id: listingId },
-          { authMode: "apiKey" } as any,
-        );
-
-        await client.models.MarketplaceListing.update(
-          {
-            id: listingId,
-            sold: true,
-            paid: true,
-            paidAt: new Date().toISOString(),
-            stripeSessionId: session.id,
-            buyerEmail,
-            status: "SOLD",
-          },
-          { authMode: "apiKey" } as any,
-        );
-
-        if (!invoiceAlreadyExists) {
-          await client.models.Invoice.create(
-            {
-              type: "MARKETPLACE",
-              listingId,
-              title: listingResult.data?.title || "Marketplace Listing",
-              buyerEmail,
-              sellerEmail: listingResult.data?.sellerEmail || "",
-              amount,
-              status: "PAID",
-              stripeSessionId: session.id,
-              paidAt: new Date().toISOString(),
-            },
-            { authMode: "apiKey" } as any,
-          );
-        }
-
-        console.log("Marketplace listing marked paid", listingId);
-      } catch (err) {
-        console.error("Failed to process marketplace webhook", err);
+        break;
       }
+
+      case "payment_intent.succeeded": {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+
+        console.log("Payment succeeded:", paymentIntent.id);
+
+        break;
+      }
+
+      default:
+        console.log(`Unhandled Stripe event type: ${event.type}`);
     }
 
-    if (auctionId) {
-      try {
-        const auctionResult = await client.models.Auction.get(
-          { id: auctionId },
-          { authMode: "apiKey" } as any,
-        );
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error("Stripe webhook handler failed:", error);
 
-        await client.models.Auction.update(
-          {
-            id: auctionId,
-            paid: true,
-            paidAt: new Date().toISOString(),
-            stripeSessionId: session.id,
-            status: "PAID",
-          },
-          { authMode: "apiKey" } as any,
-        );
-
-        if (!invoiceAlreadyExists) {
-          await client.models.Invoice.create(
-            {
-              type: "AUCTION",
-              auctionId,
-              title: auctionResult.data?.title || "Auction",
-              buyerEmail,
-              sellerEmail: auctionResult.data?.sellerEmail || "",
-              amount,
-              status: "PAID",
-              stripeSessionId: session.id,
-              paidAt: new Date().toISOString(),
-            },
-            { authMode: "apiKey" } as any,
-          );
-        }
-
-        console.log("Auction marked paid", auctionId);
-      } catch (err) {
-        console.error("Failed to process auction webhook", err);
-      }
-    }
+    return NextResponse.json(
+      { error: "Webhook handler failed." },
+      { status: 500 }
+    );
   }
-
-  return new Response("OK", { status: 200 });
 }
