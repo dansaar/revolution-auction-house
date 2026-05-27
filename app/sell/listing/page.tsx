@@ -115,8 +115,18 @@ export default function CreateListingPage() {
 
       const currentUser = await getCurrentUser();
 
+      const sellerUserId =
+        (currentUser as any).userId || currentUser.username || "";
+
       const sellerEmail =
-        currentUser.signInDetails?.loginId || currentUser.username;
+        currentUser.signInDetails?.loginId || currentUser.username || "";
+
+      const sellerSource = sellerUserId || sellerEmail;
+
+      const sellerPublicId = `RAH-${sellerSource
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .slice(0, 10)
+        .toUpperCase()}`;
 
       await client.models.MarketplaceListing.create({
         title: form.title,
@@ -124,14 +134,16 @@ export default function CreateListingPage() {
         description: form.description,
         condition: form.condition,
         price: `$${Number(form.price).toLocaleString()}`,
+
         image: fullUrls[0] || "/logo.png",
         images: fullUrls.length ? fullUrls : ["/logo.png"],
-
         thumbImages: thumbUrls.length ? thumbUrls : ["/logo.png"],
         mediumImages: mediumUrls.length ? mediumUrls : ["/logo.png"],
         fullImages: fullUrls.length ? fullUrls : ["/logo.png"],
         sellerEmail,
-        sellerDisplayName: sellerEmail,
+        sellerUserId,
+        sellerPublicId,
+        sellerDisplayName: sellerPublicId,
         status: "ACTIVE",
       });
 

@@ -506,6 +506,15 @@ export default function LiveAuctionPage() {
       ? selectedImage
       : images[0] || "/logo.png";
 
+  const sellerPublicId =
+    auction.sellerPublicId ||
+    (auction.sellerUserId
+      ? `RAH-${String(auction.sellerUserId)
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .slice(0, 10)
+          .toUpperCase()}`
+      : "");
+
   //  Watchlist toggle
   async function toggleWatchlist() {
     if (!auction?.id || watchBusy) return;
@@ -1042,6 +1051,18 @@ export default function LiveAuctionPage() {
               <p className="mt-3 whitespace-pre-line text-gray-300">
                 {auction.provenance}
               </p>
+            </div>
+          )}
+
+          {sellerPublicId && (
+            <div className="mt-8 border-t border-white/10 pt-5">
+              <div className="text-xs uppercase tracking-[0.25em] text-gray-500">
+                Seller ID
+              </div>
+
+              <div className="mt-2 font-serif text-xl text-[#e7c77f]">
+                {sellerPublicId}
+              </div>
             </div>
           )}
         </div>

@@ -6,8 +6,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "aws-amplify/auth";
 
-const ADMINS = ["dansaar52@gmail.com"];
-const APPROVED_SELLERS = ["dansaar52@gmail.com"];
+const ADMINS = ["dansaar52@gmail.com", "dansaar@verizon.com"];
+const APPROVED_SELLERS = ["dansaar52@gmail.com", "dansaar@verizon.com"];
 
 export default function AdminSellersPage() {
   const [checking, setChecking] = useState(true);

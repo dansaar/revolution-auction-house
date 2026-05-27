@@ -56,10 +56,8 @@ export default function SellerPage() {
         setOffers(offerResult.data || []);
 
         const listingResult = await client.models.MarketplaceListing.list({
-          filter: {
-            sellerEmail: { eq: email },
-          },
           authMode: "apiKey",
+          limit: 1000,
         } as any);
 
         const resolvedListings = (listingResult.data || []).map(
@@ -80,10 +78,8 @@ export default function SellerPage() {
         setMarketplaceListings(resolvedListings);
 
         const result = await client.models.Auction.list({
-          filter: {
-            sellerEmail: { eq: email },
-          },
           authMode: "apiKey",
+          limit: 1000,
         } as any);
 
         const sorted = [...result.data].sort(
@@ -475,6 +471,15 @@ function SellerAuctionCard({ auction, client }: any) {
   const ended =
     auction.endsAt && new Date(auction.endsAt).getTime() < Date.now();
 
+  const sellerPublicId =
+    auction.sellerPublicId ||
+    (auction.sellerUserId
+      ? `RAH-${String(auction.sellerUserId)
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .slice(0, 10)
+          .toUpperCase()}`
+      : "");
+
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
@@ -734,6 +739,19 @@ function SellerAuctionCard({ auction, client }: any) {
                 </Link>
               )}
           </div>
+
+          {(auction.sellerPublicId || auction.sellerUserId) && (
+            <div className="mt-5 border-t border-white/10 pt-4 text-xs uppercase tracking-[0.22em] text-gray-500">
+              Seller ID{" "}
+              <span className="text-[#e7c77f]">
+                {auction.sellerPublicId ||
+                  `RAH-${String(auction.sellerUserId)
+                    .replace(/[^a-zA-Z0-9]/g, "")
+                    .slice(0, 10)
+                    .toUpperCase()}`}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -895,6 +913,19 @@ function MarketplaceSection({ title, listings, client }: any) {
                 >
                   Edit Listing
                 </Link>
+
+                {(listing.sellerPublicId || listing.sellerUserId) && (
+                  <div className="mt-5 border-t border-white/10 pt-4 text-xs uppercase tracking-[0.22em] text-gray-500">
+                    Seller ID{" "}
+                    <span className="text-[#e7c77f]">
+                      {listing.sellerPublicId ||
+                        `RAH-${String(listing.sellerUserId)
+                          .replace(/[^a-zA-Z0-9]/g, "")
+                          .slice(0, 10)
+                          .toUpperCase()}`}
+                    </span>
+                  </div>
+                )}
 
                 <div className="mt-3 flex gap-2">
                   {listing.status === "ACTIVE" && (

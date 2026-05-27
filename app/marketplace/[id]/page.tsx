@@ -86,6 +86,15 @@ export default function MarketplaceListingPage() {
     );
   }
 
+  const sellerPublicId =
+    listing.sellerPublicId ||
+    (listing.sellerUserId
+      ? `RAH-${String(listing.sellerUserId)
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .slice(0, 10)
+          .toUpperCase()}`
+      : "");
+
   async function handleMakeOffer() {
     try {
       const currentUser = await getCurrentUser();
@@ -330,6 +339,18 @@ export default function MarketplaceListingPage() {
                 </button>
               </div>
             </div>
+
+            {sellerPublicId && (
+              <div className="mt-8 border-t border-white/10 pt-5">
+                <div className="text-xs uppercase tracking-[0.25em] text-gray-500">
+                  Seller ID
+                </div>
+
+                <div className="mt-2 font-serif text-xl text-[#e7c77f]">
+                  {sellerPublicId}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

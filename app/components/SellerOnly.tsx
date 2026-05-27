@@ -6,7 +6,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getCurrentUser } from "aws-amplify/auth";
 
-const SELLERS = ["dansaar52@gmail.com"];
+const SELLERS = [
+  "dansaar52@gmail.com",
+  "dansaar@verizon.com",
+].map((email) => email.toLowerCase());
 
 export default function SellerOnly() {
   const [isSeller, setIsSeller] = useState(false);
@@ -18,7 +21,7 @@ export default function SellerOnly() {
 
         const email = user.signInDetails?.loginId || user.username;
 
-        setIsSeller(SELLERS.includes(email));
+        setIsSeller(SELLERS.includes(String(email).toLowerCase()));
       } catch {
         setIsSeller(false);
       }
