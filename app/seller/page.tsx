@@ -9,6 +9,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
+import { Gavel, Tag, FileText, Archive } from "lucide-react";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
   const c = carrier.toLowerCase();
@@ -221,74 +222,78 @@ export default function SellerPage() {
   return (
     <main className="min-h-screen bg-[#050607] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
-        <h1 className="text-5xl font-serif text-[#c0c0c0]">Seller Dashboard</h1>
+        <div className="text-center">
+          <h1 className="font-serif text-5xl text-[#c0c0c0]">
+            Seller Dashboard
+          </h1>
 
-        <p className="mt-3 text-gray-400">
-          Manage your live and completed auctions.
-        </p>
+          <div className="mx-auto mt-3 h-px w-72 bg-gradient-to-r from-transparent via-[#d6aa55]/70 to-transparent" />
 
-        <div className="mt-6 flex flex-wrap gap-3">
+          <p className="mt-5 text-gray-400">
+            Manage your auctions, listings, and account
+          </p>
+        </div>
+
+        <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+          <button
+            type="button"
+            onClick={() => setActiveTab("auctions")}
+            className={`group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
+              activeTab === "auctions"
+                ? "border-[#d6aa55]/60 bg-[#1a1408]"
+                : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
+            }`}
+          >
+            <Gavel className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Auctions</div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("marketplace")}
+            className={`group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
+              activeTab === "marketplace"
+                ? "border-[#d6aa55]/60 bg-[#1a1408]"
+                : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
+            }`}
+          >
+            <Tag className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Marketplace</div>
+          </button>
+
           <Link
             href="/sell/auction"
-            className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-5 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
-            Create Auction
+            <Gavel className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Create Auction</div>
           </Link>
 
           <Link
             href="/sell/listing"
-            className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-5 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
-            Create Listing
-          </Link>
-
-          <Link
-            href="/auctions/results"
-            className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-5 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
-          >
-            View Results Archive
+            <Tag className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Create Listing</div>
           </Link>
 
           <Link
             href="/seller/invoices"
-            className="
-    rounded border border-[#d6aa55]/30
-    bg-[#1a1408]
-    px-5 py-3
-    text-sm font-semibold
-    text-[#e7c77f]
-    transition
-    hover:bg-[#221909]
-  "
+            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
-            View Invoices
+            <FileText className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">View Invoices</div>
           </Link>
 
-          <div className="mt-8 flex w-fit rounded-xl border border-white/10 bg-white/[0.03] p-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab("auctions")}
-              className={`rounded-lg px-5 py-2 text-sm font-semibold transition ${
-                activeTab === "auctions"
-                  ? "bg-[#c0c0c0] text-black"
-                  : "text-gray-400 hover:bg-white/[0.05] hover:text-white"
-              }`}
-            >
-              Auctions
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("marketplace")}
-              className={`rounded-lg px-5 py-2 text-sm font-semibold transition ${
-                activeTab === "marketplace"
-                  ? "bg-[#c0c0c0] text-black"
-                  : "text-gray-400 hover:bg-white/[0.05] hover:text-white"
-              }`}
-            >
-              Marketplace
-            </button>
-          </div>
+          <Link
+            href="/auctions/results"
+            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+          >
+            <Archive className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">
+              View Results Archive
+            </div>
+          </Link>
         </div>
 
         <div className="mt-10 grid gap-5 md:grid-cols-4">
