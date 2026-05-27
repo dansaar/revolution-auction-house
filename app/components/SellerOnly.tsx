@@ -8,7 +8,7 @@ import { getCurrentUser } from "aws-amplify/auth";
 
 const SELLERS = [
   "dansaar52@gmail.com",
-  "dansaar@verizon.com",
+  "dansaar@verizon.net",
   "nckhldy825@gmail.com",
 ].map((email) => email.toLowerCase());
 
