@@ -31,9 +31,13 @@ function trackingUrl(carrier: string, trackingNumber: string) {
 export default function SellerPage() {
   const clientRef = React.useRef(generateClient<Schema>());
   const client = clientRef.current;
-
+  <div className="mt-6 flex flex-wrap gap-3"></div>;
   const [auctions, setAuctions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [activeTab, setActiveTab] = useState<"auctions" | "marketplace">(
+    "auctions",
+  );
 
   const [marketplaceListings, setMarketplaceListings] = useState<any[]>([]);
 
@@ -259,6 +263,32 @@ export default function SellerPage() {
           >
             View Invoices
           </Link>
+
+          <div className="mt-8 flex w-fit rounded-xl border border-white/10 bg-white/[0.03] p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("auctions")}
+              className={`rounded-lg px-5 py-2 text-sm font-semibold transition ${
+                activeTab === "auctions"
+                  ? "bg-[#c0c0c0] text-black"
+                  : "text-gray-400 hover:bg-white/[0.05] hover:text-white"
+              }`}
+            >
+              Auctions
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("marketplace")}
+              className={`rounded-lg px-5 py-2 text-sm font-semibold transition ${
+                activeTab === "marketplace"
+                  ? "bg-[#c0c0c0] text-black"
+                  : "text-gray-400 hover:bg-white/[0.05] hover:text-white"
+              }`}
+            >
+              Marketplace
+            </button>
+          </div>
         </div>
 
         <div className="mt-10 grid gap-5 md:grid-cols-4">
@@ -276,49 +306,57 @@ export default function SellerPage() {
           <Stat label="Revenue" value={`$${totalRevenue.toLocaleString()}`} />
         </div>
 
-        <AuctionSection
-          title="Live Auctions"
-          auctions={liveAuctions}
-          client={client}
-        />
+        {activeTab === "auctions" && (
+          <>
+            <AuctionSection
+              title="Live Auctions"
+              auctions={liveAuctions}
+              client={client}
+            />
 
-        <AuctionSection
-          title="Ending Soon"
-          auctions={endingSoon}
-          client={client}
-        />
+            <AuctionSection
+              title="Ending Soon"
+              auctions={endingSoon}
+              client={client}
+            />
 
-        <AuctionSection
-          title="Ended Auctions"
-          auctions={endedAuctions}
-          client={client}
-        />
+            <AuctionSection
+              title="Ended Auctions"
+              auctions={endedAuctions}
+              client={client}
+            />
 
-        <AuctionSection
-          title="Unsold Auctions"
-          auctions={unsoldAuctions}
-          client={client}
-        />
+            <AuctionSection
+              title="Unsold Auctions"
+              auctions={unsoldAuctions}
+              client={client}
+            />
+          </>
+        )}
 
-        <OfferSection offers={offers} client={client} />
+        {activeTab === "marketplace" && (
+          <>
+            <OfferSection offers={offers} client={client} />
 
-        <MarketplaceSection
-          title="Active Listings"
-          listings={activeListings}
-          client={client}
-        />
+            <MarketplaceSection
+              title="Active Listings"
+              listings={activeListings}
+              client={client}
+            />
 
-        <MarketplaceSection
-          title="Pending Payment"
-          listings={pendingPaymentListings}
-          client={client}
-        />
+            <MarketplaceSection
+              title="Pending Payment"
+              listings={pendingPaymentListings}
+              client={client}
+            />
 
-        <MarketplaceSection
-          title="Sold Listings"
-          listings={soldListings}
-          client={client}
-        />
+            <MarketplaceSection
+              title="Sold Listings"
+              listings={soldListings}
+              client={client}
+            />
+          </>
+        )}
       </div>
     </main>
   );

@@ -52,7 +52,6 @@ export default function SellAuctionContent() {
     async function checkSeller() {
       try {
         const user = await getCurrentUser();
-
         const email = user.signInDetails?.loginId || user.username;
 
         setIsSeller(SELLERS.includes(email));
@@ -218,8 +217,18 @@ export default function SellAuctionContent() {
         return;
       }
 
+      const sellerUserId =
+        (currentUser as any).userId || currentUser.username || "";
+
       const sellerEmail =
-        currentUser.signInDetails?.loginId || currentUser.username;
+        currentUser.signInDetails?.loginId || currentUser.username || "";
+
+      const sellerSource = sellerUserId || sellerEmail;
+
+      const sellerPublicId = `RAH-${sellerSource
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .slice(0, 10)
+        .toUpperCase()}`;
 
       const auctionResult = await client.models.Auction.create({
         title: form.title,
@@ -250,8 +259,11 @@ export default function SellAuctionContent() {
 
         bids: 0,
 
-        sellerName: sellerEmail,
         sellerEmail,
+        sellerUserId,
+        sellerPublicId,
+        sellerDisplayName: sellerPublicId,
+        sellerName: sellerPublicId,
       });
 
       const auction = auctionResult.data;

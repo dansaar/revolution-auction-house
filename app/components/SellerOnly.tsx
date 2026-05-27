@@ -6,10 +6,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getCurrentUser } from "aws-amplify/auth";
 
-const SELLERS = [
-  "dansaar52@gmail.com",
-  "dansaar@verizon.com",
-].map((email) => email.toLowerCase());
+const SELLERS = ["dansaar52@gmail.com", "dansaar@verizon.com"].map((email) =>
+  email.toLowerCase(),
+);
 
 export default function SellerOnly() {
   const [isSeller, setIsSeller] = useState(false);

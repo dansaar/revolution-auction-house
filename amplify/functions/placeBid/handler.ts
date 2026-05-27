@@ -250,8 +250,6 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       );
 
       if (!updateResult.data) {
-        console.log("Bid conflict, retrying...", attempt + 1);
-
         if (attempt === 2) {
           return {
             success: false,
@@ -276,8 +274,6 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         isProxy: false,
         createdAt: new Date().toISOString(),
       });
-
-      console.log("BID CREATE RESULT", JSON.stringify(bidCreateResult));
 
       if (proxyUserId) {
         await client.models.Bid.create({
