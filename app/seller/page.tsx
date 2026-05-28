@@ -347,18 +347,21 @@ export default function SellerPage() {
               title="Active Listings"
               listings={activeListings}
               client={client}
+              setMarketplaceListings={setMarketplaceListings}
             />
 
             <MarketplaceSection
               title="Pending Payment"
               listings={pendingPaymentListings}
               client={client}
+              setMarketplaceListings={setMarketplaceListings}
             />
 
             <MarketplaceSection
               title="Sold Listings"
               listings={soldListings}
               client={client}
+              setMarketplaceListings={setMarketplaceListings}
             />
           </>
         )}
@@ -529,6 +532,9 @@ function SellerAuctionCard({ auction, client }: any) {
   const [shippingCarrier, setShippingCarrier] = useState("");
   const [shippingTracking, setShippingTracking] = useState("");
   const [savingShipping, setSavingShipping] = useState(false);
+
+  const [showEndAuctionModal, setShowEndAuctionModal] = useState(false);
+  const [endingAuction, setEndingAuction] = useState(false);
 
   useEffect(() => {
     if (!auction?.endsAt) return;
@@ -872,7 +878,12 @@ function SellerAuctionCard({ auction, client }: any) {
   );
 }
 
-function MarketplaceSection({ title, listings, client }: any) {
+function MarketplaceSection({
+  title,
+  listings,
+  client,
+  setMarketplaceListings,
+}: any) {
   const [showShippingModal, setShowShippingModal] = useState(false);
   const [selectedListing, setSelectedListing] = useState<any>(null);
   const [shippingCarrier, setShippingCarrier] = useState("");
@@ -1046,7 +1057,15 @@ function MarketplaceSection({ title, listings, client }: any) {
                               { authMode: "apiKey" } as any,
                             );
 
-                            window.location.reload();
+                            toast.success("Listing paused");
+
+                            setMarketplaceListings((prev: any[]) =>
+                              prev.map((item: any) =>
+                                item.id === listing.id
+                                  ? { ...item, status: "PAUSED" }
+                                  : item,
+                              ),
+                            );
                           } catch (err) {
                             console.error(err);
                             toast.error("Failed to pause listing");
@@ -1070,7 +1089,15 @@ function MarketplaceSection({ title, listings, client }: any) {
                               { authMode: "apiKey" } as any,
                             );
 
-                            window.location.reload();
+                            toast.success("Listing marked sold");
+
+                            setMarketplaceListings((prev: any[]) =>
+                              prev.map((item: any) =>
+                                item.id === listing.id
+                                  ? { ...item, status: "SOLD", sold: true }
+                                  : item,
+                              ),
+                            );
                           } catch (err) {
                             console.error(err);
                             toast.error("Failed to mark sold");
@@ -1096,7 +1123,15 @@ function MarketplaceSection({ title, listings, client }: any) {
                             { authMode: "apiKey" } as any,
                           );
 
-                          window.location.reload();
+                          toast.success("Listing activated");
+
+                          setMarketplaceListings((prev: any[]) =>
+                            prev.map((item: any) =>
+                              item.id === listing.id
+                                ? { ...item, status: "ACTIVE" }
+                                : item,
+                            ),
+                          );
                         } catch (err) {
                           console.error(err);
                           toast.error("Failed to activate listing");
