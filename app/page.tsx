@@ -125,9 +125,9 @@ export default function RevolutionAuctionHouseHomepage() {
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(255,255,255,0.08),transparent_28%),radial-gradient(circle_at_75%_40%,rgba(214,170,85,0.08),transparent_24%)]" />
 
       <main className="relative z-10 mx-auto max-w-[1500px] px-6 pb-12 pt-10">
-        <section className="grid min-h-[650px] items-center gap-10 py-16 lg:grid-cols-[1.35fr_0.9fr]">
+        <section className="grid items-center gap-10 py-10 sm:py-14 lg:min-h-[650px] lg:grid-cols-[1.35fr_0.9fr] lg:py-16">
           <div className="text-center lg:text-left">
-            <div className="font-serif text-8xl leading-none tracking-[0.10em] text-transparent bg-gradient-to-b from-[#ffffff] via-[#e7e7e7] to-[#cfcfcf] bg-clip-text drop-shadow-[0_0_12px_rgba(255,255,255,0.08)] md:text-8xl lg:text-[9rem]">
+            <div className="font-serif text-5xl leading-none tracking-[0.08em] text-transparent bg-gradient-to-b from-[#ffffff] via-[#e7e7e7] to-[#cfcfcf] bg-clip-text drop-shadow-[0_0_12px_rgba(255,255,255,0.08)] sm:text-6xl md:text-8xl lg:text-[9rem]">
               Revolution
             </div>
 
@@ -153,7 +153,7 @@ export default function RevolutionAuctionHouseHomepage() {
             </p>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-7 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_40px_120px_rgba(0,0,0,0.55)] sm:p-7">
             <div className="mb-7 inline-flex rounded border border-[#d6aa55]/30 bg-[#d6aa55]/10 px-4 py-3 text-xs uppercase tracking-[0.22em] text-[#e7c77f]">
               Live Auction
             </div>
@@ -173,7 +173,7 @@ export default function RevolutionAuctionHouseHomepage() {
                     Current Bid
                   </div>
 
-                  <div className="mt-2 font-serif text-6xl text-[#c0c0c0]">
+                  <div className="mt-2 font-serif text-4xl text-[#c0c0c0] sm:text-6xl">
                     {featuredAuction?.price || "$0"}
                   </div>
 
@@ -362,7 +362,7 @@ function Stat({
 function Time({ value, label }: { value: string; label: string }) {
   return (
     <div>
-      <div className="font-serif text-4xl text-white">{value}</div>
+      <div className="font-serif text-2xl text-white sm:text-4xl">{value}</div>
       <div className="text-xs uppercase tracking-[0.18em] text-gray-500">
         {label}
       </div>

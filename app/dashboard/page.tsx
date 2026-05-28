@@ -67,6 +67,20 @@ export default function DashboardPage() {
   const [loadingUser, setLoadingUser] = useState(true);
   const [user, setUser] = useState<any>(null);
 
+  const dashboardRefreshTimerRef = React.useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+
+  function scheduleDashboardRefresh(loadDashboard: () => void) {
+    if (dashboardRefreshTimerRef.current) {
+      clearTimeout(dashboardRefreshTimerRef.current);
+    }
+
+    dashboardRefreshTimerRef.current = setTimeout(() => {
+      loadDashboard();
+    }, 500);
+  }
+
   const [activeTab, setActiveTab] = useState<"auctions" | "marketplace">(
     "auctions",
   );
@@ -254,25 +268,25 @@ export default function DashboardPage() {
     const bidCreateSub = client.models.Bid.onCreate({
       authMode: "apiKey",
     }).subscribe({
-      next: () => loadDashboard(),
+      next: () => scheduleDashboardRefresh(loadDashboard),
     });
 
     const bidUpdateSub = client.models.Bid.onUpdate({
       authMode: "apiKey",
     }).subscribe({
-      next: () => loadDashboard(),
+      next: () => scheduleDashboardRefresh(loadDashboard),
     });
 
     const auctionUpdateSub = client.models.Auction.onUpdate({
       authMode: "apiKey",
     }).subscribe({
-      next: () => loadDashboard(),
+      next: () => scheduleDashboardRefresh(loadDashboard),
     });
 
     const stateUpdateSub = client.models.AuctionState.onUpdate({
       authMode: "apiKey",
     }).subscribe({
-      next: () => loadDashboard(),
+      next: () => scheduleDashboardRefresh(loadDashboard),
     });
 
     return () => {
