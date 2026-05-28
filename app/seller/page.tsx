@@ -10,6 +10,7 @@ import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
 import { Gavel, Tag, FileText, Archive } from "lucide-react";
+import { toast } from "sonner";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
   const c = carrier.toLowerCase();
@@ -229,7 +230,7 @@ export default function SellerPage() {
           <div className="mx-auto mt-3 h-px w-72 bg-gradient-to-r from-transparent via-[#d6aa55]/70 to-transparent" />
 
           <p className="mt-5 text-gray-400">
-            Manage your auctions, listings, and account
+            Manage your auctions and listings
           </p>
         </div>
 
@@ -450,7 +451,7 @@ function OfferSection({ offers, client }: any) {
                         window.location.reload();
                       } catch (err) {
                         console.error(err);
-                        alert("Failed to accept offer");
+                        toast.error("Failed to accept offer");
                       }
                     }}
                     className="rounded border border-emerald-500/20 bg-emerald-500/10 px-5 py-3 text-sm text-emerald-300 hover:bg-emerald-500/20"
@@ -481,7 +482,7 @@ function OfferSection({ offers, client }: any) {
                         window.location.reload();
                       } catch (err) {
                         console.error(err);
-                        alert("Failed to decline offer");
+                        toast.error("Failed to decline offer");
                       }
                     }}
                     className="rounded border border-red-500/20 bg-red-500/10 px-5 py-3 text-sm text-red-300 hover:bg-red-500/20"
@@ -523,6 +524,11 @@ function SellerAuctionCard({ auction, client }: any) {
       : "");
 
   const [timeLeft, setTimeLeft] = useState("");
+
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [shippingCarrier, setShippingCarrier] = useState("");
+  const [shippingTracking, setShippingTracking] = useState("");
+  const [savingShipping, setSavingShipping] = useState(false);
 
   useEffect(() => {
     if (!auction?.endsAt) return;
@@ -683,7 +689,7 @@ function SellerAuctionCard({ auction, client }: any) {
                       navigator.clipboard.writeText(
                         `${window.location.origin}/auctions/${auction.id}`,
                       );
-                      alert("Auction link copied");
+                      toast.success("Auction link copied");
                     }}
                     className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium tracking-wide text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
                   >
@@ -736,27 +742,10 @@ function SellerAuctionCard({ auction, client }: any) {
 
                   <button
                     type="button"
-                    onClick={async () => {
-                      const carrier = prompt(
-                        "Carrier? Example: USPS, UPS, FedEx",
-                      );
-                      if (!carrier) return;
-
-                      const trackingNumber = prompt("Tracking number?");
-                      if (!trackingNumber) return;
-
-                      await client.models.Auction.update(
-                        {
-                          id: auction.id,
-                          shippingStatus: "SHIPPED",
-                          carrier,
-                          trackingNumber,
-                          shippedAt: new Date().toISOString(),
-                        },
-                        { authMode: "apiKey" } as any,
-                      );
-
-                      window.location.reload();
+                    onClick={() => {
+                      setShippingCarrier(auction.carrier || "");
+                      setShippingTracking(auction.trackingNumber || "");
+                      setShowShippingModal(true);
                     }}
                     className="mt-4 w-full rounded-lg border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
                   >
@@ -796,11 +785,100 @@ function SellerAuctionCard({ auction, client }: any) {
           )}
         </div>
       </div>
+
+      {showShippingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#d6aa55]/30 bg-[#0b0c0e] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
+            <h3 className="font-serif text-2xl text-[#c0c0c0]">
+              Update Shipping
+            </h3>
+
+            <p className="mt-2 text-sm text-gray-400">
+              Add carrier and tracking details for this auction.
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <input
+                value={shippingCarrier}
+                onChange={(e) => setShippingCarrier(e.target.value)}
+                placeholder="Carrier — USPS, UPS, FedEx"
+                className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none placeholder:text-gray-600 focus:border-[#d6aa55]/50"
+              />
+
+              <input
+                value={shippingTracking}
+                onChange={(e) => setShippingTracking(e.target.value)}
+                placeholder="Tracking number"
+                className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none placeholder:text-gray-600 focus:border-[#d6aa55]/50"
+              />
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowShippingModal(false)}
+                className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-white hover:bg-white/[0.06]"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={savingShipping}
+                onClick={async () => {
+                  if (!shippingCarrier.trim()) {
+                    toast.error("Enter a carrier");
+                    return;
+                  }
+
+                  if (!shippingTracking.trim()) {
+                    toast.error("Enter a tracking number");
+                    return;
+                  }
+
+                  try {
+                    setSavingShipping(true);
+
+                    await client.models.Auction.update(
+                      {
+                        id: auction.id,
+                        shippingStatus: "SHIPPED",
+                        carrier: shippingCarrier.trim(),
+                        trackingNumber: shippingTracking.trim(),
+                        shippedAt: new Date().toISOString(),
+                      },
+                      { authMode: "apiKey" } as any,
+                    );
+
+                    toast.success("Shipping info updated");
+                    setShowShippingModal(false);
+                    window.location.reload();
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Failed to update shipping");
+                  } finally {
+                    setSavingShipping(false);
+                  }
+                }}
+                className="flex-1 rounded-xl border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909] disabled:opacity-50"
+              >
+                {savingShipping ? "Saving..." : "Save Shipping"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function MarketplaceSection({ title, listings, client }: any) {
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<any>(null);
+  const [shippingCarrier, setShippingCarrier] = useState("");
+  const [shippingTracking, setShippingTracking] = useState("");
+  const [savingShipping, setSavingShipping] = useState(false);
+
   return (
     <section className="mt-14">
       <div className="mb-5 flex items-center justify-between">
@@ -912,27 +990,11 @@ function MarketplaceSection({ title, listings, client }: any) {
 
                     <button
                       type="button"
-                      onClick={async () => {
-                        const carrier = prompt(
-                          "Carrier? Example: USPS, UPS, FedEx",
-                        );
-                        if (!carrier) return;
-
-                        const trackingNumber = prompt("Tracking number?");
-                        if (!trackingNumber) return;
-
-                        await client.models.MarketplaceListing.update(
-                          {
-                            id: listing.id,
-                            shippingStatus: "SHIPPED",
-                            carrier,
-                            trackingNumber,
-                            shippedAt: new Date().toISOString(),
-                          },
-                          { authMode: "apiKey" } as any,
-                        );
-
-                        window.location.reload();
+                      onClick={() => {
+                        setSelectedListing(listing);
+                        setShippingCarrier(listing.carrier || "");
+                        setShippingTracking(listing.trackingNumber || "");
+                        setShowShippingModal(true);
                       }}
                       className="mt-4 w-full rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
                     >
@@ -987,7 +1049,7 @@ function MarketplaceSection({ title, listings, client }: any) {
                             window.location.reload();
                           } catch (err) {
                             console.error(err);
-                            alert("Failed to pause listing");
+                            toast.error("Failed to pause listing");
                           }
                         }}
                         className="flex-1 rounded border border-yellow-500/20 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-300 hover:bg-yellow-500/20"
@@ -1011,7 +1073,7 @@ function MarketplaceSection({ title, listings, client }: any) {
                             window.location.reload();
                           } catch (err) {
                             console.error(err);
-                            alert("Failed to mark sold");
+                            toast.error("Failed to mark sold");
                           }
                         }}
                         className="flex-1 rounded border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300 hover:bg-emerald-500/20"
@@ -1037,7 +1099,7 @@ function MarketplaceSection({ title, listings, client }: any) {
                           window.location.reload();
                         } catch (err) {
                           console.error(err);
-                          alert("Failed to activate listing");
+                          toast.error("Failed to activate listing");
                         }
                       }}
                       className="w-full rounded border border-[#d6aa55]/20 bg-[#1a1408] px-4 py-2 text-sm text-[#e7c77f] hover:bg-[#221909]"
@@ -1049,6 +1111,92 @@ function MarketplaceSection({ title, listings, client }: any) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {showShippingModal && selectedListing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#d6aa55]/30 bg-[#0b0c0e] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
+            <h3 className="font-serif text-2xl text-[#c0c0c0]">
+              Update Shipping
+            </h3>
+
+            <p className="mt-2 text-sm text-gray-400">
+              Add carrier and tracking details for this marketplace sale.
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <input
+                value={shippingCarrier}
+                onChange={(e) => setShippingCarrier(e.target.value)}
+                placeholder="Carrier — USPS, UPS, FedEx"
+                className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none placeholder:text-gray-600 focus:border-[#d6aa55]/50"
+              />
+
+              <input
+                value={shippingTracking}
+                onChange={(e) => setShippingTracking(e.target.value)}
+                placeholder="Tracking number"
+                className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none placeholder:text-gray-600 focus:border-[#d6aa55]/50"
+              />
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowShippingModal(false);
+                  setSelectedListing(null);
+                }}
+                className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-white hover:bg-white/[0.06]"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={savingShipping}
+                onClick={async () => {
+                  if (!shippingCarrier.trim()) {
+                    toast.error("Enter a carrier");
+                    return;
+                  }
+
+                  if (!shippingTracking.trim()) {
+                    toast.error("Enter a tracking number");
+                    return;
+                  }
+
+                  try {
+                    setSavingShipping(true);
+
+                    await client.models.MarketplaceListing.update(
+                      {
+                        id: selectedListing.id,
+                        shippingStatus: "SHIPPED",
+                        carrier: shippingCarrier.trim(),
+                        trackingNumber: shippingTracking.trim(),
+                        shippedAt: new Date().toISOString(),
+                      },
+                      { authMode: "apiKey" } as any,
+                    );
+
+                    toast.success("Shipping info updated");
+                    setShowShippingModal(false);
+                    setSelectedListing(null);
+                    window.location.reload();
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Failed to update shipping");
+                  } finally {
+                    setSavingShipping(false);
+                  }
+                }}
+                className="flex-1 rounded-xl border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909] disabled:opacity-50"
+              >
+                {savingShipping ? "Saving..." : "Save Shipping"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

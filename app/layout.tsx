@@ -4,6 +4,7 @@ import Providers from "./providers";
 import NavUser from "./components/NavUser";
 import SellerOnly from "./components/SellerOnly";
 import AmplifyProvider from "./amplify-provider";
+import { Toaster } from "sonner";
 
 export const metadata = {
   title: "Revolution Auction House",
@@ -63,6 +64,18 @@ export default function RootLayout({
           </header>
 
           {children}
+
+          <Toaster
+            position="top-center"
+            richColors
+            toastOptions={{
+              style: {
+                background: "#0b0c0e",
+                border: "1px solid rgba(214,170,85,0.25)",
+                color: "#f5f5f5",
+              },
+            }}
+          />
         </Providers>
       </body>
     </html>
