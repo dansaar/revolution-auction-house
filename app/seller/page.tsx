@@ -44,6 +44,10 @@ export default function SellerPage() {
 
   const [offers, setOffers] = useState<any[]>([]);
 
+  const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
   useEffect(() => {
     async function loadSellerAuctions() {
       try {
@@ -116,11 +120,21 @@ export default function SellerPage() {
 
     loadSellerAuctions();
 
+    function scheduleSellerRefresh() {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+
+      refreshTimerRef.current = setTimeout(() => {
+        loadSellerAuctions();
+      }, 750);
+    }
+
     const bidSub = client.models.Bid.onCreate({
       authMode: "apiKey",
     }).subscribe({
       next: () => {
-        loadSellerAuctions();
+        scheduleSellerRefresh();
       },
       error: (error) => console.error("Seller bid subscription error:", error),
     });
@@ -129,13 +143,17 @@ export default function SellerPage() {
       authMode: "apiKey",
     }).subscribe({
       next: () => {
-        loadSellerAuctions();
+        scheduleSellerRefresh();
       },
       error: (error) =>
         console.error("Seller auction subscription error:", error),
     });
 
     return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+
       bidSub.unsubscribe();
       auctionSub.unsubscribe();
     };
