@@ -7,7 +7,15 @@ import Link from "next/link";
 import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import { BadgeCheck, Gavel, Heart, Trophy } from "lucide-react";
+import {
+  BadgeCheck,
+  Gavel,
+  Heart,
+  Trophy,
+  Tag,
+  FileText,
+  Archive,
+} from "lucide-react";
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
 
@@ -58,6 +66,10 @@ export default function DashboardPage() {
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [user, setUser] = useState<any>(null);
+
+  const [activeTab, setActiveTab] = useState<"auctions" | "marketplace">(
+    "auctions",
+  );
 
   const userKey = user?.signInDetails?.loginId || user?.username || "";
   const userId = user?.userId || user?.username || "";
@@ -543,55 +555,75 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-[#050607] px-6 py-12 text-white">
       <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-4 border-b border-white/10 pb-8 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="font-serif text-5xl">Buyer Dashboard</h1>
+        <div className="text-center">
+          <h1 className="font-serif text-5xl text-[#c0c0c0]">
+            Buyer Dashboard
+          </h1>
 
-            <p className="mt-3 text-gray-400">
-              Track your bids, watched lots, and auction results.
-            </p>
-          </div>
+          <div className="mx-auto mt-3 h-px w-72 bg-gradient-to-r from-transparent via-[#d6aa55]/70 to-transparent" />
 
-          <div className="rounded-[28px] border border-white/10 bg-[#08090b] px-7 py-6 shadow-[0_20px_60px_rgba(0,0,0,0.45)] md:min-w-[280px]">
-            <div className="text-[10px] uppercase tracking-[0.34em] text-gray-500">
-              Verified Bidder
-            </div>
-
-            <div className="mt-4 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
-            <div className="mt-5 text-3xl font-serif text-3xl tracking-[0.22em] text-[#d7d7d7]">
-              Bidder{" "}
-              {String(user?.userId || "")
-                .slice(0, 4)
-                .toUpperCase()}
-            </div>
-
-            <div className="mt-5 text-[11px] uppercase tracking-[0.30em] text-emerald-400/80">
-              Identity Verified
-            </div>
-          </div>
+          <p className="mt-5 text-gray-400">
+            Track your bids, watchlist and purchases all in one place
+          </p>
         </div>
 
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+          <button
+            type="button"
+            onClick={() => setActiveTab("auctions")}
+            className={`group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
+              activeTab === "auctions"
+                ? "border-[#d6aa55]/60 bg-[#1a1408]"
+                : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
+            }`}
+          >
+            <Gavel className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Auctions</div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("marketplace")}
+            className={`group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
+              activeTab === "marketplace"
+                ? "border-[#d6aa55]/60 bg-[#1a1408]"
+                : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
+            }`}
+          >
+            <Tag className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Marketplace</div>
+          </button>
+
+          <Link
+            href="/auctions"
+            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+          >
+            <Gavel className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Browse Auctions</div>
+          </Link>
+
+          <Link
+            href="/marketplace"
+            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+          >
+            <Tag className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Shop Marketplace</div>
+          </Link>
+
           <Link
             href="/dashboard/invoices"
-            className="
-      rounded-xl
-      border border-[#d6aa55]/30
-      bg-[#1a1408]
-      px-5 py-3
-      text-sm font-semibold
-      tracking-[0.08em]
-      text-[#e7c77f]
-      transition-all duration-300
-      hover:border-[#f1d28a]/50
-      hover:bg-[#221909]
-      hover:text-[#f5dfac]
-      hover:shadow-[0_0_30px_rgba(214,170,85,0.18)]
-      active:scale-[0.98]
-    "
+            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
-            View Invoices
+            <FileText className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">View Invoices</div>
+          </Link>
+
+          <Link
+            href="/auctions/results"
+            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+          >
+            <Archive className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Results Archive</div>
           </Link>
         </div>
 
@@ -611,218 +643,229 @@ export default function DashboardPage() {
         </section>
 
         <section className="mt-12 grid gap-8 lg:grid-cols-2">
-          <Panel title="My Active / Winning Bids">
-            {myWinningBids.length === 0 ? (
-              <Empty text="No leading bids yet." />
-            ) : (
-              myWinningBids.map((bid: any) => (
-                <BidRow key={bid.auctionId} bid={bid} auctions={auctions} />
-              ))
-            )}
-          </Panel>
+          {activeTab === "auctions" && (
+            <>
+              <Panel title="My Active / Winning Bids">
+                {myWinningBids.length === 0 ? (
+                  <Empty text="No leading bids yet." />
+                ) : (
+                  myWinningBids.map((bid: any) => (
+                    <BidRow key={bid.auctionId} bid={bid} auctions={auctions} />
+                  ))
+                )}
+              </Panel>
 
-          <Panel title="Outbid (Live)">
-            {outbidLive.length === 0 ? (
-              <Empty text="No live outbid auctions." />
-            ) : (
-              outbidLive.map((bid: any) => (
-                <BidRow
-                  key={bid.auctionId}
-                  bid={bid}
-                  auctions={auctions}
-                  danger
-                />
-              ))
-            )}
-          </Panel>
+              <Panel title="Outbid (Live)">
+                {outbidLive.length === 0 ? (
+                  <Empty text="No live outbid auctions." />
+                ) : (
+                  outbidLive.map((bid: any) => (
+                    <BidRow
+                      key={bid.auctionId}
+                      bid={bid}
+                      auctions={auctions}
+                      danger
+                    />
+                  ))
+                )}
+              </Panel>
 
-          <Panel title="Won Auctions">
-            {myWins.length === 0 ? (
-              <Empty text="No wins yet." />
-            ) : (
-              myWins.map((bid: any) => (
-                <BidRow
-                  key={bid.auctionId}
-                  bid={bid}
-                  auctions={auctions}
-                  trophy
-                />
-              ))
-            )}
-          </Panel>
+              <Panel title="Won Auctions">
+                {myWins.length === 0 ? (
+                  <Empty text="No wins yet." />
+                ) : (
+                  myWins.map((bid: any) => (
+                    <BidRow
+                      key={bid.auctionId}
+                      bid={bid}
+                      auctions={auctions}
+                      trophy
+                    />
+                  ))
+                )}
+              </Panel>
 
-          <Panel title="Unpaid Wins">
-            {unpaidWins.length === 0 ? (
-              <Empty text="No unpaid wins." />
-            ) : (
-              unpaidWins.map((bid: any) => (
-                <BidRow
-                  key={bid.auctionId}
-                  bid={bid}
-                  auctions={auctions}
-                  trophy
-                  showPayButton
-                  onCheckout={handleCheckout}
-                />
-              ))
-            )}
-          </Panel>
+              <Panel title="Unpaid Wins">
+                {unpaidWins.length === 0 ? (
+                  <Empty text="No unpaid wins." />
+                ) : (
+                  unpaidWins.map((bid: any) => (
+                    <BidRow
+                      key={bid.auctionId}
+                      bid={bid}
+                      auctions={auctions}
+                      trophy
+                      showPayButton
+                      onCheckout={handleCheckout}
+                    />
+                  ))
+                )}
+              </Panel>
 
-          <Panel title="Paid Wins">
-            {paidWins.length === 0 ? (
-              <Empty text="No paid wins yet." />
-            ) : (
-              paidWins.map((bid: any) => (
-                <BidRow
-                  key={bid.auctionId}
-                  bid={bid}
-                  auctions={auctions}
-                  trophy
-                />
-              ))
-            )}
-          </Panel>
+              <Panel title="Paid Wins">
+                {paidWins.length === 0 ? (
+                  <Empty text="No paid wins yet." />
+                ) : (
+                  paidWins.map((bid: any) => (
+                    <BidRow
+                      key={bid.auctionId}
+                      bid={bid}
+                      auctions={auctions}
+                      trophy
+                    />
+                  ))
+                )}
+              </Panel>
 
-          <Panel title="Watchlist">
-            {watchlist.length === 0 ? (
-              <Empty text="No watched auctions yet." />
-            ) : (
-              watchlist
-                .filter((item: any) => item.auctionId)
-                .map((item: any) => {
-                  const auction = auctions.find(
-                    (a: any) => String(a.id) === String(item.auctionId),
-                  );
-                  const isEnded =
-                    auction?.endsAt &&
-                    new Date(auction.endsAt).getTime() <= Date.now();
+              <Panel title="Reserve Not Met">
+                {reserveNotMet.length === 0 ? (
+                  <Empty text="No reserve-not-met auctions." />
+                ) : (
+                  reserveNotMet.map((auction: any) => (
+                    <ReserveNotMetRow key={auction.id} auction={auction} />
+                  ))
+                )}
+              </Panel>
 
-                  const isPaid = auction?.paid === true;
+              <Panel title="Lost Auctions">
+                {lostAuctions.length === 0 ? (
+                  <Empty text="No lost auctions." />
+                ) : (
+                  lostAuctions.map((auction: any) => (
+                    <LostAuctionRow key={auction.id} auction={auction} />
+                  ))
+                )}
+              </Panel>
+            </>
+          )}
 
-                  const isLive = !!auction && !isEnded;
+          {activeTab === "marketplace" && (
+            <>
+              <Panel title="Watchlist">
+                {watchlist.length === 0 ? (
+                  <Empty text="No watched auctions yet." />
+                ) : (
+                  watchlist
+                    .filter((item: any) => item.auctionId)
+                    .map((item: any) => {
+                      const auction = auctions.find(
+                        (a: any) => String(a.id) === String(item.auctionId),
+                      );
+                      const isEnded =
+                        auction?.endsAt &&
+                        new Date(auction.endsAt).getTime() <= Date.now();
 
-                  return (
-                    <div
-                      key={item.id}
-                      className="mb-3 flex items-center justify-between gap-4 rounded border border-white/10 bg-black/30 p-3"
-                    >
-                      <Link
-                        href={
-                          isEnded
-                            ? `/auctions/${item.auctionId}/results`
-                            : `/auctions/${item.auctionId}`
-                        }
-                        className="flex flex-1 items-center gap-4"
-                      >
-                        <img
-                          loading="lazy"
-                          src={
-                            auction?.imageUrl ||
-                            cdnUrl(item.image) ||
-                            "/logo.png"
-                          }
-                          onError={(e) => {
-                            e.currentTarget.src = "/logo.png";
-                          }}
-                          className="h-16 w-16 rounded object-cover"
-                        />
+                      const isPaid = auction?.paid === true;
 
-                        <div>
-                          <div className="font-semibold">{item.title}</div>
-                          <div className="mt-1 flex gap-2 text-xs">
-                            {isLive && (
-                              <span className="rounded bg-blue-400/10 px-2 py-0.5 text-blue-300">
-                                Live
-                              </span>
-                            )}
+                      const isLive = !!auction && !isEnded;
 
-                            {isEnded && !isPaid && (
-                              <span className="rounded bg-yellow-400/10 px-2 py-0.5 text-yellow-300">
-                                Ended
-                              </span>
-                            )}
+                      return (
+                        <div
+                          key={item.id}
+                          className="mb-3 flex items-center justify-between gap-4 rounded border border-white/10 bg-black/30 p-3"
+                        >
+                          <Link
+                            href={
+                              isEnded
+                                ? `/auctions/${item.auctionId}/results`
+                                : `/auctions/${item.auctionId}`
+                            }
+                            className="flex flex-1 items-center gap-4"
+                          >
+                            <img
+                              loading="lazy"
+                              src={
+                                auction?.imageUrl ||
+                                cdnUrl(item.image) ||
+                                "/logo.png"
+                              }
+                              onError={(e) => {
+                                e.currentTarget.src = "/logo.png";
+                              }}
+                              className="h-16 w-16 rounded object-cover"
+                            />
 
-                            {isPaid && (
-                              <span className="rounded bg-green-500/10 px-2 py-0.5 text-green-400">
-                                Paid
-                              </span>
-                            )}
-                          </div>
+                            <div>
+                              <div className="font-semibold">{item.title}</div>
+                              <div className="mt-1 flex gap-2 text-xs">
+                                {isLive && (
+                                  <span className="rounded bg-blue-400/10 px-2 py-0.5 text-blue-300">
+                                    Live
+                                  </span>
+                                )}
+
+                                {isEnded && !isPaid && (
+                                  <span className="rounded bg-yellow-400/10 px-2 py-0.5 text-yellow-300">
+                                    Ended
+                                  </span>
+                                )}
+
+                                {isPaid && (
+                                  <span className="rounded bg-green-500/10 px-2 py-0.5 text-green-400">
+                                    Paid
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </Link>
+
+                          <button
+                            type="button"
+                            onClick={() => removeFromWatchlist(item.id)}
+                            className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 active:scale-95"
+                          >
+                            Remove
+                          </button>
                         </div>
-                      </Link>
+                      );
+                    })
+                )}
+              </Panel>
 
-                      <button
-                        type="button"
-                        onClick={() => removeFromWatchlist(item.id)}
-                        className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 active:scale-95"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  );
-                })
-            )}
-          </Panel>
+              <Panel title="Marketplace Purchases">
+                {marketplacePurchases.length === 0 ? (
+                  <Empty text="No marketplace purchases yet." />
+                ) : (
+                  marketplacePurchases.map((listing: any) => (
+                    <MarketplacePurchaseRow
+                      key={listing.id}
+                      listing={listing}
+                    />
+                  ))
+                )}
+              </Panel>
 
-          <Panel title="Offer Notifications">
-            {buyerOffers.length === 0 ? (
-              <Empty text="No offer updates yet." />
-            ) : (
-              buyerOffers
-                .filter((offer: any) => offer.read !== true)
-                .map((offer: any) => (
-                  <OfferNotificationRow
-                    key={offer.id}
-                    offer={offer}
-                    onDismiss={dismissOfferNotification}
-                  />
-                ))
-            )}
-          </Panel>
+              <Panel title="Accepted Marketplace Offers">
+                {acceptedOffers.length === 0 ? (
+                  <Empty text="No accepted marketplace offers." />
+                ) : (
+                  acceptedOffers.map((listing: any) => (
+                    <AcceptedMarketplaceRow
+                      key={listing.id}
+                      listing={listing}
+                      onCheckout={handleMarketplaceCheckout}
+                    />
+                  ))
+                )}
+              </Panel>
 
-          <Panel title="Marketplace Purchases">
-            {marketplacePurchases.length === 0 ? (
-              <Empty text="No marketplace purchases yet." />
-            ) : (
-              marketplacePurchases.map((listing: any) => (
-                <MarketplacePurchaseRow key={listing.id} listing={listing} />
-              ))
-            )}
-          </Panel>
-
-          <Panel title="Accepted Marketplace Offers">
-            {acceptedOffers.length === 0 ? (
-              <Empty text="No accepted marketplace offers." />
-            ) : (
-              acceptedOffers.map((listing: any) => (
-                <AcceptedMarketplaceRow
-                  key={listing.id}
-                  listing={listing}
-                  onCheckout={handleMarketplaceCheckout}
-                />
-              ))
-            )}
-          </Panel>
-
-          <Panel title="Reserve Not Met">
-            {reserveNotMet.length === 0 ? (
-              <Empty text="No reserve-not-met auctions." />
-            ) : (
-              reserveNotMet.map((auction: any) => (
-                <ReserveNotMetRow key={auction.id} auction={auction} />
-              ))
-            )}
-          </Panel>
-
-          <Panel title="Lost Auctions">
-            {lostAuctions.length === 0 ? (
-              <Empty text="No lost auctions." />
-            ) : (
-              lostAuctions.map((auction: any) => (
-                <LostAuctionRow key={auction.id} auction={auction} />
-              ))
-            )}
-          </Panel>
+              <Panel title="Offer Notifications">
+                {buyerOffers.length === 0 ? (
+                  <Empty text="No offer updates yet." />
+                ) : (
+                  buyerOffers
+                    .filter((offer: any) => offer.read !== true)
+                    .map((offer: any) => (
+                      <OfferNotificationRow
+                        key={offer.id}
+                        offer={offer}
+                        onDismiss={dismissOfferNotification}
+                      />
+                    ))
+                )}
+              </Panel>
+            </>
+          )}
         </section>
       </div>
     </main>
@@ -1093,10 +1136,7 @@ function OfferNotificationRow({ offer, onDismiss }: any) {
 
 function MarketplacePurchaseRow({ listing }: any) {
   return (
-    <Link
-      href={`/marketplace/${listing.id}`}
-      className="mb-3 block rounded border border-emerald-500/30 bg-emerald-500/10 p-4"
-    >
+    <div className="mb-3 rounded border border-emerald-500/30 bg-emerald-500/10 p-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <img
@@ -1169,7 +1209,14 @@ function MarketplacePurchaseRow({ listing }: any) {
           {listing.acceptedOfferAmount || listing.offerAmount || listing.price}
         </div>
       </div>
-    </Link>
+
+      <Link
+        href={`/marketplace/${listing.id}`}
+        className="mt-4 inline-flex rounded border border-white/10 px-4 py-2 text-sm text-white transition hover:bg-white/[0.05]"
+      >
+        View Listing
+      </Link>
+    </div>
   );
 }
 function AcceptedMarketplaceRow({ listing, onCheckout }: any) {

@@ -32,7 +32,6 @@ function trackingUrl(carrier: string, trackingNumber: string) {
 export default function SellerPage() {
   const clientRef = React.useRef(generateClient<Schema>());
   const client = clientRef.current;
-  <div className="mt-6 flex flex-wrap gap-3"></div>;
   const [auctions, setAuctions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

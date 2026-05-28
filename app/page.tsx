@@ -127,19 +127,19 @@ export default function RevolutionAuctionHouseHomepage() {
       <main className="relative z-10 mx-auto max-w-[1500px] px-6 pb-12 pt-10">
         <section className="grid min-h-[650px] items-center gap-10 py-16 lg:grid-cols-[1.35fr_0.9fr]">
           <div className="text-center lg:text-left">
-            <div className="font-serif text-7xl leading-none tracking-[0.01em] text-transparent bg-gradient-to-b from-[#ffffff] via-[#e7e7e7] to-[#cfcfcf] bg-clip-text drop-shadow-[0_0_12px_rgba(255,255,255,0.08)] md:text-8xl lg:text-[10rem]">
+            <div className="font-serif text-8xl leading-none tracking-[0.10em] text-transparent bg-gradient-to-b from-[#ffffff] via-[#e7e7e7] to-[#cfcfcf] bg-clip-text drop-shadow-[0_0_12px_rgba(255,255,255,0.08)] md:text-8xl lg:text-[9rem]">
               Revolution
             </div>
 
             <div className="mt-6 flex flex-col items-center">
-              <div className="text-2xl uppercase tracking-[0.55em] text-[#c8a96b] md:text-3xl">
+              <div className="text-2xl uppercase tracking-[0.40em] text-[#c8a96b] md:text-5xl">
                 Auction House
               </div>
 
               <div className="mt-4 h-px w-72 bg-gradient-to-r from-transparent via-[#d6aa55]/60 to-transparent" />
             </div>
 
-            <div className="mt-10 text-center text-lg uppercase tracking-[0.38em] text-[#d6aa55] md:text-xl">
+            <div className="mt-10 text-center text-lg uppercase tracking-[0.38em] text-[#d6aa55] md:text-2xl">
               For Collectors, By Collectors
             </div>
 
