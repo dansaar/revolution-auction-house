@@ -684,77 +684,6 @@ export default function DashboardPage() {
                 )}
               </Panel>
 
-              <Panel title="Won Auctions">
-                {myWins.length === 0 ? (
-                  <Empty text="No wins yet." />
-                ) : (
-                  myWins.map((bid: any) => (
-                    <BidRow
-                      key={bid.auctionId}
-                      bid={bid}
-                      auctions={auctions}
-                      trophy
-                    />
-                  ))
-                )}
-              </Panel>
-
-              <Panel title="Unpaid Wins">
-                {unpaidWins.length === 0 ? (
-                  <Empty text="No unpaid wins." />
-                ) : (
-                  unpaidWins.map((bid: any) => (
-                    <BidRow
-                      key={bid.auctionId}
-                      bid={bid}
-                      auctions={auctions}
-                      trophy
-                      showPayButton
-                      onCheckout={handleCheckout}
-                    />
-                  ))
-                )}
-              </Panel>
-
-              <Panel title="Paid Wins">
-                {paidWins.length === 0 ? (
-                  <Empty text="No paid wins yet." />
-                ) : (
-                  paidWins.map((bid: any) => (
-                    <BidRow
-                      key={bid.auctionId}
-                      bid={bid}
-                      auctions={auctions}
-                      trophy
-                    />
-                  ))
-                )}
-              </Panel>
-
-              <Panel title="Reserve Not Met">
-                {reserveNotMet.length === 0 ? (
-                  <Empty text="No reserve-not-met auctions." />
-                ) : (
-                  reserveNotMet.map((auction: any) => (
-                    <ReserveNotMetRow key={auction.id} auction={auction} />
-                  ))
-                )}
-              </Panel>
-
-              <Panel title="Lost Auctions">
-                {lostAuctions.length === 0 ? (
-                  <Empty text="No lost auctions." />
-                ) : (
-                  lostAuctions.map((auction: any) => (
-                    <LostAuctionRow key={auction.id} auction={auction} />
-                  ))
-                )}
-              </Panel>
-            </>
-          )}
-
-          {activeTab === "marketplace" && (
-            <>
               <Panel title="Watchlist">
                 {watchlist.length === 0 ? (
                   <Empty text="No watched auctions yet." />
@@ -836,6 +765,52 @@ export default function DashboardPage() {
                 )}
               </Panel>
 
+              <Panel title="Unpaid Wins">
+                {unpaidWins.length === 0 ? (
+                  <Empty text="No unpaid wins." />
+                ) : (
+                  unpaidWins.map((bid: any) => (
+                    <BidRow
+                      key={bid.auctionId}
+                      bid={bid}
+                      auctions={auctions}
+                      trophy
+                      showPayButton
+                      onCheckout={handleCheckout}
+                    />
+                  ))
+                )}
+              </Panel>
+
+              <Panel title="Paid Wins">
+                {paidWins.length === 0 ? (
+                  <Empty text="No paid wins yet." />
+                ) : (
+                  paidWins.map((bid: any) => (
+                    <BidRow
+                      key={bid.auctionId}
+                      bid={bid}
+                      auctions={auctions}
+                      trophy
+                    />
+                  ))
+                )}
+              </Panel>
+
+              <Panel title="Lost Auctions">
+                {lostAuctions.length === 0 ? (
+                  <Empty text="No lost auctions." />
+                ) : (
+                  lostAuctions.map((auction: any) => (
+                    <LostAuctionRow key={auction.id} auction={auction} />
+                  ))
+                )}
+              </Panel>
+            </>
+          )}
+
+          {activeTab === "marketplace" && (
+            <>
               <Panel title="Marketplace Purchases">
                 {marketplacePurchases.length === 0 ? (
                   <Empty text="No marketplace purchases yet." />
