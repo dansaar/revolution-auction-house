@@ -95,6 +95,7 @@ export default function LiveAuctionPage() {
   const refreshingRef = useRef(false);
   const pendingRefreshRef = useRef(false);
   const refreshBidsRef = useRef<(() => void) | null>(null);
+  const bidRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedImage, setSelectedImage] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
   const [displayPrice, setDisplayPrice] = useState(0);
@@ -105,6 +106,17 @@ export default function LiveAuctionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false); // FIX #10
   const [auctionEnded, setAuctionEnded] = useState(false); // FIX #3  reactive state
   const [resolvedImages, setResolvedImages] = useState<string[]>([]);
+
+  function scheduleBidRefresh() {
+    if (bidRefreshTimerRef.current) {
+      clearTimeout(bidRefreshTimerRef.current);
+    }
+
+    bidRefreshTimerRef.current = setTimeout(() => {
+      pendingRefreshRef.current = true;
+      refreshBidsRef.current?.();
+    }, 250);
+  }
 
   const rawUserKey = user?.userId || user?.username || "";
 
@@ -293,7 +305,7 @@ export default function LiveAuctionPage() {
     }).subscribe({
       next: (b) => {
         if (b.auctionId === id) {
-          loadBids();
+          scheduleBidRefresh();
           window.dispatchEvent(new Event("bid-updated"));
         }
       },
@@ -304,7 +316,7 @@ export default function LiveAuctionPage() {
     }).subscribe({
       next: (b) => {
         if (b.auctionId === id) {
-          loadBids();
+          scheduleBidRefresh();
           window.dispatchEvent(new Event("bid-updated"));
         }
       },
@@ -339,9 +351,7 @@ export default function LiveAuctionPage() {
           winnerEmail: state.leaderUserId,
         }));
 
-        pendingRefreshRef.current = true;
-
-        refreshBidsRef.current?.();
+        scheduleBidRefresh();
 
         window.dispatchEvent(new Event("bid-updated"));
       },
@@ -638,13 +648,6 @@ export default function LiveAuctionPage() {
           : Array.isArray(id) && id[0]
             ? id[0]
             : "";
-
-    console.log("PLACE BID FRONTEND DEBUG", {
-      routeId: id,
-      loadedAuctionId: auction?.id,
-      auctionIdForBid,
-      url: window.location.href,
-    });
 
     if (!auctionIdForBid) {
       alert("Could not find auction ID for bid.");
@@ -959,11 +962,13 @@ export default function LiveAuctionPage() {
                 ref={listRef}
                 className="max-h-[420px] overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0b0d]"
               >
-                {history.map((bid, i) => (
+                {history.slice(0, 50).map((bid, i) => (
                   <div
                     key={i}
-                    className={`border-b border-white/5 px-5 py-4 transition ${
-                      i === 0 ? "bg-emerald-500/10" : "hover:bg-white/[0.03]"
+                    className={`border-b border-white/5 px-5 py-4 transition-all duration-500 ${
+                      i === 0
+                        ? "bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.15)] animate-pulse"
+                        : "hover:bg-white/[0.03]"
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -988,7 +993,7 @@ export default function LiveAuctionPage() {
 
                             {i === 0 && (
                               <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-emerald-300">
-                                Leading
+                                New Bid · Leading
                               </span>
                             )}
                           </div>
