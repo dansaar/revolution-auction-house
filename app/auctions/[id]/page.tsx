@@ -998,18 +998,19 @@ export default function LiveAuctionPage() {
                               </span>
                             )}
 
-                            {String(
-                              bid.bidderUserId || bid.bidderName || "",
-                            ) ===
+                            {i === 0 &&
                               String(
-                                auction?.winnerUserId ||
-                                  auction?.winnerDisplayName ||
-                                  "",
-                              ) && (
-                              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-emerald-300">
-                                Leading
-                              </span>
-                            )}
+                                bid.bidderUserId || bid.bidderName || "",
+                              ) ===
+                                String(
+                                  auction?.winnerUserId ||
+                                    auction?.winnerDisplayName ||
+                                    "",
+                                ) && (
+                                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-emerald-300">
+                                  Leading
+                                </span>
+                              )}
                           </div>
 
                           <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-gray-500">
