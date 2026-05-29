@@ -1,6 +1,7 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { placeBid } from "../functions/placeBid/resource";
 import { finalizeAuction } from "../functions/finalizeAuction/resource";
+import { scheduledFinalize } from "../functions/scheduledFinalize/resource";
 
 const schema = a
   .schema({
@@ -214,6 +215,7 @@ const schema = a
   .authorization((allow) => [
     allow.resource(placeBid),
     allow.resource(finalizeAuction),
+    allow.resource(scheduledFinalize),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;
