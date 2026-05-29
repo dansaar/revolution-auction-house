@@ -759,32 +759,7 @@ function SellerAuctionCard({
                     <button
                       type="button"
                       disabled={endingAuction}
-                      onClick={async () => {
-                        const confirmed = confirm("End this auction now?");
-                        if (!confirmed) return;
-
-                        setEndingAuction(true);
-
-                        try {
-                          await client.models.Auction.update(
-                            {
-                              id: auction.id,
-                              ended: true,
-                              status: "ENDED",
-                              endsAt: new Date().toISOString(),
-                            },
-                            { authMode: "apiKey" } as any,
-                          );
-
-                          toast.success("Auction ended");
-                          window.location.reload();
-                        } catch (err) {
-                          console.error(err);
-                          toast.error("Failed to end auction");
-                        } finally {
-                          setEndingAuction(false);
-                        }
-                      }}
+                      onClick={() => setShowEndAuctionModal(true)}
                       className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium tracking-wide text-red-300 backdrop-blur-sm transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {endingAuction ? "Ending..." : "End Auction"}
@@ -958,6 +933,60 @@ function SellerAuctionCard({
                 className="flex-1 rounded-xl border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909] disabled:opacity-50"
               >
                 {savingShipping ? "Saving..." : "Save Shipping"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showEndAuctionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-[#0b0c0e] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
+            <h3 className="font-serif text-2xl text-red-300">End Auction?</h3>
+
+            <p className="mt-3 text-sm leading-6 text-gray-300">
+              This will immediately end the auction and move it to results. This
+              action should only be used when you are sure.
+            </p>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowEndAuctionModal(false)}
+                className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-white hover:bg-white/[0.06]"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={endingAuction}
+                onClick={async () => {
+                  setEndingAuction(true);
+
+                  try {
+                    await client.models.Auction.update(
+                      {
+                        id: auction.id,
+                        ended: true,
+                        status: "ENDED",
+                        endsAt: new Date().toISOString(),
+                      },
+                      { authMode: "apiKey" } as any,
+                    );
+
+                    toast.success("Auction ended");
+                    setShowEndAuctionModal(false);
+                    window.location.reload();
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Failed to end auction");
+                  } finally {
+                    setEndingAuction(false);
+                  }
+                }}
+                className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+              >
+                {endingAuction ? "Ending..." : "End Auction"}
               </button>
             </div>
           </div>
