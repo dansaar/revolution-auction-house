@@ -35,6 +35,8 @@ export default function SellerPage() {
   const client = clientRef.current;
   const [auctions, setAuctions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sellerEmail, setSellerEmail] = useState("");
+  const [sellerUserId, setSellerUserId] = useState("");
 
   const [activeTab, setActiveTab] = useState<"auctions" | "marketplace">(
     "auctions",
@@ -54,6 +56,11 @@ export default function SellerPage() {
         const user = await getCurrentUser();
 
         const email = user.signInDetails?.loginId || user.username;
+
+        const userId = user.userId || user.username || "";
+
+        setSellerEmail(email);
+        setSellerUserId(userId);
 
         const offerResult = await client.models.Offer.list({
           filter: {
@@ -335,24 +342,32 @@ export default function SellerPage() {
               title="Live Auctions"
               auctions={liveAuctions}
               client={client}
+              sellerEmail={sellerEmail}
+              sellerUserId={sellerUserId}
             />
 
             <AuctionSection
               title="Ending Soon"
               auctions={endingSoon}
               client={client}
+              sellerEmail={sellerEmail}
+              sellerUserId={sellerUserId}
             />
 
             <AuctionSection
               title="Ended Auctions"
               auctions={endedAuctions}
               client={client}
+              sellerEmail={sellerEmail}
+              sellerUserId={sellerUserId}
             />
 
             <AuctionSection
               title="Unsold Auctions"
               auctions={unsoldAuctions}
               client={client}
+              sellerEmail={sellerEmail}
+              sellerUserId={sellerUserId}
             />
           </>
         )}
@@ -387,7 +402,13 @@ export default function SellerPage() {
     </main>
   );
 }
-function AuctionSection({ title, auctions, client }: any) {
+function AuctionSection({
+  title,
+  auctions,
+  client,
+  sellerEmail,
+  sellerUserId,
+}: any) {
   return (
     <section className="mt-12">
       <h2 className="mb-5 font-serif text-3xl text-[#c0c0c0]">{title}</h2>
@@ -401,6 +422,8 @@ function AuctionSection({ title, auctions, client }: any) {
               key={auction.id}
               auction={auction}
               client={client}
+              sellerEmail={sellerEmail}
+              sellerUserId={sellerUserId}
             />
           ))}
         </div>
@@ -531,9 +554,19 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-function SellerAuctionCard({ auction, client }: any) {
+function SellerAuctionCard({
+  auction,
+  client,
+  sellerEmail,
+  sellerUserId,
+}: any) {
   const ended =
     auction.endsAt && new Date(auction.endsAt).getTime() < Date.now();
+  const isOwner =
+    auction.sellerEmail === sellerEmail ||
+    auction.sellerUserId === sellerUserId;
+
+  const hasBids = Number(auction.bids || 0) > 0;
 
   const sellerPublicId =
     auction.sellerPublicId ||
@@ -700,12 +733,14 @@ function SellerAuctionCard({ auction, client }: any) {
                     View Auction
                   </Link>
 
-                  <Link
-                    href={`/sell/auction/${auction.id}/edit`}
-                    className="rounded-lg border border-[#d6aa55]/30 bg-white/5 px-4 py-2 text-sm font-medium tracking-wide text-[#e7c77f] backdrop-blur-sm transition hover:border-[#d6aa55]/50 hover:bg-white/10"
-                  >
-                    Edit Auction
-                  </Link>
+                  {isOwner && !hasBids && (
+                    <Link
+                      href={`/sell/auction/${auction.id}/edit`}
+                      className="rounded-lg border border-[#d6aa55]/30 bg-white/5 px-4 py-2 text-sm font-medium tracking-wide text-[#e7c77f] backdrop-blur-sm transition hover:border-[#d6aa55]/50 hover:bg-white/10"
+                    >
+                      Edit Auction
+                    </Link>
+                  )}
 
                   <button
                     type="button"
@@ -719,6 +754,42 @@ function SellerAuctionCard({ auction, client }: any) {
                   >
                     Copy Link
                   </button>
+
+                  {!ended && (
+                    <button
+                      type="button"
+                      disabled={endingAuction}
+                      onClick={async () => {
+                        const confirmed = confirm("End this auction now?");
+                        if (!confirmed) return;
+
+                        setEndingAuction(true);
+
+                        try {
+                          await client.models.Auction.update(
+                            {
+                              id: auction.id,
+                              ended: true,
+                              status: "ENDED",
+                              endsAt: new Date().toISOString(),
+                            },
+                            { authMode: "apiKey" } as any,
+                          );
+
+                          toast.success("Auction ended");
+                          window.location.reload();
+                        } catch (err) {
+                          console.error(err);
+                          toast.error("Failed to end auction");
+                        } finally {
+                          setEndingAuction(false);
+                        }
+                      }}
+                      className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium tracking-wide text-red-300 backdrop-blur-sm transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {endingAuction ? "Ending..." : "End Auction"}
+                    </button>
+                  )}
 
                   {ended && (
                     <Link
