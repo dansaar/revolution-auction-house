@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-amplify/adapter-nextjs": "^1.7.3",
     "@inquirer/prompts": "^7.8.6",
     "@opentelemetry/context-async-hooks": "^2.7.1",
     "aws-amplify": "^6.16.4",
