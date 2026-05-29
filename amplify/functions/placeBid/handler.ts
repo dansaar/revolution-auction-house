@@ -247,7 +247,21 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       );
 
       if (!updateResult.data) {
+        console.warn("PLACE_BID_CONFLICT", {
+          auctionId,
+          attempt: attempt + 1,
+          expectedVersion,
+          currentPrice,
+        });
+
         if (attempt === 4) {
+          console.error("PLACE_BID_RETRY_EXHAUSTED", {
+            auctionId,
+            bidderUserId,
+            expectedVersion,
+            currentPrice,
+          });
+
           return {
             success: false,
             message: "High bidding activity. Please retry.",
