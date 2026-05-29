@@ -25,6 +25,9 @@ export default function EditListingPage() {
   const [isSeller, setIsSeller] = useState(false);
   const [loading, setLoading] = useState(false);
   const [listing, setListing] = useState<any>(null);
+  const [currentSellerEmail, setCurrentSellerEmail] = useState("");
+  const [currentSellerUserId, setCurrentSellerUserId] = useState("");
+  const [notOwner, setNotOwner] = useState(false);
 
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -44,6 +47,10 @@ export default function EditListingPage() {
       try {
         const user = await getCurrentUser();
         const email = user.signInDetails?.loginId || user.username || "";
+        const userId = user.userId || user.username || "";
+
+        setCurrentSellerEmail(email);
+        setCurrentSellerUserId(userId);
 
         if (!SELLERS.includes(email)) {
           setIsSeller(false);
@@ -58,6 +65,15 @@ export default function EditListingPage() {
         );
 
         if (!result.data) return;
+
+        const sellerMatches =
+          result.data.sellerEmail === email ||
+          result.data.sellerUserId === userId;
+
+        if (!sellerMatches) {
+          setNotOwner(true);
+          return;
+        }
 
         setListing(result.data);
 
@@ -131,6 +147,25 @@ export default function EditListingPage() {
     setLoading(true);
 
     try {
+      const user = await getCurrentUser();
+      const email = user.signInDetails?.loginId || user.username || "";
+      const userId = user.userId || user.username || "";
+
+      const latestListing = await client.models.MarketplaceListing.get(
+        { id: listingId },
+        { authMode: "apiKey" },
+      );
+
+      const latest = latestListing.data;
+
+      const sellerMatches =
+        latest?.sellerEmail === email || latest?.sellerUserId === userId;
+
+      if (!sellerMatches) {
+        alert("You do not have permission to edit this listing.");
+        router.push("/seller");
+        return;
+      }
       let thumbUrls: string[] = [];
       let mediumUrls: string[] = [];
       let fullUrls: string[] = [];
@@ -230,6 +265,27 @@ export default function EditListingPage() {
           <p className="mt-3 text-gray-400">
             You must be approved as a seller to edit listings.
           </p>
+          <Link
+            href="/seller"
+            className="mt-6 inline-block rounded bg-[#c0c0c0] px-5 py-3 font-semibold text-black"
+          >
+            Back to Seller Dashboard
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (notOwner) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#050607] px-6 text-white">
+        <div className="max-w-lg rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center">
+          <h1 className="font-serif text-3xl text-red-300">Access Denied</h1>
+
+          <p className="mt-3 text-gray-300">
+            You can only edit listings created by your seller account.
+          </p>
+
           <Link
             href="/seller"
             className="mt-6 inline-block rounded bg-[#c0c0c0] px-5 py-3 font-semibold text-black"

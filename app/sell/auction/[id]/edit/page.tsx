@@ -42,6 +42,9 @@ export default function CreateAuctionPage() {
   const [isSeller, setIsSeller] = useState(false);
   const [existingImagePaths, setExistingImagePaths] = useState<string[]>([]);
   const [hasBids, setHasBids] = useState(false);
+  const [currentSellerEmail, setCurrentSellerEmail] = useState("");
+  const [currentSellerUserId, setCurrentSellerUserId] = useState("");
+  const [notOwner, setNotOwner] = useState(false);
 
   useEffect(() => {
     async function checkSeller() {
@@ -49,6 +52,10 @@ export default function CreateAuctionPage() {
         const user = await getCurrentUser();
 
         const email = user.signInDetails?.loginId || user.username;
+        const userId = user.userId || user.username || "";
+
+        setCurrentSellerEmail(email);
+        setCurrentSellerUserId(userId);
 
         setIsSeller(SELLERS.includes(email));
       } catch {
@@ -63,7 +70,7 @@ export default function CreateAuctionPage() {
 
   useEffect(() => {
     async function loadAuctionForEdit() {
-      if (!auctionId) return;
+      if (!auctionId || !currentSellerEmail || !currentSellerUserId) return;
 
       try {
         const result = await client.models.Auction.get(
@@ -74,6 +81,14 @@ export default function CreateAuctionPage() {
         const auction = result.data;
 
         if (!auction) return;
+        const sellerMatches =
+          auction.sellerEmail === currentSellerEmail ||
+          auction.sellerUserId === currentSellerUserId;
+
+        if (!sellerMatches) {
+          setNotOwner(true);
+          return;
+        }
         const bidCount = Number(auction.bids || 0);
 
         const bidResult = await client.models.Bid.bidsByAuction({ auctionId }, {
@@ -118,7 +133,7 @@ export default function CreateAuctionPage() {
     }
 
     loadAuctionForEdit();
-  }, [auctionId, client]);
+  }, [auctionId, client, currentSellerEmail, currentSellerUserId]);
 
   function update(key: string, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -172,6 +187,17 @@ export default function CreateAuctionPage() {
         { id: auctionId },
         { authMode: "apiKey" },
       );
+      const latest = latestAuction.data;
+
+      const sellerMatches =
+        latest?.sellerEmail === currentSellerEmail ||
+        latest?.sellerUserId === currentSellerUserId;
+
+      if (!sellerMatches) {
+        alert("You do not have permission to edit this auction.");
+        router.push("/seller");
+        return;
+      }
 
       const latestBidCount = Number(latestAuction.data?.bids || 0);
 
@@ -248,6 +274,27 @@ export default function CreateAuctionPage() {
             className="mt-6 inline-block rounded bg-[#c0c0c0] px-5 py-3 font-semibold text-black"
           >
             Back Home
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (notOwner) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#050607] px-6 text-white">
+        <div className="max-w-lg rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center">
+          <h1 className="font-serif text-3xl text-red-300">Access Denied</h1>
+
+          <p className="mt-3 text-gray-300">
+            You can only edit auctions created by your seller account.
+          </p>
+
+          <Link
+            href="/seller"
+            className="mt-6 inline-block rounded bg-[#c0c0c0] px-5 py-3 font-semibold text-black"
+          >
+            Back to Seller Dashboard
           </Link>
         </div>
       </main>

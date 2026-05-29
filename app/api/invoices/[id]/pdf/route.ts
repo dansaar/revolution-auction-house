@@ -3,6 +3,9 @@ import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import outputs from "@/amplify_outputs.json";
+import { cookies } from "next/headers";
+import { runWithAmplifyServerContext } from "@/lib/amplify-server-utils";
+import { getCurrentUser } from "aws-amplify/auth/server";
 
 import jsPDF from "jspdf";
 
@@ -25,6 +28,28 @@ export async function GET(
 
     if (!invoice) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
+    let currentUser;
+
+    try {
+      currentUser = await runWithAmplifyServerContext({
+        nextServerContext: { cookies },
+        operation: (contextSpec: any) => getCurrentUser(contextSpec),
+      });
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const currentEmail =
+      currentUser.signInDetails?.loginId || currentUser.username || "";
+
+    const canView =
+      invoice.sellerEmail === currentEmail ||
+      invoice.buyerEmail === currentEmail;
+
+    if (!canView) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const doc = new jsPDF();
