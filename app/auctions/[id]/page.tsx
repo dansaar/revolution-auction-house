@@ -39,6 +39,7 @@ async function listRecentBids(client: any, auctionId: string): Promise<any[]> {
   const response: any = await client.models.Bid.bidsByAuction({ auctionId }, {
     authMode: "apiKey",
     limit: 50,
+    sortDirection: "DESC",
   } as any);
 
   return [...(response.data || [])].sort(
