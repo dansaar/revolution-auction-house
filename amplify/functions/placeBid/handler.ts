@@ -44,48 +44,45 @@ function makeBidderDisplayName(value: string) {
 
 export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
   try {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const { auctionId, maxBid } = event.arguments;
-      console.log(
-        "PLACE BID EVENT ARGUMENTS:",
-        JSON.stringify(event.arguments),
-      );
-      const identity = event.identity as any;
+    const { auctionId, maxBid } = event.arguments;
+    const identity = event.identity as any;
 
-      const bidderUserId =
-        identity?.sub ||
-        identity?.claims?.sub ||
-        identity?.username ||
-        identity?.claims?.["cognito:username"] ||
-        "guest";
+    const bidderUserId =
+      identity?.sub ||
+      identity?.claims?.sub ||
+      identity?.username ||
+      identity?.claims?.["cognito:username"] ||
+      "guest";
 
-      const bidderEmail =
-        identity?.claims?.email ||
-        identity?.claims?.["cognito:email"] ||
-        `user-${bidderUserId}`;
+    const bidderEmail =
+      identity?.claims?.email ||
+      identity?.claims?.["cognito:email"] ||
+      `user-${bidderUserId}`;
 
-      const bidderDisplayName = makeBidderDisplayName(bidderUserId);
-      const recentUserBids = await client.models.Bid.bidsByBidder(
-        { bidderUserId },
-        {
-          limit: 5,
-        } as any,
-      );
+    const bidderDisplayName = makeBidderDisplayName(bidderUserId);
 
-      const tooRecent = (recentUserBids.data || []).some((bid: any) => {
-        if (bid.auctionId !== auctionId || !bid.createdAt) return false;
-        return Date.now() - new Date(bid.createdAt).getTime() < 3000;
-      });
+    const recentUserBids = await client.models.Bid.bidsByBidder(
+      { bidderUserId },
+      {
+        limit: 5,
+      } as any,
+    );
 
-      if (tooRecent) {
-        return {
-          success: false,
-          message: "Please wait a few seconds before bidding again.",
-          currentPrice: 0,
-          winner: "",
-        };
-      }
+    const tooRecent = (recentUserBids.data || []).some((bid: any) => {
+      if (bid.auctionId !== auctionId || !bid.createdAt) return false;
+      return Date.now() - new Date(bid.createdAt).getTime() < 3000;
+    });
 
+    if (tooRecent) {
+      return {
+        success: false,
+        message: "Please wait a few seconds before bidding again.",
+        currentPrice: 0,
+        winner: "",
+      };
+    }
+
+    for (let attempt = 0; attempt < 5; attempt++) {
       const stateResult = await client.models.AuctionState.get({ auctionId });
 
       let state = stateResult.data;
@@ -250,7 +247,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       );
 
       if (!updateResult.data) {
-        if (attempt === 2) {
+        if (attempt === 4) {
           return {
             success: false,
             message: "High bidding activity. Please retry.",
@@ -260,6 +257,10 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
               : "",
           };
         }
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, 100 + attempt * 100),
+        );
 
         continue;
       }
@@ -315,8 +316,6 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       winner: "",
     };
   } catch (err: any) {
-    console.error("PLACE BID LAMBDA ERROR", err);
-
     return {
       success: false,
       message: err?.message || JSON.stringify(err) || "Failed to place bid",
