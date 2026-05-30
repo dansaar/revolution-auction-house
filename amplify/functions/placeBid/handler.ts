@@ -70,6 +70,87 @@ async function getAuctionStateDirect(auctionId: string) {
   return result.Item || null;
 }
 
+async function updateAuctionStateDirect({
+  auctionId,
+  visiblePrice,
+  newLeaderUserId,
+  leaderEmail,
+  newLeaderMaxBid,
+  newSecondUserId,
+  secondEmail,
+  newSecondMaxBid,
+  newBidCount,
+  expectedVersion,
+  updatedEndsAt,
+  ended,
+}: {
+  auctionId: string;
+  visiblePrice: number;
+  newLeaderUserId: string;
+  leaderEmail?: string | null;
+  newLeaderMaxBid: number;
+  newSecondUserId: string;
+  secondEmail?: string | null;
+  newSecondMaxBid: number;
+  newBidCount: number;
+  expectedVersion: number;
+  updatedEndsAt?: string | null;
+  ended: boolean;
+}) {
+  try {
+    const result = await dynamoClient.send(
+      new UpdateCommand({
+        TableName: AUCTION_STATE_TABLE_NAME,
+        Key: {
+          auctionId,
+        },
+        UpdateExpression: `
+          SET currentPrice = :currentPrice,
+              leaderUserId = :leaderUserId,
+              leaderEmail = :leaderEmail,
+              leaderMaxBid = :leaderMaxBid,
+              secondUserId = :secondUserId,
+              secondEmail = :secondEmail,
+              secondMaxBid = :secondMaxBid,
+              bidCount = :bidCount,
+              version = :nextVersion,
+              endsAt = :endsAt,
+              ended = :ended,
+              updatedAt = :updatedAt
+        `,
+        ConditionExpression: "#version = :expectedVersion",
+        ExpressionAttributeNames: {
+          "#version": "version",
+        },
+        ExpressionAttributeValues: {
+          ":currentPrice": formatMoney(visiblePrice),
+          ":leaderUserId": newLeaderUserId || null,
+          ":leaderEmail": leaderEmail || null,
+          ":leaderMaxBid": formatMoney(newLeaderMaxBid),
+          ":secondUserId": newSecondUserId || null,
+          ":secondEmail": secondEmail || null,
+          ":secondMaxBid": formatMoney(newSecondMaxBid),
+          ":bidCount": newBidCount,
+          ":nextVersion": expectedVersion + 1,
+          ":endsAt": updatedEndsAt || null,
+          ":ended": ended,
+          ":updatedAt": new Date().toISOString(),
+          ":expectedVersion": expectedVersion,
+        },
+        ReturnValues: "ALL_NEW",
+      }),
+    );
+
+    return result.Attributes || null;
+  } catch (err: any) {
+    if (err?.name === "ConditionalCheckFailedException") {
+      return null;
+    }
+
+    throw err;
+  }
+}
+
 export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
   try {
     const { auctionId, maxBid } = event.arguments;
@@ -244,37 +325,28 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
       const expectedVersion = state.version || 1;
 
-      const updateResult = await client.models.AuctionState.update(
-        {
-          auctionId,
-          currentPrice: formatMoney(visiblePrice),
+      const updateResult = await updateAuctionStateDirect({
+        auctionId,
+        visiblePrice,
 
-          leaderUserId: newLeaderUserId,
-          leaderEmail:
-            newLeaderUserId === bidderUserId ? bidderEmail : state.leaderEmail,
-          leaderMaxBid: formatMoney(newLeaderMaxBid),
+        newLeaderUserId,
+        leaderEmail:
+          newLeaderUserId === bidderUserId ? bidderEmail : state.leaderEmail,
+        newLeaderMaxBid,
 
-          secondUserId: newSecondUserId,
-          secondEmail:
-            newSecondUserId === bidderUserId ? bidderEmail : state.secondEmail,
-          secondMaxBid: formatMoney(newSecondMaxBid),
+        newSecondUserId,
+        secondEmail:
+          newSecondUserId === bidderUserId ? bidderEmail : state.secondEmail,
+        newSecondMaxBid,
 
-          bidCount: newBidCount,
-          version: expectedVersion + 1,
+        newBidCount,
+        expectedVersion,
 
-          endsAt: updatedEndsAt,
-          ended: state.ended || false,
-        },
-        {
-          condition: {
-            version: {
-              eq: expectedVersion,
-            },
-          },
-        } as any,
-      );
+        updatedEndsAt,
+        ended: state.ended || false,
+      });
 
-      if (!updateResult.data) {
+      if (!updateResult) {
         console.warn("PLACE_BID_CONFLICT", {
           auctionId,
           attempt: attempt + 1,
