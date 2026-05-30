@@ -12,6 +12,8 @@ Amplify.configure(resourceConfig, libraryOptions);
 
 const client = generateClient<Schema>();
 
+const BID_COOLDOWN_MS = 0; // stress test only. Restore to 3000 before production.
+
 function getIncrement(amount: number): number {
   if (amount < 100) return 5;
   if (amount < 500) return 10;
@@ -61,25 +63,27 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
     const bidderDisplayName = makeBidderDisplayName(bidderUserId);
 
-    const recentUserBids = await client.models.Bid.bidsByBidder(
-      { bidderUserId },
-      {
-        limit: 5,
-      } as any,
-    );
+    if (BID_COOLDOWN_MS > 0) {
+      const recentUserBids = await client.models.Bid.bidsByBidder(
+        { bidderUserId },
+        {
+          limit: 5,
+        } as any,
+      );
 
-    const tooRecent = (recentUserBids.data || []).some((bid: any) => {
-      if (bid.auctionId !== auctionId || !bid.createdAt) return false;
-      return Date.now() - new Date(bid.createdAt).getTime() < 3000;
-    });
+      const tooRecent = (recentUserBids.data || []).some((bid: any) => {
+        if (bid.auctionId !== auctionId || !bid.createdAt) return false;
+        return Date.now() - new Date(bid.createdAt).getTime() < BID_COOLDOWN_MS;
+      });
 
-    if (tooRecent) {
-      return {
-        success: false,
-        message: "Please wait a few seconds before bidding again.",
-        currentPrice: 0,
-        winner: "",
-      };
+      if (tooRecent) {
+        return {
+          success: false,
+          message: "Please wait a few seconds before bidding again.",
+          currentPrice: 0,
+          winner: "",
+        };
+      }
     }
 
     for (let attempt = 0; attempt < 5; attempt++) {
