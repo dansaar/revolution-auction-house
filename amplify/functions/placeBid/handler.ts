@@ -4,6 +4,12 @@ import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
 import { env } from "$amplify/env/placeBid";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  UpdateCommand,
+} from "@aws-sdk/lib-dynamodb";
 
 const { resourceConfig, libraryOptions } =
   await getAmplifyDataClientConfig(env);
@@ -11,6 +17,13 @@ const { resourceConfig, libraryOptions } =
 Amplify.configure(resourceConfig, libraryOptions);
 
 const client = generateClient<Schema>();
+const dynamoClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+
+const AUCTION_STATE_TABLE_NAME = (env as any).AUCTION_STATE_TABLE_NAME;
+
+if (!AUCTION_STATE_TABLE_NAME) {
+  throw new Error("Missing AUCTION_STATE_TABLE_NAME");
+}
 
 const BID_COOLDOWN_MS = 0; // stress test only. Restore to 3000 before production.
 
@@ -42,6 +55,19 @@ function moneyToNumber(value: string | number | null | undefined) {
 function makeBidderDisplayName(value: string) {
   if (!value) return "Verified Bidder";
   return `Bidder ${value.slice(0, 4).toUpperCase()}`;
+}
+
+async function getAuctionStateDirect(auctionId: string) {
+  const result = await dynamoClient.send(
+    new GetCommand({
+      TableName: AUCTION_STATE_TABLE_NAME,
+      Key: {
+        auctionId,
+      },
+    }),
+  );
+
+  return result.Item || null;
 }
 
 export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
@@ -87,9 +113,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
     }
 
     for (let attempt = 0; attempt < 5; attempt++) {
-      const stateResult = await client.models.AuctionState.get({ auctionId });
-
-      let state = stateResult.data;
+      let state = await getAuctionStateDirect(auctionId);
 
       if (!state) {
         const auctionResult = await client.models.Auction.get({

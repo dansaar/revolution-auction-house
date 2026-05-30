@@ -5,4 +5,5 @@ export const placeBid = defineFunction({
   name: "placeBid",
   entry: "./handler.ts",
   runtime: 22,
+  resourceGroupName: "data",
 });
