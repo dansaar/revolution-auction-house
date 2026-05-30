@@ -155,6 +155,31 @@ const schema = a
       ])
       .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
 
+    BuyerProfile: a
+      .model({
+        userId: a.string().required(),
+        email: a.string().required(),
+
+        displayName: a.string(),
+
+        verificationTier: a.string().default("BASIC"),
+        bidLimit: a.integer().default(1000),
+
+        status: a.string().default("APPROVED"),
+
+        requestedTier: a.string(),
+        requestedLimit: a.integer(),
+        verificationNotes: a.string(),
+
+        reviewedBy: a.string(),
+        reviewedAt: a.datetime(),
+      })
+      .identifier(["userId"])
+      .secondaryIndexes((index) => [
+        index("email").queryField("buyerProfileByEmail"),
+      ])
+      .authorization((allow) => [allow.authenticated()]),
+
     WatchlistItem: a
       .model({
         auctionId: a.string().required(),

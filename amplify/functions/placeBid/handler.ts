@@ -25,6 +25,12 @@ if (!AUCTION_STATE_TABLE_NAME) {
   throw new Error("Missing AUCTION_STATE_TABLE_NAME");
 }
 
+const BUYER_PROFILE_TABLE_NAME = (env as any).BUYER_PROFILE_TABLE_NAME;
+
+if (!BUYER_PROFILE_TABLE_NAME) {
+  throw new Error("Missing BUYER_PROFILE_TABLE_NAME");
+}
+
 const BID_COOLDOWN_MS = 0; // stress test only. Restore to 3000 before production.
 
 function getIncrement(amount: number): number {
@@ -63,6 +69,19 @@ async function getAuctionStateDirect(auctionId: string) {
       TableName: AUCTION_STATE_TABLE_NAME,
       Key: {
         auctionId,
+      },
+    }),
+  );
+
+  return result.Item || null;
+}
+
+async function getBuyerProfileDirect(userId: string) {
+  const result = await dynamoClient.send(
+    new GetCommand({
+      TableName: BUYER_PROFILE_TABLE_NAME,
+      Key: {
+        userId,
       },
     }),
   );
@@ -170,6 +189,21 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
     const bidderDisplayName = makeBidderDisplayName(bidderUserId);
 
+    const buyerProfile = await getBuyerProfileDirect(bidderUserId);
+
+    const buyerBidLimit = Number(buyerProfile?.bidLimit || 1000);
+    const buyerTier = String(buyerProfile?.verificationTier || "BASIC");
+
+    if (maxBid > buyerBidLimit) {
+      return {
+        success: false,
+        message: `Your ${buyerTier} bidding limit is ${formatMoney(
+          buyerBidLimit,
+        )}. Please request a higher limit before placing this bid.`,
+        currentPrice: 0,
+        winner: "",
+      };
+    }
     if (BID_COOLDOWN_MS > 0) {
       const recentUserBids = await client.models.Bid.bidsByBidder(
         { bidderUserId },

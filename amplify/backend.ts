@@ -19,10 +19,12 @@ const backend = defineBackend({
 const auctionTable = backend.data.resources.tables["Auction"];
 const auctionStateTable = backend.data.resources.tables["AuctionState"];
 const bidTable = backend.data.resources.tables["Bid"];
+const buyerProfileTable = backend.data.resources.tables["BuyerProfile"];
 
 auctionTable.grantReadWriteData(backend.placeBid.resources.lambda);
 auctionStateTable.grantReadWriteData(backend.placeBid.resources.lambda);
 bidTable.grantReadWriteData(backend.placeBid.resources.lambda);
+buyerProfileTable.grantReadWriteData(backend.placeBid.resources.lambda);
 
 const placeBidCfn = backend.placeBid.resources.lambda.node
   .defaultChild as CfnFunction;
@@ -40,4 +42,9 @@ placeBidCfn.addPropertyOverride(
 placeBidCfn.addPropertyOverride(
   "Environment.Variables.BID_TABLE_NAME",
   bidTable.tableName,
+);
+
+placeBidCfn.addPropertyOverride(
+  "Environment.Variables.BUYER_PROFILE_TABLE_NAME",
+  buyerProfileTable.tableName,
 );
