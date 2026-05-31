@@ -133,11 +133,25 @@ export default function DashboardPage() {
           authMode: "apiKey",
         } as any);
 
+        let profile = null;
+
         const profileResult = await client.models.BuyerProfile.get({ userId }, {
           authMode: "userPool",
         } as any);
 
-        setBuyerProfile(profileResult.data || null);
+        profile = profileResult.data || null;
+
+        if (!profile && userKey) {
+          const profileByEmailResult =
+            await client.models.BuyerProfile.buyerProfileByEmail(
+              { email: userKey },
+              { authMode: "userPool" } as any,
+            );
+
+          profile = profileByEmailResult.data?.[0] || null;
+        }
+
+        setBuyerProfile(profile);
 
         const auctionsWithLiveState = auctionResult.data.map((auction: any) => {
           const state = stateResult.data.find(

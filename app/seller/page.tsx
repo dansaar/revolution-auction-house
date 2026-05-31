@@ -45,6 +45,7 @@ export default function SellerPage() {
   const [marketplaceListings, setMarketplaceListings] = useState<any[]>([]);
 
   const [offers, setOffers] = useState<any[]>([]);
+  const [buyerRequests, setBuyerRequests] = useState<any[]>([]);
 
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -70,6 +71,15 @@ export default function SellerPage() {
         } as any);
 
         setOffers(offerResult.data || []);
+
+        const buyerRequestResult = await client.models.BuyerProfile.list({
+          filter: {
+            status: { eq: "PENDING_REVIEW" },
+          },
+          authMode: "userPool",
+        } as any);
+
+        setBuyerRequests(buyerRequestResult.data || []);
 
         const listingResult = await client.models.MarketplaceListing.list({
           authMode: "apiKey",
@@ -338,6 +348,12 @@ export default function SellerPage() {
 
         {activeTab === "auctions" && (
           <>
+            <BuyerRequestsSection
+              requests={buyerRequests}
+              client={client}
+              setBuyerRequests={setBuyerRequests}
+            />
+            
             <AuctionSection
               title="Live Auctions"
               auctions={liveAuctions}
@@ -527,6 +543,152 @@ function OfferSection({ offers, client }: any) {
                       } catch (err) {
                         console.error(err);
                         toast.error("Failed to decline offer");
+                      }
+                    }}
+                    className="rounded border border-red-500/20 bg-red-500/10 px-5 py-3 text-sm text-red-300 hover:bg-red-500/20"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
+  const pendingRequests = requests.filter(
+    (request: any) => request.status === "PENDING_REVIEW",
+  );
+
+  return (
+    <section className="mt-12">
+      <h2 className="mb-5 font-serif text-3xl text-[#c0c0c0]">
+        Buyer Limit Requests
+      </h2>
+
+      {pendingRequests.length === 0 ? (
+        <p className="text-gray-500">No pending buyer limit requests.</p>
+      ) : (
+        <div className="grid gap-4">
+          {pendingRequests.map((request: any) => (
+            <div
+              key={request.userId}
+              className="rounded-xl border border-white/10 bg-white/[0.03] p-5"
+            >
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-gray-500">
+                    Buyer Request
+                  </div>
+
+                  <div className="mt-2 font-serif text-2xl text-[#c0c0c0]">
+                    {request.email}
+                  </div>
+
+                  <div className="mt-3 grid gap-2 text-sm text-gray-400 sm:grid-cols-2">
+                    <div>
+                      Current Tier:{" "}
+                      <span className="text-white">
+                        {request.verificationTier || "BASIC"}
+                      </span>
+                    </div>
+
+                    <div>
+                      Current Limit:{" "}
+                      <span className="text-white">
+                        ${Number(request.bidLimit || 1000).toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div>
+                      Requested Tier:{" "}
+                      <span className="text-[#e7c77f]">
+                        {request.requestedTier || "—"}
+                      </span>
+                    </div>
+
+                    <div>
+                      Requested Limit:{" "}
+                      <span className="text-[#e7c77f]">
+                        ${Number(request.requestedLimit || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {request.verificationNotes && (
+                    <div className="mt-4 rounded border border-white/10 bg-black/30 p-3 text-sm text-gray-300">
+                      {request.verificationNotes}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await client.models.BuyerProfile.update(
+                          {
+                            userId: request.userId,
+                            verificationTier:
+                              request.requestedTier ||
+                              request.verificationTier ||
+                              "BASIC",
+                            bidLimit: Number(
+                              request.requestedLimit ||
+                                request.bidLimit ||
+                                1000,
+                            ),
+                            status: "APPROVED",
+                            reviewedAt: new Date().toISOString(),
+                          },
+                          { authMode: "userPool" } as any,
+                        );
+
+                        setBuyerRequests((prev: any[]) =>
+                          prev.filter(
+                            (item: any) => item.userId !== request.userId,
+                          ),
+                        );
+
+                        toast.success("Buyer limit approved");
+                      } catch (err) {
+                        console.error(err);
+                        toast.error("Failed to approve buyer");
+                      }
+                    }}
+                    className="rounded border border-emerald-500/20 bg-emerald-500/10 px-5 py-3 text-sm text-emerald-300 hover:bg-emerald-500/20"
+                  >
+                    Approve
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await client.models.BuyerProfile.update(
+                          {
+                            userId: request.userId,
+                            status: "DECLINED",
+                            reviewedAt: new Date().toISOString(),
+                          },
+                          { authMode: "userPool" } as any,
+                        );
+
+                        setBuyerRequests((prev: any[]) =>
+                          prev.filter(
+                            (item: any) => item.userId !== request.userId,
+                          ),
+                        );
+
+                        toast.success("Buyer request declined");
+                      } catch (err) {
+                        console.error(err);
+                        toast.error("Failed to decline buyer");
                       }
                     }}
                     className="rounded border border-red-500/20 bg-red-500/10 px-5 py-3 text-sm text-red-300 hover:bg-red-500/20"
