@@ -31,7 +31,7 @@ if (!BUYER_PROFILE_TABLE_NAME) {
   throw new Error("Missing BUYER_PROFILE_TABLE_NAME");
 }
 
-const BID_COOLDOWN_MS = 0; // stress test only. Restore to 3000 before production.
+const BID_COOLDOWN_MS = 3000; // stress test only. Restore to 3000 before production.
 
 function getIncrement(amount: number): number {
   if (amount < 100) return 5;
