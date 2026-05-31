@@ -5,7 +5,7 @@ import BidderAgreementContent from "../components/BidderAgreementContent";
 
 export default function BidderAgreementPage() {
   return (
-    <main className="min-h-screen bg-[#050607] px-6 py-12 text-white">
+    <main className="min-h-screen bg-[#050607] px-6 py-12 text-white print:bg-white print:text-black">
       <div className="mx-auto max-w-4xl">
         <Link href="/signup" className="text-sm text-gray-500 hover:text-white">
           ← Back to Signup
@@ -23,9 +23,7 @@ export default function BidderAgreementPage() {
           </h2>
         </div>
 
-        <p className="mt-4 text-sm text-gray-500">
-          Last updated: May 30, 2026
-        </p>
+        <p className="mt-4 text-sm text-gray-500">Last updated: May 30, 2026</p>
 
         <button
           type="button"
@@ -40,7 +38,7 @@ export default function BidderAgreementPage() {
           marketplace items, you agree to these terms.
         </div>
 
-        <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:p-8">
+        <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:p-8 print:border-0 print:bg-white print:p-0">
           <BidderAgreementContent />
         </div>
       </div>

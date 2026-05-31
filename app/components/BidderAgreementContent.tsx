@@ -1,8 +1,8 @@
 export default function BidderAgreementContent() {
   return (
-    <div className="space-y-8 text-gray-300">
+    <div className="space-y-8 text-gray-300 print:text-black">
       <section>
-        <h2 className="font-serif text-xl text-white md:text-2xl">
+        <h2 className="font-serif text-xl text-white md:text-2xl print:text-black">
           1. Bidding Responsibility
         </h2>
 
@@ -14,7 +14,7 @@ export default function BidderAgreementContent() {
       </section>
 
       <section>
-        <h2 className="font-serif text-xl text-white md:text-2xl">
+        <h2 className="font-serif text-xl text-white md:text-2xl print:text-black">
           2. Buyer Limits
         </h2>
 
@@ -26,7 +26,7 @@ export default function BidderAgreementContent() {
       </section>
 
       <section>
-        <h2 className="font-serif text-xl text-white md:text-2xl">
+        <h2 className="font-serif text-xl text-white md:text-2xl print:text-black">
           3. Payment
         </h2>
 
@@ -38,7 +38,7 @@ export default function BidderAgreementContent() {
       </section>
 
       <section>
-        <h2 className="font-serif text-xl text-white md:text-2xl">
+        <h2 className="font-serif text-xl text-white md:text-2xl print:text-black">
           4. Marketplace Purchases and Offers
         </h2>
 
@@ -51,7 +51,7 @@ export default function BidderAgreementContent() {
       </section>
 
       <section>
-        <h2 className="font-serif text-xl text-white md:text-2xl">
+        <h2 className="font-serif text-xl text-white md:text-2xl print:text-black">
           5. Auction Closing and Extensions
         </h2>
 
@@ -62,7 +62,7 @@ export default function BidderAgreementContent() {
       </section>
 
       <section>
-        <h2 className="font-serif text-xl text-white md:text-2xl">
+        <h2 className="font-serif text-xl text-white md:text-2xl print:text-black">
           6. Account Review
         </h2>
 
@@ -74,7 +74,7 @@ export default function BidderAgreementContent() {
       </section>
 
       <section>
-        <h2 className="font-serif text-xl text-white md:text-2xl">
+        <h2 className="font-serif text-xl text-white md:text-2xl print:text-black">
           7. Final Approval
         </h2>
 
@@ -84,7 +84,7 @@ export default function BidderAgreementContent() {
         </p>
       </section>
 
-      <p className="rounded-lg border border-yellow-400/20 bg-yellow-400/10 p-4 text-xs leading-6 text-yellow-200">
+      <p className="rounded-lg border border-yellow-400/20 bg-yellow-400/10 p-4 text-xs leading-6 text-yellow-200 print:border-gray-300 print:bg-white print:text-black">
         This agreement is a working platform draft and should be reviewed by an
         attorney before public launch.
       </p>
