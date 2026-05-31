@@ -603,6 +603,13 @@ export default function DashboardPage() {
           <p className="mt-5 text-gray-400">
             Track your bids, watchlist and purchases all in one place
           </p>
+
+          <Link
+            href="/bidder-agreement"
+            className="mt-5 inline-block text-sm font-semibold text-[#e7c77f] underline hover:text-white"
+          >
+            View Buyer & Bidder Agreement
+          </Link>
         </div>
 
         <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">

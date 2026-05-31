@@ -13,6 +13,7 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import "@/lib/amplifyclient";
+import Link from "next/link";
 
 const client = generateClient<Schema>();
 
@@ -24,7 +25,6 @@ const tiers = [
     requirements: [
       "Email verification",
       "Phone verification",
-      "Payment method on file",
       "Payment method on file",
     ],
   },
@@ -82,27 +82,35 @@ export default function VerifyPage() {
   const [verificationNotes, setVerificationNotes] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
 
-  useEffect(() => {
-    async function loadBuyerProfile() {
-      try {
-        const user = await getCurrentUser();
-        const userId = user.userId || user.username || "";
+  async function loadBuyerProfile() {
+    try {
+      const user = await getCurrentUser();
+      const userId = user.userId || user.username || "";
 
-        if (!userId) return;
+      if (!userId) return;
 
-        const result = await client.models.BuyerProfile.get({ userId }, {
-          authMode: "userPool",
-        } as any);
+      const result = await client.models.BuyerProfile.get({ userId }, {
+        authMode: "userPool",
+      } as any);
 
-        setBuyerProfile(result.data || null);
-      } catch {
-        setBuyerProfile(null);
-      } finally {
-        setLoadingProfile(false);
-      }
+      setBuyerProfile(result.data || null);
+    } catch {
+      setBuyerProfile(null);
+    } finally {
+      setLoadingProfile(false);
     }
+  }
 
+  useEffect(() => {
     loadBuyerProfile();
+
+    window.addEventListener("focus", loadBuyerProfile);
+    window.addEventListener("pageshow", loadBuyerProfile);
+
+    return () => {
+      window.removeEventListener("focus", loadBuyerProfile);
+      window.removeEventListener("pageshow", loadBuyerProfile);
+    };
   }, []);
 
   const currentTier = buyerProfile?.verificationTier || "BASIC";
@@ -192,6 +200,15 @@ export default function VerifyPage() {
         <div className="mx-auto mt-8 max-w-md rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/70 p-5 shadow-[0_0_50px_rgba(214,170,85,0.08)]">
           <div className="text-xs uppercase tracking-[0.25em] text-[#b89b61]">
             Your Current Limit
+          </div>
+
+          <div className="mt-4">
+            <Link
+              href="/bidder-agreement"
+              className="text-sm font-semibold text-[#e7c77f] underline hover:text-white"
+            >
+              View Buyer & Bidder Agreement
+            </Link>
           </div>
 
           <div className="mt-3 font-serif text-4xl text-[#f0d28c]">

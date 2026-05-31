@@ -4,11 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import "@/lib/amplifyclient";
 import { signUp } from "aws-amplify/auth";
+import BidderAgreementContent from "../components/BidderAgreementContent";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [acceptedBidderAgreement, setAcceptedBidderAgreement] = useState(false);
+  const [showAgreement, setShowAgreement] = useState(false);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -89,13 +91,13 @@ export default function SignupPage() {
 
             <span>
               I agree to the{" "}
-              <Link
-                href="/bidder-agreement"
-                target="_blank"
-                className="font-semibold text-[#e7c77f] hover:text-white"
+              <button
+                type="button"
+                onClick={() => setShowAgreement(true)}
+                className="font-semibold text-[#e7c77f] underline hover:text-white"
               >
                 Revolution Auction House Bidder Agreement
-              </Link>
+              </button>
               , including payment responsibility, bidding rules, buyer limits,
               marketplace purchases, offers, and auction terms.
             </span>
@@ -121,6 +123,38 @@ export default function SignupPage() {
           </Link>
         </div>
       </div>
+
+      {showAgreement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
+          <div className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#d6aa55]/30 bg-[#0b0c0e] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.75)]">
+            <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
+              <div>
+                <h2 className="font-serif text-3xl text-[#c0c0c0]">
+                  Revolution Auction House
+                </h2>
+
+                <div className="mt-2 h-px w-64 bg-gradient-to-r from-transparent via-[#d6aa55]/70 to-transparent" />
+
+                <h3 className="mt-4 font-serif text-2xl text-white">
+                  Buyer & Bidder Agreement
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAgreement(false)}
+                className="rounded border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white hover:bg-white/[0.08]"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-6 max-h-[55vh] overflow-y-auto pr-2">
+              <BidderAgreementContent />
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
