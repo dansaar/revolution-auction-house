@@ -8,6 +8,7 @@ import { signUp } from "aws-amplify/auth";
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedBidderAgreement, setAcceptedBidderAgreement] = useState(false);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -17,6 +18,13 @@ export default function SignupPage() {
 
     setError("");
     setMessage("");
+
+    if (!acceptedBidderAgreement) {
+      setError(
+        "You must accept the Bidder Agreement before creating an account.",
+      );
+      return;
+    }
 
     try {
       await signUp({
@@ -71,13 +79,36 @@ export default function SignupPage() {
             required
           />
 
+          <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-300">
+            <input
+              type="checkbox"
+              checked={acceptedBidderAgreement}
+              onChange={(e) => setAcceptedBidderAgreement(e.target.checked)}
+              className="mt-1 h-4 w-4 accent-[#d6aa55]"
+            />
+
+            <span>
+              I agree to the{" "}
+              <Link
+                href="/bidder-agreement"
+                target="_blank"
+                className="font-semibold text-[#e7c77f] hover:text-white"
+              >
+                Revolution Auction House Bidder Agreement
+              </Link>
+              , including payment responsibility, bidding rules, buyer limits,
+              marketplace purchases, offers, and auction terms.
+            </span>
+          </label>
+
           {error && <div className="text-sm text-red-400">{error}</div>}
 
           {message && <div className="text-sm text-green-400">{message}</div>}
 
           <button
             type="submit"
-            className="rounded bg-[#c0c0c0] py-3 font-semibold text-black"
+            disabled={!acceptedBidderAgreement}
+            className="rounded bg-[#c0c0c0] py-3 font-semibold text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             Create Account
           </button>

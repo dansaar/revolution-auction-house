@@ -25,6 +25,7 @@ const tiers = [
       "Email verification",
       "Phone verification",
       "Payment method on file",
+      "Payment method on file",
     ],
   },
   {
@@ -35,6 +36,7 @@ const tiers = [
       "Government ID verification",
       "Verified billing address",
       "Fraud screening",
+      "Payment method on file",
     ],
   },
   {
@@ -45,6 +47,7 @@ const tiers = [
       "ID verification",
       "Bank/payment verification",
       "Manual account review",
+      "Payment method on file",
     ],
   },
   {
@@ -55,6 +58,7 @@ const tiers = [
       "Proof of funds",
       "Private client approval",
       "Concierge contact",
+      "Payment method on file",
     ],
   },
   {
@@ -72,6 +76,11 @@ const tiers = [
 export default function VerifyPage() {
   const [buyerProfile, setBuyerProfile] = useState<any>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+
+  const [requestedTier, setRequestedTier] = useState("VERIFIED");
+  const [requestedLimit, setRequestedLimit] = useState("10000");
+  const [verificationNotes, setVerificationNotes] = useState("");
+  const [submittingRequest, setSubmittingRequest] = useState(false);
 
   useEffect(() => {
     async function loadBuyerProfile() {
@@ -98,6 +107,68 @@ export default function VerifyPage() {
 
   const currentTier = buyerProfile?.verificationTier || "BASIC";
   const currentLimit = Number(buyerProfile?.bidLimit || 1000);
+
+  async function submitVerificationRequest() {
+    if (submittingRequest) return;
+
+    try {
+      setSubmittingRequest(true);
+
+      const user = await getCurrentUser();
+      const userId = user.userId || user.username || "";
+      const email = user.signInDetails?.loginId || user.username || "";
+
+      if (!userId || !email) {
+        alert("Please sign in before requesting verification.");
+        return;
+      }
+
+      const existing = await client.models.BuyerProfile.get({ userId }, {
+        authMode: "userPool",
+      } as any);
+
+      if (existing.data) {
+        await client.models.BuyerProfile.update(
+          {
+            userId,
+            email,
+            requestedTier,
+            requestedLimit: Number(requestedLimit),
+            verificationNotes,
+            status: "PENDING_REVIEW",
+          },
+          { authMode: "userPool" } as any,
+        );
+      } else {
+        await client.models.BuyerProfile.create(
+          {
+            userId,
+            email,
+            displayName: email,
+            verificationTier: "BASIC",
+            bidLimit: 1000,
+            requestedTier,
+            requestedLimit: Number(requestedLimit),
+            verificationNotes,
+            status: "PENDING_REVIEW",
+          },
+          { authMode: "userPool" } as any,
+        );
+      }
+
+      const refreshed = await client.models.BuyerProfile.get({ userId }, {
+        authMode: "userPool",
+      } as any);
+
+      setBuyerProfile(refreshed.data || null);
+      alert("Verification request submitted.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit verification request.");
+    } finally {
+      setSubmittingRequest(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#050607] text-white">
@@ -175,21 +246,84 @@ export default function VerifyPage() {
         </section>
 
         <section className="mt-16 rounded-xl border border-[#c0c0c0]/25 bg-[#c0c0c0]/10 p-8">
-          <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+          <div>
+            <h2 className="font-serif text-3xl">Request Verification Review</h2>
+
+            <p className="mt-3 max-w-3xl text-gray-400">
+              Request a higher bidding limit. Premium and trophy-level approvals
+              may require identity review, proof of funds, and private approval.
+            </p>
+          </div>
+
+          {buyerProfile?.status === "PENDING_REVIEW" && (
+            <div className="mt-6 rounded-xl border border-yellow-400/30 bg-yellow-400/10 p-4 text-sm text-yellow-200">
+              Your verification request is pending review.
+            </div>
+          )}
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
             <div>
-              <h2 className="font-serif text-3xl">
-                Request Verification Review
-              </h2>
-              <p className="mt-3 max-w-3xl text-gray-400">
-                Start with basic verification. Higher limits may require
-                identity review, proof of funds, and private approval.
-              </p>
+              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-gray-500">
+                Requested Tier
+              </label>
+
+              <select
+                value={requestedTier}
+                onChange={(e) => {
+                  const tier = e.target.value;
+                  setRequestedTier(tier);
+
+                  if (tier === "VERIFIED") setRequestedLimit("10000");
+                  if (tier === "PREMIUM") setRequestedLimit("50000");
+                  if (tier === "PRIVATE") setRequestedLimit("250000");
+                  if (tier === "TROPHY") setRequestedLimit("5000000");
+                }}
+                className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#d6aa55]/50"
+              >
+                <option value="VERIFIED">Verified Buyer — $10,000</option>
+                <option value="PREMIUM">Premium Buyer — $50,000</option>
+                <option value="PRIVATE">Private Client — $250,000</option>
+                <option value="TROPHY">Trophy Bidder — $5,000,000</option>
+              </select>
             </div>
 
-            <button className="flex items-center justify-center gap-2 rounded-md bg-[#c0c0c0] px-6 py-3 font-semibold text-black hover:bg-white">
-              Start Verification <ArrowRight size={16} />
-            </button>
+            <div>
+              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-gray-500">
+                Requested Limit
+              </label>
+
+              <input
+                value={requestedLimit}
+                onChange={(e) => setRequestedLimit(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#d6aa55]/50"
+              />
+            </div>
           </div>
+
+          <div className="mt-5">
+            <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-gray-500">
+              Notes
+            </label>
+
+            <textarea
+              value={verificationNotes}
+              onChange={(e) => setVerificationNotes(e.target.value)}
+              placeholder="Tell us what auctions or bidding range you are interested in."
+              className="min-h-32 w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none placeholder:text-gray-600 focus:border-[#d6aa55]/50"
+            />
+          </div>
+
+          <button
+            type="button"
+            disabled={submittingRequest}
+            onClick={submitVerificationRequest}
+            className="mt-6 flex items-center justify-center gap-2 rounded-md bg-[#c0c0c0] px-6 py-3 font-semibold text-black hover:bg-white disabled:opacity-50"
+          >
+            {submittingRequest
+              ? "Submitting..."
+              : "Submit Verification Request"}
+            <ArrowRight size={16} />
+          </button>
         </section>
       </main>
     </div>
