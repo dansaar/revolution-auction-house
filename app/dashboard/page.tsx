@@ -66,6 +66,7 @@ export default function DashboardPage() {
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [buyerProfile, setBuyerProfile] = useState<any>(null);
 
   const dashboardRefreshTimerRef = React.useRef<ReturnType<
     typeof setTimeout
@@ -131,6 +132,12 @@ export default function DashboardPage() {
         const stateResult = await client.models.AuctionState.list({
           authMode: "apiKey",
         } as any);
+
+        const profileResult = await client.models.BuyerProfile.get({ userId }, {
+          authMode: "userPool",
+        } as any);
+
+        setBuyerProfile(profileResult.data || null);
 
         const auctionsWithLiveState = auctionResult.data.map((auction: any) => {
           const state = stateResult.data.find(
@@ -459,6 +466,9 @@ export default function DashboardPage() {
     };
   }, [bids, auctions, user, userKey]);
 
+  const buyerTier = buyerProfile?.verificationTier || "BASIC";
+  const buyerBidLimit = Number(buyerProfile?.bidLimit || 1000);
+
   async function handleCheckout(auction: any) {
     const res = await fetch("/api/checkout", {
       method: "POST",
@@ -653,7 +663,11 @@ export default function DashboardPage() {
             label="Unpaid Wins"
             value={String(unpaidWins.length)}
           />
-          <Stat icon={BadgeCheck} label="Status" value="Verified" />
+          <Stat
+            icon={BadgeCheck}
+            label={`${buyerTier} Buyer`}
+            value={`$${buyerBidLimit.toLocaleString()}`}
+          />
         </section>
 
         <section className="mt-12 grid gap-8 lg:grid-cols-2">
