@@ -807,18 +807,20 @@ export default function DashboardPage() {
                             <img
                               loading="lazy"
                               src={
+                                auction?.imageUrl ||
                                 cdnUrl(
                                   auction?.thumbImages?.[0] ||
                                     auction?.images?.[0] ||
                                     auction?.image ||
-                                    item.image ||
                                     "",
-                                ) || "/logo.png"
+                                ) ||
+                                "/logo.png"
                               }
                               onError={(e) => {
+                                e.currentTarget.onerror = null;
                                 e.currentTarget.src = "/logo.png";
                               }}
-                              className="h-16 w-16 rounded object-cover"
+                              className="h-20 w-20 shrink-0 rounded object-cover sm:h-16 sm:w-16"
                             />
 
                             <div>
@@ -1020,8 +1022,18 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
         <Link href={auctionHref} className="flex min-w-0 items-center gap-4">
           <img
             loading="lazy"
-            src={auction?.imageUrl || "/logo.png"}
+            src={
+              auction?.imageUrl ||
+              cdnUrl(
+                auction?.thumbImages?.[0] ||
+                  auction?.images?.[0] ||
+                  auction?.image ||
+                  "",
+              ) ||
+              "/logo.png"
+            }
             onError={(e) => {
+              e.currentTarget.onerror = null;
               e.currentTarget.src = "/logo.png";
             }}
             className="h-20 w-20 shrink-0 rounded object-cover sm:h-16 sm:w-16"
@@ -1216,8 +1228,18 @@ function MarketplacePurchaseRow({ listing }: any) {
         >
           <img
             loading="lazy"
-            src={listing.imageUrl || "/logo.png"}
+            src={
+              listing.imageUrl ||
+              cdnUrl(
+                listing.thumbImages?.[0] ||
+                  listing.images?.[0] ||
+                  listing.image ||
+                  "",
+              ) ||
+              "/logo.png"
+            }
             onError={(e) => {
+              e.currentTarget.onerror = null;
               e.currentTarget.src = "/logo.png";
             }}
             className="h-16 w-16 rounded object-cover"
@@ -1300,8 +1322,18 @@ function AcceptedMarketplaceRow({ listing, onCheckout }: any) {
         <div className="flex items-center gap-4">
           <img
             loading="lazy"
-            src={listing.imageUrl || "/logo.png"}
+            src={
+              listing.imageUrl ||
+              cdnUrl(
+                listing.thumbImages?.[0] ||
+                  listing.images?.[0] ||
+                  listing.image ||
+                  "",
+              ) ||
+              "/logo.png"
+            }
             onError={(e) => {
+              e.currentTarget.onerror = null;
               e.currentTarget.src = "/logo.png";
             }}
             className="h-16 w-16 rounded object-cover"
