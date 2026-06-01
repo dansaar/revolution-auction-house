@@ -37,11 +37,23 @@ export async function POST(req: Request) {
 
     const auctionId = session.metadata?.auctionId || "";
     const listingId = session.metadata?.listingId || "";
+    const cartItemsRaw = session.metadata?.cartItems || "";
+
     const buyerEmail =
       session.metadata?.buyerEmail ||
       session.customer_details?.email ||
       session.customer_email ||
       "";
+
+    let cartItems: any[] = [];
+
+    if (cartItemsRaw) {
+      try {
+        cartItems = JSON.parse(cartItemsRaw);
+      } catch {
+        cartItems = [];
+      }
+    }
 
     const amount = session.amount_total
       ? `$${(session.amount_total / 100).toFixed(2)}`
@@ -56,7 +68,102 @@ export async function POST(req: Request) {
       authMode: "apiKey",
     } as any);
 
-    const invoiceAlreadyExists = (existingInvoices.data || []).length > 0;
+    const existingInvoiceData = existingInvoices.data || [];
+    const invoiceAlreadyExists = existingInvoiceData.length > 0;
+
+    if (cartItems.length > 0) {
+      for (const item of cartItems) {
+        if (item.type === "AUCTION") {
+          const auctionResult = await client.models.Auction.get(
+            { id: item.id },
+            { authMode: "apiKey" } as any,
+          );
+
+          const auction = auctionResult.data;
+
+          await client.models.Auction.update(
+            {
+              id: item.id,
+              paid: true,
+              paidAt: new Date().toISOString(),
+              stripeSessionId: session.id,
+              status: "PAID",
+            },
+            { authMode: "apiKey" } as any,
+          );
+
+          const invoiceExistsForItem = existingInvoiceData.some(
+            (invoice: any) => invoice.auctionId === item.id,
+          );
+
+          if (!invoiceExistsForItem) {
+            await client.models.Invoice.create(
+              {
+                type: "AUCTION",
+                auctionId: item.id,
+                title: auction?.title || item.title || "Auction",
+                buyerEmail,
+                sellerEmail: auction?.sellerEmail || "",
+                amount: item.amount,
+                status: "PAID",
+                stripeSessionId: session.id,
+                paidAt: new Date().toISOString(),
+              },
+              { authMode: "apiKey" } as any,
+            );
+          }
+        }
+
+        if (item.type === "MARKETPLACE") {
+          const listingResult = await client.models.MarketplaceListing.get(
+            { id: item.id },
+            { authMode: "apiKey" } as any,
+          );
+
+          const listing = listingResult.data;
+
+          await client.models.MarketplaceListing.update(
+            {
+              id: item.id,
+              sold: true,
+              paid: true,
+              paidAt: new Date().toISOString(),
+              stripeSessionId: session.id,
+              buyerEmail,
+              status: "SOLD",
+            },
+            { authMode: "apiKey" } as any,
+          );
+
+          const invoiceExistsForItem = existingInvoiceData.some(
+            (invoice: any) => invoice.listingId === item.id,
+          );
+
+          if (!invoiceExistsForItem) {
+            await client.models.Invoice.create(
+              {
+                type: "MARKETPLACE",
+                listingId: item.id,
+                title: listing?.title || item.title || "Marketplace Listing",
+                buyerEmail,
+                sellerEmail: listing?.sellerEmail || "",
+                amount: item.amount,
+                status: "PAID",
+                stripeSessionId: session.id,
+                paidAt: new Date().toISOString(),
+              },
+              { authMode: "apiKey" } as any,
+            );
+          }
+        }
+      }
+
+      return NextResponse.json({
+        paid: true,
+        type: "cart",
+        itemCount: cartItems.length,
+      });
+    }
 
     if (listingId) {
       const listingResult = await client.models.MarketplaceListing.get(

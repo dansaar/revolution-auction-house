@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
+import { fetchAuthSession } from "aws-amplify/auth";
 
 export default function SellerInvoicesPage() {
   const client = generateClient<Schema>();
@@ -49,9 +50,112 @@ export default function SellerInvoicesPage() {
           .replaceAll(",", ""),
       );
 
+      async function getInvoicePdf(invoiceId: string) {
+        const session = await fetchAuthSession();
+        const token = session.tokens?.idToken?.toString();
+
+        if (!token) {
+          alert("Please sign in again to view this invoice.");
+          return null;
+        }
+
+        const res = await fetch(`/api/invoices/${invoiceId}/pdf`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          alert("Unable to open invoice PDF.");
+          return null;
+        }
+
+        return await res.blob();
+      }
+
+      async function viewInvoicePdf(invoiceId: string) {
+        const blob = await getInvoicePdf(invoiceId);
+        if (!blob) return;
+
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+
+      async function downloadInvoicePdf(invoiceId: string) {
+        const blob = await getInvoicePdf(invoiceId);
+        if (!blob) return;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+
+        a.href = url;
+        a.download = `invoice-${invoiceId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        URL.revokeObjectURL(url);
+      }
+
       return sum + value;
     }, 0);
   }, [invoices]);
+
+  async function getInvoicePdf(invoiceId: string) {
+    const session = await fetchAuthSession();
+    const token = session.tokens?.idToken?.toString();
+
+    if (!token) {
+      alert("Please sign in again to view this invoice.");
+      return null;
+    }
+
+    const res = await fetch(`/api/invoices/${invoiceId}/pdf`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      let message = `Unable to open invoice PDF. Status: ${res.status}`;
+
+      try {
+        const data = await res.json();
+        if (data?.error) {
+          message = `${message} — ${data.error}`;
+        }
+      } catch {}
+
+      alert(message);
+      return null;
+    }
+
+    return await res.blob();
+  }
+
+  async function viewInvoicePdf(invoiceId: string) {
+    const blob = await getInvoicePdf(invoiceId);
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  async function downloadInvoicePdf(invoiceId: string) {
+    const blob = await getInvoicePdf(invoiceId);
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = `invoice-${invoiceId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  }
 
   if (loading) {
     return (
@@ -146,13 +250,23 @@ export default function SellerInvoicesPage() {
                       {invoice.status || "PAID"}
                     </span>
 
-                    <Link
-                      href={`/api/invoices/${invoice.id}/pdf`}
-                      target="_blank"
-                      className="mt-4 inline-block rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
-                    >
-                      Download PDF
-                    </Link>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => viewInvoicePdf(invoice.id)}
+                        className="rounded border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white hover:bg-white/[0.08]"
+                      >
+                        View PDF
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => downloadInvoicePdf(invoice.id)}
+                        className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                      >
+                        Download PDF
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

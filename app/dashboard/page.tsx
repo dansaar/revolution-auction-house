@@ -15,6 +15,7 @@ import {
   Tag,
   FileText,
   Archive,
+  ShoppingCart,
 } from "lucide-react";
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
@@ -612,63 +613,77 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           <button
             type="button"
             onClick={() => setActiveTab("auctions")}
-            className={`group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
+            className={`group flex min-h-36 flex-col items-center justify-center rounded-2xl border px-4 py-5 text-center transition hover:-translate-y-1 ${
               activeTab === "auctions"
                 ? "border-[#d6aa55]/60 bg-[#1a1408]"
                 : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
             }`}
           >
-            <Gavel className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
-            <div className="text-lg font-bold text-white">Auctions</div>
+            <Gavel className="mb-4 h-8 w-8 text-[#e7c77f]" />
+            <div className="text-base font-bold text-white">Auctions</div>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("marketplace")}
-            className={`group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
+            className={`group flex min-h-36 flex-col items-center justify-center rounded-2xl border px-4 py-5 text-center transition hover:-translate-y-1 ${
               activeTab === "marketplace"
                 ? "border-[#d6aa55]/60 bg-[#1a1408]"
                 : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
             }`}
           >
-            <Tag className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
-            <div className="text-lg font-bold text-white">Marketplace</div>
+            <Tag className="mb-4 h-8 w-8 text-[#e7c77f]" />
+            <div className="text-base font-bold text-white">Marketplace</div>
           </button>
 
           <Link
             href="/auctions"
-            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+            className="group flex min-h-36 flex-col items-center justify-center rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-5 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
-            <Gavel className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
-            <div className="text-lg font-bold text-white">Browse Auctions</div>
+            <Gavel className="mb-4 h-8 w-8 text-[#e7c77f]" />
+            <div className="text-base font-bold text-white">
+              Browse Auctions
+            </div>
           </Link>
 
           <Link
             href="/marketplace"
-            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+            className="group flex min-h-36 flex-col items-center justify-center rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-5 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
-            <Tag className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
-            <div className="text-lg font-bold text-white">Shop Marketplace</div>
+            <Tag className="mb-4 h-8 w-8 text-[#e7c77f]" />
+            <div className="text-base font-bold text-white">
+              Shop Marketplace
+            </div>
+          </Link>
+
+          <Link
+            href="/cart"
+            className="group flex min-h-36 flex-col items-center justify-center rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-5 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+          >
+            <ShoppingCart className="mb-4 h-8 w-8 text-[#e7c77f]" />
+            <div className="text-base font-bold text-white">Payment Center</div>
           </Link>
 
           <Link
             href="/dashboard/invoices"
-            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+            className="group flex min-h-36 flex-col items-center justify-center rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-5 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
-            <FileText className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
-            <div className="text-lg font-bold text-white">View Invoices</div>
+            <FileText className="mb-4 h-8 w-8 text-[#e7c77f]" />
+            <div className="text-base font-bold text-white">View Invoices</div>
           </Link>
 
           <Link
             href="/auctions/results"
-            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+            className="group flex min-h-36 flex-col items-center justify-center rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-5 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
-            <Archive className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
-            <div className="text-lg font-bold text-white">Results Archive</div>
+            <Archive className="mb-4 h-8 w-8 text-[#e7c77f]" />
+            <div className="text-base font-bold text-white">
+              Results Archive
+            </div>
           </Link>
         </div>
 
@@ -932,9 +947,7 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
   const isPaid = auction?.paid === true;
 
   const reservePrice = moneyToNumber(auction?.reservePrice || 0);
-
   const currentPrice = moneyToNumber(auction?.price || 0);
-
   const reserveNotMet = reservePrice > 0 && currentPrice < reservePrice;
 
   const isWinning =
@@ -944,7 +957,6 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
     String(auction?.winnerDisplayName || "") === String(bid?.bidderName || "");
 
   const isWinningLive = isWinning && !isEnded && !danger;
-
   const isWonEnded = isWinning && isEnded;
 
   const rowStyle = danger
@@ -955,17 +967,14 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
         ? "border-blue-400/30 bg-blue-400/10"
         : "border-white/10 bg-black/30";
 
+  const auctionHref = isEnded
+    ? `/auctions/${bid.auctionId}/results`
+    : `/auctions/${bid.auctionId}`;
+
   return (
-    <Link
-      href={
-        isEnded
-          ? `/auctions/${bid.auctionId}/results`
-          : `/auctions/${bid.auctionId}`
-      }
-      className={`mb-3 block rounded border p-4 ${rowStyle}`}
-    >
+    <div className={`mb-3 rounded border p-4 ${rowStyle}`}>
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+        <Link href={auctionHref} className="flex items-center gap-4">
           <img
             loading="lazy"
             src={auction?.imageUrl || "/logo.png"}
@@ -1006,63 +1015,59 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
                 </span>
               )}
             </div>
-
-            {auction?.shippingStatus && (
-              <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500">
-                  Shipping
-                </div>
-
-                <div className="mt-2 flex items-center gap-3 text-sm text-[#d7d7d7]">
-                  <span>{auction.shippingStatus}</span>
-
-                  {trackingUrl(
-                    auction.carrier || "",
-                    auction.trackingNumber || "",
-                  ) && (
-                    <a
-                      href={trackingUrl(
-                        auction.carrier || "",
-                        auction.trackingNumber || "",
-                      )}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-xs font-semibold text-[#e7c77f] hover:text-white"
-                    >
-                      Track Package →
-                    </a>
-                  )}
-                </div>
-
-                {auction?.trackingNumber && (
-                  <div className="mt-3 text-xs text-gray-500">
-                    {auction.carrier} · {auction.trackingNumber}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
+        </Link>
+
+        <div className="font-serif text-xl text-[#c0c0c0]">
+          {auction?.price || bid.amount}
         </div>
       </div>
 
-      <div className="font-serif text-xl text-[#c0c0c0]">
-        {auction?.price || bid.amount}
-      </div>
+      {auction?.shippingStatus && (
+        <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500">
+            Shipping
+          </div>
+
+          <div className="mt-2 flex items-center gap-3 text-sm text-[#d7d7d7]">
+            <span>{auction.shippingStatus}</span>
+
+            {trackingUrl(
+              auction.carrier || "",
+              auction.trackingNumber || "",
+            ) && (
+              <a
+                href={trackingUrl(
+                  auction.carrier || "",
+                  auction.trackingNumber || "",
+                )}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-semibold text-[#e7c77f] hover:text-white"
+              >
+                Track Package →
+              </a>
+            )}
+          </div>
+
+          {auction?.trackingNumber && (
+            <div className="mt-3 text-xs text-gray-500">
+              {auction.carrier} · {auction.trackingNumber}
+            </div>
+          )}
+        </div>
+      )}
 
       {showPayButton && auction && !auction.paid && (
         <button
           type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            onCheckout(auction);
-          }}
+          onClick={() => onCheckout(auction)}
           className="mt-4 w-full rounded bg-[#c0c0c0] px-4 py-3 font-semibold text-black hover:bg-white"
         >
           Pay Now
         </button>
       )}
-    </Link>
+    </div>
   );
 }
 
@@ -1162,7 +1167,10 @@ function MarketplacePurchaseRow({ listing }: any) {
   return (
     <div className="mb-3 rounded border border-emerald-500/30 bg-emerald-500/10 p-4">
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+        <Link
+          href={`/marketplace/${listing.id}`}
+          className="flex items-center gap-4"
+        >
           <img
             loading="lazy"
             src={listing.imageUrl || "/logo.png"}
@@ -1190,49 +1198,48 @@ function MarketplacePurchaseRow({ listing }: any) {
                 Marketplace
               </span>
             </div>
-
-            {listing.shippingStatus && (
-              <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500">
-                  Shipping
-                </div>
-
-                <div className="mt-2 flex items-center gap-3 text-sm text-[#d7d7d7]">
-                  <span>{listing.shippingStatus}</span>
-
-                  {trackingUrl(
-                    listing.carrier || "",
-                    listing.trackingNumber || "",
-                  ) && (
-                    <a
-                      href={trackingUrl(
-                        listing.carrier || "",
-                        listing.trackingNumber || "",
-                      )}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-xs font-semibold text-[#e7c77f] hover:text-white"
-                    >
-                      Track Package →
-                    </a>
-                  )}
-                </div>
-
-                {listing.trackingNumber && (
-                  <div className="mt-3 text-xs text-gray-500">
-                    {listing.carrier} · {listing.trackingNumber}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
-        </div>
+        </Link>
 
         <div className="font-serif text-xl text-[#c0c0c0]">
           {listing.acceptedOfferAmount || listing.offerAmount || listing.price}
         </div>
       </div>
+
+      {listing.shippingStatus && (
+        <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500">
+            Shipping
+          </div>
+
+          <div className="mt-2 flex items-center gap-3 text-sm text-[#d7d7d7]">
+            <span>{listing.shippingStatus}</span>
+
+            {trackingUrl(
+              listing.carrier || "",
+              listing.trackingNumber || "",
+            ) && (
+              <a
+                href={trackingUrl(
+                  listing.carrier || "",
+                  listing.trackingNumber || "",
+                )}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-semibold text-[#e7c77f] hover:text-white"
+              >
+                Track Package →
+              </a>
+            )}
+          </div>
+
+          {listing.trackingNumber && (
+            <div className="mt-3 text-xs text-gray-500">
+              {listing.carrier} · {listing.trackingNumber}
+            </div>
+          )}
+        </div>
+      )}
 
       <Link
         href={`/marketplace/${listing.id}`}

@@ -30,8 +30,41 @@ export async function POST(req: Request) {
 
     const stripe = new Stripe(stripeSecretKey);
 
-    const { auctionId, listingId, title, amount, buyerEmail } =
+    const { auctionId, listingId, title, amount, buyerEmail, items } =
       await req.json();
+
+    if (Array.isArray(items) && items.length > 0) {
+      const lineItems = items.map((item: any) => ({
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: item.title,
+          },
+          unit_amount: moneyToCents(item.amount),
+        },
+        quantity: 1,
+      }));
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        line_items: lineItems,
+        metadata: {
+          buyerEmail: buyerEmail || "",
+          cartItems: JSON.stringify(
+            items.map((item: any) => ({
+              id: item.id,
+              type: item.type,
+              title: item.title,
+              amount: item.amount,
+            })),
+          ),
+        },
+        success_url: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&type=cart`,
+        cancel_url: `${siteUrl}/cart`,
+      });
+
+      return NextResponse.json({ url: session.url });
+    }
 
     const amountCents = moneyToCents(amount);
 

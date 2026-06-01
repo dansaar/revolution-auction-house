@@ -353,7 +353,7 @@ export default function SellerPage() {
               client={client}
               setBuyerRequests={setBuyerRequests}
             />
-            
+
             <AuctionSection
               title="Live Auctions"
               auctions={liveAuctions}
@@ -887,18 +887,18 @@ function SellerAuctionCard({
                   </div>
                 </div>
 
-                <div className="mt-6 flex flex-wrap items-start gap-3">
+                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   <Link
                     href={`/auctions/${auction.id}`}
-                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium tracking-wide text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
+                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-medium tracking-wide text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
                   >
                     View Auction
                   </Link>
 
-                  {isOwner && !hasBids && (
+                  {isOwner && !hasBids && !ended && (
                     <Link
                       href={`/sell/auction/${auction.id}/edit`}
-                      className="rounded-lg border border-[#d6aa55]/30 bg-white/5 px-4 py-2 text-sm font-medium tracking-wide text-[#e7c77f] backdrop-blur-sm transition hover:border-[#d6aa55]/50 hover:bg-white/10"
+                      className="rounded-lg border border-[#d6aa55]/30 bg-white/5 px-4 py-3 text-center text-sm font-medium tracking-wide text-[#e7c77f] backdrop-blur-sm transition hover:border-[#d6aa55]/50 hover:bg-white/10"
                     >
                       Edit Auction
                     </Link>
@@ -912,7 +912,7 @@ function SellerAuctionCard({
                       );
                       toast.success("Auction link copied");
                     }}
-                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium tracking-wide text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
+                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-medium tracking-wide text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
                   >
                     Copy Link
                   </button>
@@ -922,7 +922,7 @@ function SellerAuctionCard({
                       type="button"
                       disabled={endingAuction}
                       onClick={() => setShowEndAuctionModal(true)}
-                      className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium tracking-wide text-red-300 backdrop-blur-sm transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm font-medium tracking-wide text-red-300 backdrop-blur-sm transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {endingAuction ? "Ending..." : "End Auction"}
                     </button>
@@ -931,7 +931,7 @@ function SellerAuctionCard({
                   {ended && (
                     <Link
                       href={`/auctions/${auction.id}/results`}
-                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium tracking-wide text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
+                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-medium tracking-wide text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
                     >
                       View Results
                     </Link>
@@ -994,12 +994,14 @@ function SellerAuctionCard({
                 (auction.reservePrice &&
                   moneyToNumber(auction.price || 0) <
                     moneyToNumber(auction.reservePrice || 0))) && (
-                <Link
-                  href={`/sell/auction?relist=${auction.id}`}
-                  className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-5 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
-                >
-                  Re-List Auction
-                </Link>
+                <div className="mt-5">
+                  <Link
+                    href={`/sell/auction?relist=${auction.id}`}
+                    className="inline-flex rounded-lg border border-[#d6aa55]/30 bg-[#1a1408] px-5 py-3 text-sm font-semibold text-[#e7c77f] transition hover:bg-[#221909]"
+                  >
+                    Re-List Auction
+                  </Link>
+                </div>
               )}
           </div>
 
