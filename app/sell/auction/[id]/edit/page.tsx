@@ -10,6 +10,7 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { uploadData } from "aws-amplify/storage";
 import { cdnUrl } from "@/lib/cdn";
 import Link from "next/link";
+import { isApprovedSeller } from "@/lib/sellers";
 
 export default function CreateAuctionPage() {
   const clientRef = React.useRef(generateClient<Schema>());
@@ -36,7 +37,6 @@ export default function CreateAuctionPage() {
   const [loading, setLoading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const SELLERS = ["dansaar52@gmail.com"];
 
   const [checkingSeller, setCheckingSeller] = useState(true);
   const [isSeller, setIsSeller] = useState(false);
@@ -57,7 +57,7 @@ export default function CreateAuctionPage() {
         setCurrentSellerEmail(email);
         setCurrentSellerUserId(userId);
 
-        setIsSeller(SELLERS.includes(email));
+        setIsSeller(await isApprovedSeller(email));
       } catch {
         setIsSeller(false);
       } finally {

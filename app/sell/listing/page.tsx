@@ -10,13 +10,12 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { uploadData } from "aws-amplify/storage";
 import Link from "next/link";
 import imageCompression from "browser-image-compression";
+import { isApprovedSeller } from "@/lib/sellers";
 
 export default function CreateListingPage() {
   const clientRef = React.useRef(generateClient<Schema>());
   const client = clientRef.current;
   const router = useRouter();
-
-  const SELLERS = ["dansaar52@gmail.com"];
 
   const [form, setForm] = useState({
     title: "",
@@ -37,7 +36,7 @@ export default function CreateListingPage() {
       try {
         const user = await getCurrentUser();
         const email = user.signInDetails?.loginId || user.username;
-        setIsSeller(SELLERS.includes(email));
+        setIsSeller(await isApprovedSeller(email));
       } catch {
         setIsSeller(false);
       } finally {

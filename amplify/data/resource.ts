@@ -183,6 +183,22 @@ const schema = a
       ])
       .authorization((allow) => [allow.authenticated()]),
 
+    SellerProfile: a
+      .model({
+        email: a.string().required(),
+        displayName: a.string(),
+
+        status: a.string().default("APPROVED"),
+
+        approvedBy: a.string(),
+        approvedAt: a.datetime(),
+
+        revokedBy: a.string(),
+        revokedAt: a.datetime(),
+      })
+      .identifier(["email"])
+      .authorization((allow) => [allow.authenticated()]),
+
     WatchlistItem: a
       .model({
         auctionId: a.string().required(),

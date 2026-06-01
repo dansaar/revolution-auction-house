@@ -11,6 +11,7 @@ import Link from "next/link";
 import { cdnUrl } from "@/lib/cdn";
 import { uploadData } from "aws-amplify/storage";
 import imageCompression from "browser-image-compression";
+import { isApprovedSeller } from "@/lib/sellers";
 
 export default function EditListingPage() {
   const clientRef = React.useRef(generateClient<Schema>());
@@ -18,8 +19,6 @@ export default function EditListingPage() {
   const router = useRouter();
   const params = useParams();
   const listingId = params.id as string;
-
-  const SELLERS = ["dansaar52@gmail.com"];
 
   const [checkingSeller, setCheckingSeller] = useState(true);
   const [isSeller, setIsSeller] = useState(false);
@@ -52,7 +51,7 @@ export default function EditListingPage() {
         setCurrentSellerEmail(email);
         setCurrentSellerUserId(userId);
 
-        if (!SELLERS.includes(email)) {
+        if (!(await isApprovedSeller(email))) {
           setIsSeller(false);
           return;
         }

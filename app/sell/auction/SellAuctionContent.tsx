@@ -13,6 +13,7 @@ import { moneyToNumber } from "@/lib/money";
 import imageCompression from "browser-image-compression";
 import { cdnUrl } from "@/lib/cdn";
 import { uploadData } from "aws-amplify/storage";
+import { isApprovedSeller } from "@/lib/sellers";
 
 export default function SellAuctionContent() {
   const clientRef = React.useRef(generateClient<Schema>());
@@ -42,7 +43,6 @@ export default function SellAuctionContent() {
   const [loading, setLoading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const SELLERS = ["dansaar52@gmail.com"];
 
   const [checkingSeller, setCheckingSeller] = useState(true);
   const [isSeller, setIsSeller] = useState(false);
@@ -54,7 +54,7 @@ export default function SellAuctionContent() {
         const user = await getCurrentUser();
         const email = user.signInDetails?.loginId || user.username;
 
-        setIsSeller(SELLERS.includes(email));
+        setIsSeller(await isApprovedSeller(email));
       } catch {
         setIsSeller(false);
       } finally {
