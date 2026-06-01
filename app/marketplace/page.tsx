@@ -7,7 +7,6 @@ import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
-import ImageCarousel from "@/app/components/ImageCarousel";
 
 const client = generateClient<Schema>();
 
@@ -99,25 +98,24 @@ export default function MarketplacePage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-3">
             {listings.map((listing) => (
-              <div
+              <Link
                 key={listing.id}
+                href={`/marketplace/${listing.id}`}
                 className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-[#c0c0c0]/50"
               >
-                <ImageCarousel
-                  images={
-                    listing.thumbImages?.length
-                      ? listing.thumbImages
-                      : listing.images?.length
-                        ? listing.images
-                        : listing.image
-                          ? [listing.image]
-                          : listing.imageUrl
-                            ? [listing.imageUrl]
-                            : []
-                  }
-                  alt={listing.title}
-                  className="h-72 rounded-none border-0"
-                />
+                <div className="relative h-72 bg-black">
+                  <div className="absolute inset-0 animate-pulse bg-white/[0.04]" />
+
+                  <img
+                    loading="lazy"
+                    src={listing.imageUrl || "/logo.png"}
+                    alt={listing.title}
+                    onError={(e) => {
+                      e.currentTarget.src = "/logo.png";
+                    }}
+                    className="relative z-10 h-full w-full object-contain transition duration-500 group-hover:scale-105"
+                  />
+                </div>
 
                 <div className="p-5">
                   <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
@@ -135,15 +133,8 @@ export default function MarketplacePage() {
                   <div className="mt-4 font-serif text-3xl text-[#c0c0c0]">
                     {listing.price}
                   </div>
-
-                  <Link
-                    href={`/marketplace/${listing.id}`}
-                    className="mt-5 block rounded border border-white/10 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/[0.05]"
-                  >
-                    View Listing
-                  </Link>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

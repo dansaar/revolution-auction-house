@@ -3,15 +3,18 @@ import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import outputs from "@/amplify_outputs.json";
-import { cookies } from "next/headers";
-import { runWithAmplifyServerContext } from "@/lib/amplify-server-utils";
-import { getCurrentUser } from "aws-amplify/auth/server";
-
+import { CognitoJwtVerifier } from "aws-jwt-verify";
 import jsPDF from "jspdf";
 
 Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
+
+const verifier = CognitoJwtVerifier.create({
+  userPoolId: outputs.auth.user_pool_id,
+  tokenUse: "id",
+  clientId: outputs.auth.user_pool_client_id,
+});
 
 export async function GET(
   req: Request,
@@ -30,23 +33,30 @@ export async function GET(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    let currentUser;
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length)
+      : "";
 
-    try {
-      currentUser = await runWithAmplifyServerContext({
-        nextServerContext: { cookies },
-        operation: (contextSpec: any) => getCurrentUser(contextSpec),
-      });
-    } catch {
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentEmail =
-      currentUser.signInDetails?.loginId || currentUser.username || "";
+    let payload: any;
 
-    const canView =
-      invoice.sellerEmail === currentEmail ||
-      invoice.buyerEmail === currentEmail;
+    try {
+      payload = await verifier.verify(token);
+    } catch (err) {
+      console.error("INVOICE JWT VERIFY ERROR:", err);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const currentEmail = String(payload.email || "").toLowerCase();
+
+    const sellerEmail = String(invoice.sellerEmail || "").toLowerCase();
+    const buyerEmail = String(invoice.buyerEmail || "").toLowerCase();
+
+    const canView = currentEmail === sellerEmail || currentEmail === buyerEmail;
 
     if (!canView) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -54,15 +64,18 @@ export async function GET(
 
     const doc = new jsPDF();
 
-    doc.setFillColor(5, 6, 7);
+    doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, 210, 297, "F");
 
-    doc.setTextColor(192, 192, 192);
+    doc.setTextColor(20, 20, 20);
     doc.setFontSize(26);
     doc.text("Revolution Auction House", 20, 28);
 
+    doc.setDrawColor(214, 170, 85);
+    doc.line(20, 35, 190, 35);
+
     doc.setFontSize(12);
-    doc.setTextColor(230, 230, 230);
+    doc.setTextColor(30, 30, 30);
 
     doc.text(`Invoice Type: ${invoice.type}`, 20, 55);
     doc.text(`Title: ${invoice.title}`, 20, 70);

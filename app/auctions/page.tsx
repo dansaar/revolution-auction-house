@@ -10,7 +10,6 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
-import ImageCarousel from "@/app/components/ImageCarousel";
 
 function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
   const time = getTimeLeft(item.endsAt);
@@ -35,19 +34,17 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
       }`}
     >
       <div className="relative bg-black">
-        <ImageCarousel
-          images={
-            item.thumbImages?.length
-              ? item.thumbImages
-              : item.images?.length
-                ? item.images
-                : item.image
-                  ? [item.image]
-                  : []
-          }
-          alt={item.title}
-          className="h-56 sm:h-72"
-        />
+        <div className="relative h-56 bg-black sm:h-72">
+          <img
+            loading="lazy"
+            src={item.imageUrl || "/logo.png"}
+            alt={item.title}
+            onError={(e) => {
+              e.currentTarget.src = "/logo.png";
+            }}
+            className="relative z-10 h-full w-full object-contain bg-black transition duration-500 group-hover:scale-105"
+          />
+        </div>
 
         <div
           className={`absolute left-3 top-3 z-20 rounded px-2 py-1 text-xs uppercase ${
