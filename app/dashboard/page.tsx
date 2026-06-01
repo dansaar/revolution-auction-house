@@ -763,100 +763,86 @@ export default function DashboardPage() {
                 {activeWatchlist.length === 0 ? (
                   <Empty text="No live watched auctions." />
                 ) : (
-                  activeWatchlist
-                    .map((item: any) => {
-                      if (!item.auctionId) return false;
+                  activeWatchlist.map((item: any) => {
+                    const auction = auctions.find(
+                      (a: any) => String(a.id) === String(item.auctionId),
+                    );
 
-                      const auction = auctions.find(
-                        (a: any) => String(a.id) === String(item.auctionId),
-                      );
+                    if (!auction) return null;
 
-                      if (!auction) return false;
+                    const isEnded =
+                      auction.endsAt &&
+                      new Date(auction.endsAt).getTime() <= now;
 
-                      const isEnded =
-                        auction.endsAt &&
-                        new Date(auction.endsAt).getTime() <= Date.now();
+                    const isPaid = auction?.paid === true;
+                    const isLive = !isEnded;
 
-                      return !isEnded;
-                    })
-                    .map((item: any) => {
-                      const auction = auctions.find(
-                        (a: any) => String(a.id) === String(item.auctionId),
-                      );
-                      const isEnded =
-                        auction?.endsAt &&
-                        new Date(auction.endsAt).getTime() <= Date.now();
+                    const imageSrc =
+                      auction.imageUrl ||
+                      cdnUrl(
+                        auction.thumbImages?.[0] ||
+                          auction.images?.[0] ||
+                          auction.image ||
+                          item.image ||
+                          "",
+                      ) ||
+                      "/logo.png";
 
-                      const isPaid = auction?.paid === true;
-
-                      const isLive = !!auction && !isEnded;
-
-                      return (
-                        <div
-                          key={item.id}
-                          className="mb-3 flex items-center justify-between gap-4 rounded border border-white/10 bg-black/30 p-3"
+                    return (
+                      <div
+                        key={item.id}
+                        className="mb-3 flex items-center justify-between gap-4 rounded border border-white/10 bg-black/30 p-3"
+                      >
+                        <Link
+                          href={
+                            isEnded
+                              ? `/auctions/${item.auctionId}/results`
+                              : `/auctions/${item.auctionId}`
+                          }
+                          className="flex min-w-0 flex-1 items-center gap-4"
                         >
-                          <Link
-                            href={
-                              isEnded
-                                ? `/auctions/${item.auctionId}/results`
-                                : `/auctions/${item.auctionId}`
-                            }
-                            className="flex flex-1 items-center gap-4"
-                          >
-                            <img
-                              loading="lazy"
-                              src={
-                                auction?.imageUrl ||
-                                cdnUrl(
-                                  auction?.thumbImages?.[0] ||
-                                    auction?.images?.[0] ||
-                                    auction?.image ||
-                                    "",
-                                ) ||
-                                "/logo.png"
-                              }
-                              onError={(e) => {
-                                e.currentTarget.onerror = null;
-                                e.currentTarget.src = "/logo.png";
-                              }}
-                              className="h-20 w-20 shrink-0 rounded object-cover sm:h-16 sm:w-16"
-                            />
+                          <img
+                            loading="lazy"
+                            src={imageSrc}
+                            alt={auction.title || item.title || "Auction"}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = "/logo.png";
+                            }}
+                            className="h-16 w-16 shrink-0 rounded object-cover"
+                          />
 
-                            <div>
-                              <div className="font-semibold">{item.title}</div>
-                              <div className="mt-1 flex gap-2 text-xs">
-                                {isLive && (
-                                  <span className="rounded bg-blue-400/10 px-2 py-0.5 text-blue-300">
-                                    Live
-                                  </span>
-                                )}
-
-                                {isEnded && !isPaid && (
-                                  <span className="rounded bg-yellow-400/10 px-2 py-0.5 text-yellow-300">
-                                    Ended
-                                  </span>
-                                )}
-
-                                {isPaid && (
-                                  <span className="rounded bg-green-500/10 px-2 py-0.5 text-green-400">
-                                    Paid
-                                  </span>
-                                )}
-                              </div>
+                          <div className="min-w-0">
+                            <div className="break-words font-semibold">
+                              {auction.title || item.title}
                             </div>
-                          </Link>
 
-                          <button
-                            type="button"
-                            onClick={() => removeFromWatchlist(item.id)}
-                            className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 active:scale-95"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      );
-                    })
+                            <div className="mt-1 flex gap-2 text-xs">
+                              {isLive && (
+                                <span className="rounded bg-blue-400/10 px-2 py-0.5 text-blue-300">
+                                  Live
+                                </span>
+                              )}
+
+                              {isPaid && (
+                                <span className="rounded bg-green-500/10 px-2 py-0.5 text-green-400">
+                                  Paid
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => removeFromWatchlist(item.id)}
+                          className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 active:scale-95"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    );
+                  })
                 )}
               </Panel>
 

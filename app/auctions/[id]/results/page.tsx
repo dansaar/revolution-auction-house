@@ -12,6 +12,12 @@ import type { Schema } from "@/amplify/data/resource";
 import { getCurrentUser } from "aws-amplify/auth";
 import "@/lib/amplifyclient";
 
+function makeBidderDisplayName(value: string) {
+  if (!value) return "";
+  if (value.startsWith("Bidder ")) return value;
+  return `Bidder ${value.slice(0, 4).toUpperCase()}`;
+}
+
 export default function AuctionResultsPage() {
   const clientRef = React.useRef(generateClient<Schema>());
   const client = clientRef.current;
@@ -38,25 +44,62 @@ export default function AuctionResultsPage() {
 
   useEffect(() => {
     async function loadResults() {
-      const auctionResult = await client.models.Auction.get({ id });
+      try {
+        const auctionResult = await client.models.Auction.get({ id }, {
+          authMode: "apiKey",
+        } as any);
 
-      const bidResult = await client.models.Bid.list({
-        filter: {
-          auctionId: {
-            eq: id,
-          },
-        },
-      });
+        const stateResult = await client.models.AuctionState.get(
+          { auctionId: id },
+          { authMode: "apiKey" } as any,
+        );
 
-      const sortedBids = [...bidResult.data].sort(
-        (a: any, b: any) =>
-          new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime(),
-      );
+        const bidResult = await client.models.Bid.bidsByAuction(
+          { auctionId: id },
+          {
+            authMode: "apiKey",
+            limit: 100,
+            sortDirection: "DESC",
+          } as any,
+        );
 
-      setAuction(auctionResult.data);
-      setBids(sortedBids);
-      setLoading(false);
+        const baseAuction = auctionResult.data;
+        const state = stateResult.data;
+
+        if (!baseAuction) {
+          setAuction(null);
+          setBids([]);
+          setLoading(false);
+          return;
+        }
+
+        const mergedAuction = {
+          ...baseAuction,
+          price: state?.currentPrice || baseAuction.price,
+          winningBid: state?.currentPrice || baseAuction.winningBid,
+          winnerUserId: state?.leaderUserId || baseAuction.winnerUserId,
+          winnerEmail: state?.leaderEmail || baseAuction.winnerEmail,
+          winnerDisplayName: state?.leaderUserId
+            ? makeBidderDisplayName(state.leaderUserId)
+            : baseAuction.winnerDisplayName,
+          bids: state?.bidCount ?? baseAuction.bids,
+          ended: state?.ended ?? baseAuction.ended,
+          endsAt: state?.endsAt || baseAuction.endsAt,
+        };
+
+        const sortedBids = [...(bidResult.data || [])].sort(
+          (a: any, b: any) =>
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime(),
+        );
+
+        setAuction(mergedAuction);
+        setBids(sortedBids);
+      } catch (err) {
+        console.error("LOAD AUCTION RESULTS ERROR", err);
+      } finally {
+        setLoading(false);
+      }
     }
 
     loadResults();
@@ -66,9 +109,14 @@ export default function AuctionResultsPage() {
     if (!auction) return;
 
     const rawImage =
-      auction.thumbImages?.[0] || auction.images?.[0] || auction.image || "";
+      auction.fullImages?.[0] ||
+      auction.mediumImages?.[0] ||
+      auction.thumbImages?.[0] ||
+      auction.images?.[0] ||
+      auction.image ||
+      "";
 
-    setResolvedImage(cdnUrl(rawImage));
+    setResolvedImage(cdnUrl(rawImage) || "/logo.png");
   }, [auction]);
 
   if (loading) {
@@ -88,12 +136,33 @@ export default function AuctionResultsPage() {
   }
 
   const winner = bids[0];
-  const userKey = user?.userId || user?.username || "";
-  const isWinner = !!userKey && auction.winnerUserId === userKey;
-  const reserveMet =
-    auction.reservePrice && auction.price
-      ? moneyToNumber(auction.price) >= moneyToNumber(auction.reservePrice)
-      : false;
+
+  const userValues = [
+    user?.userId,
+    user?.username,
+    user?.signInDetails?.loginId,
+  ].map((value) => String(value || ""));
+
+  const winnerValues = [
+    auction.winnerUserId,
+    auction.winnerEmail,
+    auction.winnerDisplayName,
+  ].map((value) => String(value || ""));
+
+  const isWinner = winnerValues.some((winnerValue) =>
+    userValues.includes(winnerValue),
+  );
+
+  const finalPrice = moneyToNumber(auction.price || auction.winningBid || 0);
+  const reservePrice = moneyToNumber(auction.reservePrice || 0);
+
+  const reserveMet = reservePrice === 0 || finalPrice >= reservePrice;
+
+  const winningBidderName =
+    auction.winnerDisplayName ||
+    (auction.winnerUserId ? makeBidderDisplayName(auction.winnerUserId) : "") ||
+    winner?.bidderName ||
+    "";
 
   async function handleCheckout() {
     const res = await fetch("/api/checkout", {
@@ -133,6 +202,10 @@ export default function AuctionResultsPage() {
             <img
               src={resolvedImage}
               alt={auction.title}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/logo.png";
+              }}
               className="w-full rounded-xl border border-white/10 object-cover"
             />
           </div>
@@ -151,7 +224,7 @@ export default function AuctionResultsPage() {
                 Final Price
               </div>
               <div className="mt-2 font-serif text-6xl text-[#c0c0c0]">
-                {auction.price}
+                {auction.price || auction.winningBid || "$0"}
               </div>
 
               <div className="mt-4">
@@ -188,7 +261,7 @@ export default function AuctionResultsPage() {
               </div>
 
               <div className="mt-3 text-2xl font-semibold">
-                {winner ? winner.bidderName : "No bids placed"}
+                {winningBidderName || "No bids placed"}
               </div>
 
               {auction.endsAt && (
