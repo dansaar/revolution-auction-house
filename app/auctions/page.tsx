@@ -37,9 +37,16 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
         <div className="relative h-56 bg-black sm:h-72">
           <img
             loading="lazy"
-            src={item.imageUrl || "/logo.png"}
+            src={
+              item.imageUrl ||
+              cdnUrl(
+                item.thumbImages?.[0] || item.images?.[0] || item.image || "",
+              ) ||
+              "/logo.png"
+            }
             alt={item.title}
             onError={(e) => {
+              e.currentTarget.onerror = null;
               e.currentTarget.src = "/logo.png";
             }}
             className="relative z-10 h-full w-full object-contain bg-black transition duration-500 group-hover:scale-105"
