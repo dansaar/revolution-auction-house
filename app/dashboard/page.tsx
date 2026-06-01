@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
+import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
   const c = carrier.toLowerCase();
@@ -95,6 +96,7 @@ export default function DashboardPage() {
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
+        updateBuyerPresence("/dashboard");
       } catch {
         setUser(null);
       } finally {

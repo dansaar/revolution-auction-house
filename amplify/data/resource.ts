@@ -167,6 +167,9 @@ const schema = a
 
         status: a.string().default("APPROVED"),
 
+        lastSeenAt: a.datetime(),
+        lastSeenPage: a.string(),
+
         requestedTier: a.string(),
         requestedLimit: a.integer(),
         verificationNotes: a.string(),

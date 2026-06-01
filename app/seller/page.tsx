@@ -250,6 +250,35 @@ export default function SellerPage() {
     (buyer: any) => buyer.verificationTier === "TROPHY",
   ).length;
 
+  const onlineCutoff = Date.now() - 5 * 60 * 1000;
+
+  const onlineBuyers = buyerProfiles.filter((buyer: any) => {
+    if (!buyer.lastSeenAt) return false;
+    return new Date(buyer.lastSeenAt).getTime() >= onlineCutoff;
+  });
+
+  const usersOnline = onlineBuyers.length;
+
+  const onlineBasicBuyers = onlineBuyers.filter(
+    (buyer: any) => (buyer.verificationTier || "BASIC") === "BASIC",
+  ).length;
+
+  const onlineVerifiedBuyers = onlineBuyers.filter(
+    (buyer: any) => buyer.verificationTier === "VERIFIED",
+  ).length;
+
+  const onlinePremiumBuyers = onlineBuyers.filter(
+    (buyer: any) => buyer.verificationTier === "PREMIUM",
+  ).length;
+
+  const onlinePrivateClients = onlineBuyers.filter(
+    (buyer: any) => buyer.verificationTier === "PRIVATE",
+  ).length;
+
+  const onlineTrophyBidders = onlineBuyers.filter(
+    (buyer: any) => buyer.verificationTier === "TROPHY",
+  ).length;
+
   const reserveMetCount = allEndedAuctions.filter(
     (a) =>
       a.reservePrice &&
@@ -369,13 +398,8 @@ export default function SellerPage() {
           <Stat label="Paid Auctions" value={String(paidAuctions.length)} />
           <Stat label="Unpaid Wins" value={String(unpaidAuctions.length)} />
           <Stat label="Revenue" value={`$${totalRevenue.toLocaleString()}`} />
-
-          <Stat label="Total Buyers" value={String(totalBuyers)} />
-          <Stat label="Basic Buyers" value={String(basicBuyers)} />
-          <Stat label="Verified Buyers" value={String(verifiedBuyers)} />
-          <Stat label="Premium Buyers" value={String(premiumBuyers)} />
-          <Stat label="Private Clients" value={String(privateClients)} />
-          <Stat label="Trophy Bidders" value={String(trophyBidders)} />
+          <OnlineBuyerSummary buyerProfiles={buyerProfiles} />
+          <BuyerTierSummary buyerProfiles={buyerProfiles} />
         </div>
 
         {activeTab === "auctions" && (
@@ -748,6 +772,116 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function OnlineBuyerSummary({ buyerProfiles }: { buyerProfiles: any[] }) {
+  const onlineCutoff = Date.now() - 5 * 60 * 1000;
+
+  const onlineBuyers = buyerProfiles.filter((buyer: any) => {
+    if (!buyer.lastSeenAt) return false;
+    return new Date(buyer.lastSeenAt).getTime() >= onlineCutoff;
+  });
+
+  const tiers = [
+    { label: "Basic", code: "BASIC" },
+    { label: "Verified", code: "VERIFIED" },
+    { label: "Premium", code: "PREMIUM" },
+    { label: "Private", code: "PRIVATE" },
+    { label: "Trophy", code: "TROPHY" },
+  ];
+
+  return (
+    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5 md:col-span-2">
+      <div>
+        <div className="text-xs uppercase tracking-widest text-gray-500">
+          Users Online
+        </div>
+
+        <div className="mt-2 flex items-end gap-4">
+          <div className="font-serif text-4xl text-emerald-300">
+            {onlineBuyers.length}
+          </div>
+
+          <div className="pb-1 text-xs text-gray-400">
+            Active in the last 5 minutes
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {tiers.map((tier) => {
+          const count = onlineBuyers.filter(
+            (buyer: any) => (buyer.verificationTier || "BASIC") === tier.code,
+          ).length;
+
+          return (
+            <div
+              key={tier.code}
+              className="rounded-lg border border-emerald-500/15 bg-black/25 p-3 text-center"
+            >
+              <div className="font-serif text-2xl text-emerald-300">
+                {count}
+              </div>
+
+              <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-gray-500">
+                {tier.label}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BuyerTierSummary({ buyerProfiles }: { buyerProfiles: any[] }) {
+  const tiers = [
+    { label: "Basic", code: "BASIC" },
+    { label: "Verified", code: "VERIFIED" },
+    { label: "Premium", code: "PREMIUM" },
+    { label: "Private", code: "PRIVATE" },
+    { label: "Trophy", code: "TROPHY" },
+  ];
+
+  return (
+    <div className="rounded-xl border border-[#c8a96b]/20 bg-[#c8a96b]/10 p-5 md:col-span-2">
+      <div>
+        <div className="text-xs uppercase tracking-widest text-gray-500">
+          Total Buyers
+        </div>
+
+        <div className="mt-2 flex items-end gap-4">
+          <div className="font-serif text-4xl text-[#e7c98a]">
+            {buyerProfiles.length}
+          </div>
+
+          <div className="pb-1 text-xs text-gray-400">Total Buyers</div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {tiers.map((tier) => {
+          const count = buyerProfiles.filter(
+            (buyer: any) => (buyer.verificationTier || "BASIC") === tier.code,
+          ).length;
+
+          return (
+            <div
+              key={tier.code}
+              className="rounded-lg border border-white/10 bg-black/25 p-3 text-center"
+            >
+              <div className="font-serif text-2xl text-[#e7c98a]">{count}</div>
+
+              <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-gray-500">
+                {tier.label}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function SellerAuctionCard({
   auction,
   client,

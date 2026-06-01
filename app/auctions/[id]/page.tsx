@@ -9,6 +9,7 @@ import type { Schema } from "@/amplify/data/resource";
 import { getCurrentUser, type AuthUser } from "aws-amplify/auth";
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
+import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 
 function getIncrement(amount: number): number {
   if (amount < 100) return 5;
@@ -194,6 +195,10 @@ export default function LiveAuctionPage() {
       clearInterval(interval);
     };
   }, [auction?.id, id, rawUserKey]);
+
+  useEffect(() => {
+    updateBuyerPresence(`/auctions/${id}`);
+  }, [id]);
 
   useEffect(() => {
     function resolveImages() {

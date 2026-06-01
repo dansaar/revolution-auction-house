@@ -9,12 +9,17 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { getCurrentUser } from "aws-amplify/auth";
+import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 
 const client = generateClient<Schema>();
 
 export default function MarketplaceListingPage() {
   const params = useParams();
   const id = params.id as string;
+
+  useEffect(() => {
+    updateBuyerPresence(`/marketplace/${id}`);
+  }, [id]);
 
   const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -118,7 +123,7 @@ export default function MarketplaceListingPage() {
         {
           listingId: listing.id,
 
-          buyerUserId: buyerEmail,
+          buyerUserId: currentUser.userId || currentUser.username,
           buyerEmail,
           buyerDisplayName: buyerEmail,
 
