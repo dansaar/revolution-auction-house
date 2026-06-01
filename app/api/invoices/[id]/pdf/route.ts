@@ -16,6 +16,14 @@ const verifier = CognitoJwtVerifier.create({
   clientId: outputs.auth.user_pool_client_id,
 });
 
+function formatInvoiceAmount(value: string | number | null | undefined) {
+  const amount = Number(String(value || "0").replace(/[$,]/g, ""));
+
+  if (!Number.isFinite(amount)) return "$0";
+
+  return `$${Math.round(amount).toLocaleString()}`;
+}
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -81,7 +89,7 @@ export async function GET(
     doc.text(`Title: ${invoice.title}`, 20, 70);
     doc.text(`Buyer: ${invoice.buyerEmail}`, 20, 85);
     doc.text(`Seller: ${invoice.sellerEmail}`, 20, 100);
-    doc.text(`Amount Paid: ${invoice.amount}`, 20, 115);
+    doc.text(`Amount Paid: ${formatInvoiceAmount(invoice.amount)}`, 20, 115);
     doc.text(`Status: ${invoice.status}`, 20, 130);
 
     doc.text(
@@ -92,7 +100,10 @@ export async function GET(
       145,
     );
 
-    doc.text(`Stripe Session: ${invoice.stripeSessionId || "-"}`, 20, 160);
+    const stripeSessionText = `Stripe Session: ${invoice.stripeSessionId || "-"}`;
+    const stripeSessionLines = doc.splitTextToSize(stripeSessionText, 170);
+
+    doc.text(stripeSessionLines, 20, 160);
 
     const pdfBuffer = doc.output("arraybuffer");
 
