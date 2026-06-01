@@ -486,6 +486,21 @@ export default function DashboardPage() {
   const buyerTier = buyerProfile?.verificationTier || "BASIC";
   const buyerBidLimit = Number(buyerProfile?.bidLimit || 1000);
 
+  const activeWatchlist = watchlist.filter((item: any) => {
+    if (!item.auctionId) return false;
+
+    const auction = auctions.find(
+      (a: any) => String(a.id) === String(item.auctionId),
+    );
+
+    if (!auction) return false;
+
+    const isEnded =
+      auction.endsAt && new Date(auction.endsAt).getTime() <= Date.now();
+
+    return !isEnded;
+  });
+
   async function handleCheckout(auction: any) {
     const res = await fetch("/api/checkout", {
       method: "POST",
@@ -693,8 +708,8 @@ export default function DashboardPage() {
           <Stat icon={Gavel} label="My Bids" value={String(bids.length)} />
           <Stat
             icon={Heart}
-            label="Watchlist"
-            value={String(watchlist.length)}
+            label="Active Watchlist"
+            value={String(activeWatchlist.length)}
           />
           <Stat
             icon={Trophy}
@@ -737,11 +752,11 @@ export default function DashboardPage() {
               </Panel>
 
               <Panel title="Watchlist">
-                {watchlist.length === 0 ? (
-                  <Empty text="No watched auctions yet." />
+                {activeWatchlist.length === 0 ? (
+                  <Empty text="No live watched auctions." />
                 ) : (
-                  watchlist
-                    .filter((item: any) => {
+                  activeWatchlist
+                    .map((item: any) => {
                       if (!item.auctionId) return false;
 
                       const auction = auctions.find(
