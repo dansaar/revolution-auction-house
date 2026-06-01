@@ -69,6 +69,7 @@ export default function DashboardPage() {
   const [loadingUser, setLoadingUser] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [buyerProfile, setBuyerProfile] = useState<any>(null);
+  const [now, setNow] = useState(Date.now());
 
   const dashboardRefreshTimerRef = React.useRef<ReturnType<
     typeof setTimeout
@@ -105,6 +106,14 @@ export default function DashboardPage() {
     }
 
     loadUser();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -364,11 +373,11 @@ export default function DashboardPage() {
     lostAuctions,
   } = useMemo(() => {
     const ended = auctions.filter(
-      (a: any) => a.endsAt && new Date(a.endsAt).getTime() <= Date.now(),
+      (a: any) => a.endsAt && new Date(a.endsAt).getTime() <= now,
     );
 
     const live = auctions.filter(
-      (a: any) => !a.endsAt || new Date(a.endsAt).getTime() > Date.now(),
+      (a: any) => !a.endsAt || new Date(a.endsAt).getTime() > now,
     );
 
     const isMeWinning = (auction: any) => {
@@ -481,7 +490,7 @@ export default function DashboardPage() {
       reserveNotMet: reserveMisses,
       lostAuctions: lost,
     };
-  }, [bids, auctions, user, userKey]);
+  }, [bids, auctions, user, userKey, now]);
 
   const buyerTier = buyerProfile?.verificationTier || "BASIC";
   const buyerBidLimit = Number(buyerProfile?.bidLimit || 1000);
@@ -495,8 +504,7 @@ export default function DashboardPage() {
 
     if (!auction) return false;
 
-    const isEnded =
-      auction.endsAt && new Date(auction.endsAt).getTime() <= Date.now();
+    const isEnded = auction.endsAt && new Date(auction.endsAt).getTime() <= now;
 
     return !isEnded;
   });
@@ -799,9 +807,13 @@ export default function DashboardPage() {
                             <img
                               loading="lazy"
                               src={
-                                auction?.imageUrl ||
-                                cdnUrl(item.image) ||
-                                "/logo.png"
+                                cdnUrl(
+                                  auction?.thumbImages?.[0] ||
+                                    auction?.images?.[0] ||
+                                    auction?.image ||
+                                    item.image ||
+                                    "",
+                                ) || "/logo.png"
                               }
                               onError={(e) => {
                                 e.currentTarget.src = "/logo.png";

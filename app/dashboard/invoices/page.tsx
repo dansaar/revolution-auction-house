@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
+import { fetchAuthSession } from "aws-amplify/auth";
 
 export default function BuyerInvoicesPage() {
   const client = generateClient<Schema>();
@@ -36,6 +37,70 @@ export default function BuyerInvoicesPage() {
 
     loadInvoices();
   }, []);
+
+  function formatInvoiceAmount(value: string | number | null | undefined) {
+    const amount = Number(String(value || "0").replace(/[$,]/g, ""));
+
+    if (!Number.isFinite(amount)) return "$0";
+
+    return `$${Math.round(amount).toLocaleString()}`;
+  }
+
+  async function getInvoicePdf(invoiceId: string) {
+    const session = await fetchAuthSession();
+    const token = session.tokens?.idToken?.toString();
+
+    if (!token) {
+      alert("Please sign in again to view this invoice.");
+      return null;
+    }
+
+    const res = await fetch(`/api/invoices/${invoiceId}/pdf`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      let message = `Unable to open invoice PDF. Status: ${res.status}`;
+
+      try {
+        const data = await res.json();
+        if (data?.error) {
+          message = `${message} — ${data.error}`;
+        }
+      } catch {}
+
+      alert(message);
+      return null;
+    }
+
+    return await res.blob();
+  }
+
+  async function viewInvoicePdf(invoiceId: string) {
+    const blob = await getInvoicePdf(invoiceId);
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  async function downloadInvoicePdf(invoiceId: string) {
+    const blob = await getInvoicePdf(invoiceId);
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = `invoice-${invoiceId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  }
 
   if (loading) {
     return (
@@ -94,19 +159,29 @@ export default function BuyerInvoicesPage() {
 
                   <div className="text-right">
                     <div className="font-serif text-3xl text-[#c0c0c0]">
-                      {invoice.amount}
+                      {formatInvoiceAmount(invoice.amount)}
                     </div>
 
                     <span className="mt-2 inline-block rounded bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400">
                       {invoice.status || "PAID"}
                     </span>
-                    <Link
-                      href={`/api/invoices/${invoice.id}/pdf`}
-                      target="_blank"
-                      className="mt-4 inline-block rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
-                    >
-                      Download PDF
-                    </Link>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => viewInvoicePdf(invoice.id)}
+                        className="rounded border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white hover:bg-white/[0.08]"
+                      >
+                        View PDF
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => downloadInvoicePdf(invoice.id)}
+                        className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                      >
+                        Download PDF
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
