@@ -46,6 +46,7 @@ export default function SellerPage() {
 
   const [offers, setOffers] = useState<any[]>([]);
   const [buyerRequests, setBuyerRequests] = useState<any[]>([]);
+  const [buyerProfiles, setBuyerProfiles] = useState<any[]>([]);
 
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -80,6 +81,13 @@ export default function SellerPage() {
         } as any);
 
         setBuyerRequests(buyerRequestResult.data || []);
+
+        const buyerProfileResult = await client.models.BuyerProfile.list({
+          authMode: "userPool",
+          limit: 1000,
+        } as any);
+
+        setBuyerProfiles(buyerProfileResult.data || []);
 
         const listingResult = await client.models.MarketplaceListing.list({
           authMode: "apiKey",
@@ -220,6 +228,28 @@ export default function SellerPage() {
     0,
   );
 
+  const totalBuyers = buyerProfiles.length;
+
+  const basicBuyers = buyerProfiles.filter(
+    (buyer: any) => (buyer.verificationTier || "BASIC") === "BASIC",
+  ).length;
+
+  const verifiedBuyers = buyerProfiles.filter(
+    (buyer: any) => buyer.verificationTier === "VERIFIED",
+  ).length;
+
+  const premiumBuyers = buyerProfiles.filter(
+    (buyer: any) => buyer.verificationTier === "PREMIUM",
+  ).length;
+
+  const privateClients = buyerProfiles.filter(
+    (buyer: any) => buyer.verificationTier === "PRIVATE",
+  ).length;
+
+  const trophyBidders = buyerProfiles.filter(
+    (buyer: any) => buyer.verificationTier === "TROPHY",
+  ).length;
+
   const reserveMetCount = allEndedAuctions.filter(
     (a) =>
       a.reservePrice &&
@@ -335,15 +365,17 @@ export default function SellerPage() {
           <Stat label="Total Auctions" value={String(auctions.length)} />
           <Stat label="Live Auctions" value={String(liveAuctions.length)} />
           <Stat label="Ending Soon" value={String(endingSoon.length)} />
-          <Stat label="Total Bids" value={String(totalBids)} />
 
           <Stat label="Paid Auctions" value={String(paidAuctions.length)} />
           <Stat label="Unpaid Wins" value={String(unpaidAuctions.length)} />
-
-          <Stat label="Reserve Met" value={String(reserveMetCount)} />
-          <Stat label="Reserve Not Met" value={String(reserveNotMetCount)} />
-
           <Stat label="Revenue" value={`$${totalRevenue.toLocaleString()}`} />
+
+          <Stat label="Total Buyers" value={String(totalBuyers)} />
+          <Stat label="Basic Buyers" value={String(basicBuyers)} />
+          <Stat label="Verified Buyers" value={String(verifiedBuyers)} />
+          <Stat label="Premium Buyers" value={String(premiumBuyers)} />
+          <Stat label="Private Clients" value={String(privateClients)} />
+          <Stat label="Trophy Bidders" value={String(trophyBidders)} />
         </div>
 
         {activeTab === "auctions" && (
