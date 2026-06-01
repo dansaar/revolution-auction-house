@@ -741,7 +741,21 @@ export default function DashboardPage() {
                   <Empty text="No watched auctions yet." />
                 ) : (
                   watchlist
-                    .filter((item: any) => item.auctionId)
+                    .filter((item: any) => {
+                      if (!item.auctionId) return false;
+
+                      const auction = auctions.find(
+                        (a: any) => String(a.id) === String(item.auctionId),
+                      );
+
+                      if (!auction) return false;
+
+                      const isEnded =
+                        auction.endsAt &&
+                        new Date(auction.endsAt).getTime() <= Date.now();
+
+                      return !isEnded;
+                    })
                     .map((item: any) => {
                       const auction = auctions.find(
                         (a: any) => String(a.id) === String(item.auctionId),
@@ -975,19 +989,19 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
 
   return (
     <div className={`mb-3 rounded border p-4 ${rowStyle}`}>
-      <div className="flex items-center justify-between gap-4">
-        <Link href={auctionHref} className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Link href={auctionHref} className="flex min-w-0 items-center gap-4">
           <img
             loading="lazy"
             src={auction?.imageUrl || "/logo.png"}
             onError={(e) => {
               e.currentTarget.src = "/logo.png";
             }}
-            className="h-16 w-16 rounded object-cover"
+            className="h-20 w-20 shrink-0 rounded object-cover sm:h-16 sm:w-16"
           />
 
-          <div>
-            <div className="font-semibold">
+          <div className="min-w-0 flex-1">
+            <div className="break-words text-lg font-semibold leading-tight sm:text-base">
               {isWonEnded ? "🏆 " : ""}
               {auction?.title || "Auction"}
             </div>
@@ -1020,7 +1034,7 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
           </div>
         </Link>
 
-        <div className="font-serif text-xl text-[#c0c0c0]">
+        <div className="shrink-0 font-serif text-3xl text-[#c0c0c0] sm:text-right sm:text-xl">
           {auction?.price || bid.amount}
         </div>
       </div>
@@ -1031,7 +1045,7 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
             Shipping
           </div>
 
-          <div className="mt-2 flex items-center gap-3 text-sm text-[#d7d7d7]">
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[#d7d7d7]">
             <span>{auction.shippingStatus}</span>
 
             {trackingUrl(
@@ -1053,7 +1067,7 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
           </div>
 
           {auction?.trackingNumber && (
-            <div className="mt-3 text-xs text-gray-500">
+            <div className="mt-3 break-all text-xs text-gray-500">
               {auction.carrier} · {auction.trackingNumber}
             </div>
           )}
@@ -1064,7 +1078,7 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
         <button
           type="button"
           onClick={() => onCheckout(auction)}
-          className="mt-4 w-full rounded bg-[#c0c0c0] px-4 py-3 font-semibold text-black hover:bg-white"
+          className="mt-5 w-full rounded bg-[#c0c0c0] px-4 py-4 text-lg font-semibold text-black hover:bg-white sm:py-3 sm:text-base"
         >
           Pay Now
         </button>
