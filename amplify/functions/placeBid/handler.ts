@@ -129,29 +129,36 @@ async function writeBidAuditLogDirect(log: {
   await dynamoClient.send(
     new UpdateCommand({
       TableName: BID_AUDIT_LOG_TABLE_NAME,
+
       Key: {
         bidRequestId: log.bidRequestId,
       },
+
       UpdateExpression: `
-        SET __typename = :typename,
-            auctionId = :auctionId,
-            bidderUserId = :bidderUserId,
-            bidderEmail = :bidderEmail,
-            bidderName = :bidderName,
-            requestedMaxBid = :requestedMaxBid,
-            accepted = :accepted,
-            rejectionReason = :rejectionReason,
-            previousPrice = :previousPrice,
-            newPrice = :newPrice,
-            previousLeaderUserId = :previousLeaderUserId,
-            newLeaderUserId = :newLeaderUserId,
-            buyerTier = :buyerTier,
-            buyerBidLimit = :buyerBidLimit,
-            attemptCount = :attemptCount,
-            resultMessage = :resultMessage,
-            updatedAt = :updatedAt,
-            createdAt = if_not_exists(createdAt, :createdAt)
-      `,
+
+    SET #typename = :typename,
+        auctionId = :auctionId,
+        bidderUserId = :bidderUserId,
+        bidderEmail = :bidderEmail,
+        bidderName = :bidderName,
+        requestedMaxBid = :requestedMaxBid,
+        accepted = :accepted,
+        rejectionReason = :rejectionReason,
+        previousPrice = :previousPrice,
+        newPrice = :newPrice,
+        previousLeaderUserId = :previousLeaderUserId,
+        newLeaderUserId = :newLeaderUserId,
+        buyerTier = :buyerTier,
+        buyerBidLimit = :buyerBidLimit,
+        attemptCount = :attemptCount,
+        resultMessage = :resultMessage,
+        updatedAt = :updatedAt,
+        createdAt = if_not_exists(createdAt, :createdAt)
+  `,
+      ExpressionAttributeNames: {
+        "#typename": "__typename",
+      },
+
       ExpressionAttributeValues: {
         ":typename": "BidAuditLog",
         ":auctionId": log.auctionId,
