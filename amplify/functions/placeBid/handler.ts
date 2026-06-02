@@ -133,7 +133,8 @@ async function writeBidAuditLogDirect(log: {
         bidRequestId: log.bidRequestId,
       },
       UpdateExpression: `
-        SET auctionId = :auctionId,
+        SET __typename = :typename,
+            auctionId = :auctionId,
             bidderUserId = :bidderUserId,
             bidderEmail = :bidderEmail,
             bidderName = :bidderName,
@@ -148,9 +149,11 @@ async function writeBidAuditLogDirect(log: {
             buyerBidLimit = :buyerBidLimit,
             attemptCount = :attemptCount,
             resultMessage = :resultMessage,
+            updatedAt = :updatedAt,
             createdAt = if_not_exists(createdAt, :createdAt)
       `,
       ExpressionAttributeValues: {
+        ":typename": "BidAuditLog",
         ":auctionId": log.auctionId,
         ":bidderUserId": log.bidderUserId || null,
         ":bidderEmail": log.bidderEmail || null,
@@ -166,6 +169,7 @@ async function writeBidAuditLogDirect(log: {
         ":buyerBidLimit": log.buyerBidLimit || null,
         ":attemptCount": log.attemptCount || 0,
         ":resultMessage": log.resultMessage || null,
+        ":updatedAt": new Date().toISOString(),
         ":createdAt": new Date().toISOString(),
       },
     }),
