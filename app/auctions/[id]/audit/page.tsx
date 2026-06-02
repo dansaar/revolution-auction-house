@@ -17,6 +17,7 @@ export default function AuctionAuditPage() {
   const [auction, setAuction] = useState<any>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function loadAudit() {
@@ -45,8 +46,11 @@ export default function AuctionAuditPage() {
           );
 
         setAuditLogs(sortedAuditLogs);
-      } catch (err) {
+      } catch (err: any) {
         console.error("LOAD AUCTION AUDIT ERROR", err);
+        setError(
+          err?.message || JSON.stringify(err) || "Failed to load audit log",
+        );
       } finally {
         setLoading(false);
       }
@@ -93,6 +97,12 @@ export default function AuctionAuditPage() {
           <Stat label="Accepted" value={String(accepted.length)} />
           <Stat label="Rejected" value={String(rejected.length)} />
         </div>
+
+        {error && (
+          <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300">
+            {error}
+          </div>
+        )}
 
         <section className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03]">
           {cleanAuditLogs.length === 0 ? (
