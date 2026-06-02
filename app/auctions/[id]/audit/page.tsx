@@ -8,6 +8,12 @@ import { useParams } from "next/navigation";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 
+function makeBidderDisplayName(value: string) {
+  if (!value) return "—";
+  if (value.startsWith("Bidder ")) return value;
+  return `Bidder ${value.slice(0, 4).toUpperCase()}`;
+}
+
 const client = generateClient<Schema>();
 
 export default function AuctionAuditPage() {
@@ -170,15 +176,19 @@ export default function AuctionAuditPage() {
 
                         <div>
                           Previous Leader
-                          <div className="mt-1 break-all text-sm text-gray-300">
-                            {log.previousLeaderUserId || "—"}
+                          <div className="mt-1 text-sm text-gray-300">
+                            {log.previousLeaderUserId
+                              ? makeBidderDisplayName(log.previousLeaderUserId)
+                              : "—"}
                           </div>
                         </div>
 
                         <div>
                           New Leader
-                          <div className="mt-1 break-all text-sm text-gray-300">
-                            {log.newLeaderUserId || "—"}
+                          <div className="mt-1 text-sm text-gray-300">
+                            {log.newLeaderUserId
+                              ? makeBidderDisplayName(log.newLeaderUserId)
+                              : "—"}
                           </div>
                         </div>
                       </div>

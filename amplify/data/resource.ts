@@ -249,7 +249,7 @@ const schema = a
       })
       .authorization((allow) => [allow.authenticated()]),
 
-        placeBid: a
+    placeBid: a
       .mutation()
       .arguments({
         auctionId: a.string().required(),
