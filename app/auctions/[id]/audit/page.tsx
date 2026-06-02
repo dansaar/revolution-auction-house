@@ -36,7 +36,15 @@ export default function AuctionAuditPage() {
         );
 
         setAuction(auctionResult.data);
-        setAuditLogs(auditResult.data || []);
+        const sortedAuditLogs = [...(auditResult.data || [])]
+          .filter(Boolean)
+          .sort(
+            (a: any, b: any) =>
+              new Date(b.createdAt || 0).getTime() -
+              new Date(a.createdAt || 0).getTime(),
+          );
+
+        setAuditLogs(sortedAuditLogs);
       } catch (err) {
         console.error("LOAD AUCTION AUDIT ERROR", err);
       } finally {
@@ -47,8 +55,10 @@ export default function AuctionAuditPage() {
     if (auctionId) loadAudit();
   }, [auctionId]);
 
-  const accepted = auditLogs.filter((log: any) => log.accepted === true);
-  const rejected = auditLogs.filter((log: any) => log.accepted !== true);
+  const cleanAuditLogs = auditLogs.filter(Boolean);
+
+  const accepted = cleanAuditLogs.filter((log: any) => log.accepted === true);
+  const rejected = cleanAuditLogs.filter((log: any) => log.accepted !== true);
 
   if (loading) {
     return (
@@ -79,17 +89,17 @@ export default function AuctionAuditPage() {
         </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
-          <Stat label="Total Attempts" value={String(auditLogs.length)} />
+          <Stat label="Total Attempts" value={String(cleanAuditLogs.length)} />
           <Stat label="Accepted" value={String(accepted.length)} />
           <Stat label="Rejected" value={String(rejected.length)} />
         </div>
 
         <section className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03]">
-          {auditLogs.length === 0 ? (
+          {cleanAuditLogs.length === 0 ? (
             <div className="p-8 text-gray-500">No audit records yet.</div>
           ) : (
             <div className="divide-y divide-white/10">
-              {auditLogs.map((log: any) => (
+              {cleanAuditLogs.map((log: any) => (
                 <div key={log.bidRequestId} className="p-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
