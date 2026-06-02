@@ -31,6 +31,12 @@ if (!BUYER_PROFILE_TABLE_NAME) {
   throw new Error("Missing BUYER_PROFILE_TABLE_NAME");
 }
 
+const BID_AUDIT_LOG_TABLE_NAME = (env as any).BID_AUDIT_LOG_TABLE_NAME;
+
+if (!BID_AUDIT_LOG_TABLE_NAME) {
+  throw new Error("Missing BID_AUDIT_LOG_TABLE_NAME");
+}
+
 const BID_COOLDOWN_MS = 3000; // stress test only. Restore to 3000 before production.
 
 function getIncrement(amount: number): number {
@@ -87,6 +93,83 @@ async function getBuyerProfileDirect(userId: string) {
   );
 
   return result.Item || null;
+}
+
+async function getBidAuditLogDirect(bidRequestId: string) {
+  const result = await dynamoClient.send(
+    new GetCommand({
+      TableName: BID_AUDIT_LOG_TABLE_NAME,
+      Key: {
+        bidRequestId,
+      },
+    }),
+  );
+
+  return result.Item || null;
+}
+
+async function writeBidAuditLogDirect(log: {
+  bidRequestId: string;
+  auctionId: string;
+  bidderUserId?: string;
+  bidderEmail?: string;
+  bidderName?: string;
+  requestedMaxBid?: string;
+  accepted: boolean;
+  rejectionReason?: string;
+  previousPrice?: string;
+  newPrice?: string;
+  previousLeaderUserId?: string;
+  newLeaderUserId?: string;
+  buyerTier?: string;
+  buyerBidLimit?: number;
+  attemptCount?: number;
+  resultMessage?: string;
+}) {
+  await dynamoClient.send(
+    new UpdateCommand({
+      TableName: BID_AUDIT_LOG_TABLE_NAME,
+      Key: {
+        bidRequestId: log.bidRequestId,
+      },
+      UpdateExpression: `
+        SET auctionId = :auctionId,
+            bidderUserId = :bidderUserId,
+            bidderEmail = :bidderEmail,
+            bidderName = :bidderName,
+            requestedMaxBid = :requestedMaxBid,
+            accepted = :accepted,
+            rejectionReason = :rejectionReason,
+            previousPrice = :previousPrice,
+            newPrice = :newPrice,
+            previousLeaderUserId = :previousLeaderUserId,
+            newLeaderUserId = :newLeaderUserId,
+            buyerTier = :buyerTier,
+            buyerBidLimit = :buyerBidLimit,
+            attemptCount = :attemptCount,
+            resultMessage = :resultMessage,
+            createdAt = if_not_exists(createdAt, :createdAt)
+      `,
+      ExpressionAttributeValues: {
+        ":auctionId": log.auctionId,
+        ":bidderUserId": log.bidderUserId || null,
+        ":bidderEmail": log.bidderEmail || null,
+        ":bidderName": log.bidderName || null,
+        ":requestedMaxBid": log.requestedMaxBid || null,
+        ":accepted": log.accepted,
+        ":rejectionReason": log.rejectionReason || null,
+        ":previousPrice": log.previousPrice || null,
+        ":newPrice": log.newPrice || null,
+        ":previousLeaderUserId": log.previousLeaderUserId || null,
+        ":newLeaderUserId": log.newLeaderUserId || null,
+        ":buyerTier": log.buyerTier || null,
+        ":buyerBidLimit": log.buyerBidLimit || null,
+        ":attemptCount": log.attemptCount || 0,
+        ":resultMessage": log.resultMessage || null,
+        ":createdAt": new Date().toISOString(),
+      },
+    }),
+  );
 }
 
 async function updateAuctionStateDirect({
@@ -173,6 +256,10 @@ async function updateAuctionStateDirect({
 export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
   try {
     const { auctionId, maxBid } = event.arguments;
+
+    const bidRequestId =
+      event.arguments.bidRequestId ||
+      `${auctionId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const identity = event.identity as any;
 
     const bidderUserId =
@@ -189,21 +276,55 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
     const bidderDisplayName = makeBidderDisplayName(bidderUserId);
 
+    const existingAuditLog = await getBidAuditLogDirect(bidRequestId);
+
+    if (existingAuditLog) {
+      return {
+        success: Boolean(existingAuditLog.accepted),
+        message:
+          existingAuditLog.resultMessage ||
+          (existingAuditLog.accepted
+            ? "Bid already processed"
+            : "Bid rejected"),
+        currentPrice: moneyToNumber(existingAuditLog.newPrice),
+        winner: existingAuditLog.newLeaderUserId
+          ? makeBidderDisplayName(existingAuditLog.newLeaderUserId)
+          : "",
+      };
+    }
+
     const buyerProfile = await getBuyerProfileDirect(bidderUserId);
 
     const buyerBidLimit = Number(buyerProfile?.bidLimit || 1000);
     const buyerTier = String(buyerProfile?.verificationTier || "BASIC");
 
     if (maxBid > buyerBidLimit) {
+      const message = `Your ${buyerTier} bidding limit is ${formatMoney(
+        buyerBidLimit,
+      )}. Please request a higher limit before placing this bid.`;
+
+      await writeBidAuditLogDirect({
+        bidRequestId,
+        auctionId,
+        bidderUserId,
+        bidderEmail,
+        bidderName: bidderDisplayName,
+        requestedMaxBid: formatMoney(maxBid),
+        accepted: false,
+        rejectionReason: "BID_LIMIT_EXCEEDED",
+        buyerTier,
+        buyerBidLimit,
+        resultMessage: message,
+      });
+
       return {
         success: false,
-        message: `Your ${buyerTier} bidding limit is ${formatMoney(
-          buyerBidLimit,
-        )}. Please request a higher limit before placing this bid.`,
+        message,
         currentPrice: 0,
         winner: "",
       };
     }
+
     if (BID_COOLDOWN_MS > 0) {
       const recentUserBids = await client.models.Bid.bidsByBidder(
         { bidderUserId },
@@ -272,9 +393,29 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       }
 
       if (state.ended) {
+        const message = "Auction has ended";
+
+        await writeBidAuditLogDirect({
+          bidRequestId,
+          auctionId,
+          bidderUserId,
+          bidderEmail,
+          bidderName: bidderDisplayName,
+          requestedMaxBid: formatMoney(maxBid),
+          accepted: false,
+          rejectionReason: "AUCTION_ENDED",
+          previousPrice: state.currentPrice,
+          previousLeaderUserId: state.leaderUserId || "",
+          newPrice: state.currentPrice,
+          newLeaderUserId: state.leaderUserId || "",
+          buyerTier,
+          buyerBidLimit,
+          resultMessage: message,
+        });
+
         return {
           success: false,
-          message: "Auction has ended",
+          message,
           currentPrice: moneyToNumber(state.currentPrice),
           winner: state.leaderUserId
             ? makeBidderDisplayName(state.leaderUserId)
@@ -286,9 +427,29 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       const minimumBid = currentPrice + getIncrement(currentPrice);
 
       if (maxBid < minimumBid) {
+        const message = `Minimum bid is ${formatMoney(minimumBid)}`;
+
+        await writeBidAuditLogDirect({
+          bidRequestId,
+          auctionId,
+          bidderUserId,
+          bidderEmail,
+          bidderName: bidderDisplayName,
+          requestedMaxBid: formatMoney(maxBid),
+          accepted: false,
+          rejectionReason: "BELOW_MINIMUM_BID",
+          previousPrice: state.currentPrice,
+          previousLeaderUserId: state.leaderUserId || "",
+          newPrice: state.currentPrice,
+          newLeaderUserId: state.leaderUserId || "",
+          buyerTier,
+          buyerBidLimit,
+          resultMessage: message,
+        });
+
         return {
           success: false,
-          message: `Minimum bid is ${formatMoney(minimumBid)}`,
+          message,
           currentPrice,
           winner: state.leaderUserId
             ? makeBidderDisplayName(state.leaderUserId)
@@ -389,6 +550,8 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         });
 
         if (attempt === 4) {
+          const message = "High bidding activity. Please retry.";
+
           console.error("PLACE_BID_RETRY_EXHAUSTED", {
             auctionId,
             bidderUserId,
@@ -396,9 +559,28 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
             currentPrice,
           });
 
+          await writeBidAuditLogDirect({
+            bidRequestId,
+            auctionId,
+            bidderUserId,
+            bidderEmail,
+            bidderName: bidderDisplayName,
+            requestedMaxBid: formatMoney(maxBid),
+            accepted: false,
+            rejectionReason: "RETRY_EXHAUSTED",
+            previousPrice: state.currentPrice,
+            previousLeaderUserId: state.leaderUserId || "",
+            newPrice: state.currentPrice,
+            newLeaderUserId: state.leaderUserId || "",
+            buyerTier,
+            buyerBidLimit,
+            attemptCount: attempt + 1,
+            resultMessage: message,
+          });
+
           return {
             success: false,
-            message: "High bidding activity. Please retry.",
+            message,
             currentPrice,
             winner: state.leaderUserId
               ? makeBidderDisplayName(state.leaderUserId)
@@ -447,6 +629,24 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         winnerEmail: newLeaderUserId === bidderUserId ? bidderEmail : "",
         winningBid: formatMoney(visiblePrice),
         endsAt: updatedEndsAt,
+      });
+
+      await writeBidAuditLogDirect({
+        bidRequestId,
+        auctionId,
+        bidderUserId,
+        bidderEmail,
+        bidderName: bidderDisplayName,
+        requestedMaxBid: formatMoney(maxBid),
+        accepted: true,
+        previousPrice: state.currentPrice,
+        newPrice: formatMoney(visiblePrice),
+        previousLeaderUserId: leaderUserId || "",
+        newLeaderUserId,
+        buyerTier,
+        buyerBidLimit,
+        attemptCount: attempt + 1,
+        resultMessage: "Bid placed",
       });
 
       return {

@@ -155,6 +155,46 @@ const schema = a
       ])
       .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
 
+    BidAuditLog: a
+      .model({
+        bidRequestId: a.string().required(),
+
+        auctionId: a.string().required(),
+
+        bidderUserId: a.string(),
+        bidderEmail: a.string(),
+        bidderName: a.string(),
+
+        requestedMaxBid: a.string(),
+
+        accepted: a.boolean().default(false),
+        rejectionReason: a.string(),
+
+        previousPrice: a.string(),
+        newPrice: a.string(),
+
+        previousLeaderUserId: a.string(),
+        newLeaderUserId: a.string(),
+
+        buyerTier: a.string(),
+        buyerBidLimit: a.integer(),
+
+        attemptCount: a.integer(),
+        resultMessage: a.string(),
+
+        createdAt: a.datetime(),
+      })
+      .identifier(["bidRequestId"])
+      .secondaryIndexes((index) => [
+        index("auctionId")
+          .sortKeys(["createdAt"])
+          .queryField("bidAuditByAuction"),
+        index("bidderUserId")
+          .sortKeys(["createdAt"])
+          .queryField("bidAuditByBidder"),
+      ])
+      .authorization((allow) => [allow.authenticated()]),
+
     BuyerProfile: a
       .model({
         userId: a.string().required(),
@@ -209,11 +249,12 @@ const schema = a
       })
       .authorization((allow) => [allow.authenticated()]),
 
-    placeBid: a
+        placeBid: a
       .mutation()
       .arguments({
         auctionId: a.string().required(),
         maxBid: a.integer().required(),
+        bidRequestId: a.string(),
       })
       .returns(
         a.customType({

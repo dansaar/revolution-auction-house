@@ -667,6 +667,7 @@ export default function LiveAuctionPage() {
         {
           auctionId: auctionIdForBid,
           maxBid: enteredMaxBid,
+          bidRequestId: crypto.randomUUID(),
         },
         {
           authMode: "userPool",
