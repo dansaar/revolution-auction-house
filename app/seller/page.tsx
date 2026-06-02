@@ -1103,7 +1103,7 @@ function SellerAuctionCard({
                     </Link>
                   )}
 
-                  {ended && (
+                  {auction?.id && (
                     <Link
                       href={`/auctions/${auction.id}/audit`}
                       className="rounded-lg border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-3 text-center text-sm font-medium tracking-wide text-[#e7c77f] backdrop-blur-sm transition hover:bg-[#221909]"
