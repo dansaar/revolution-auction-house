@@ -45,6 +45,15 @@ function makeBidderDisplayName(value: string) {
   return `Bidder ${value.slice(0, 4).toUpperCase()}`;
 }
 
+function formatCurrency(amount: number): string {
+  return amount.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 async function listRecentBids(client: any, auctionId: string): Promise<any[]> {
   const response: any = await client.models.Bid.bidsByAuction({ auctionId }, {
     authMode: "apiKey",
@@ -953,14 +962,14 @@ export default function LiveAuctionPage() {
                       <div className="flex justify-between gap-4">
                         <span>Bid Amount</span>
                         <span className="text-white">
-                          {formatMoney(estimateBaseAmount)}
+                          {formatCurrency(estimateBaseAmount)}
                         </span>
                       </div>
 
                       <div className="flex justify-between gap-4">
                         <span>Buyer Premium ({buyerPremiumRate}%)</span>
                         <span className="text-white">
-                          {formatMoney(buyerPremiumAmount)}
+                          {formatCurrency(buyerPremiumAmount)}
                         </span>
                       </div>
 
@@ -968,7 +977,7 @@ export default function LiveAuctionPage() {
                         <div className="flex justify-between gap-4">
                           <span>NJ Sales Tax ({taxRate}%)</span>
                           <span className="text-white">
-                            {formatMoney(taxAmount)}
+                            {formatCurrency(taxAmount)}
                           </span>
                         </div>
                       )}
@@ -979,7 +988,7 @@ export default function LiveAuctionPage() {
                             Estimated Total
                           </span>
                           <span className="text-[#f0d28c]">
-                            {formatMoney(estimatedTotalDue)}
+                            {formatCurrency(estimatedTotalDue)}
                           </span>
                         </div>
                       </div>
