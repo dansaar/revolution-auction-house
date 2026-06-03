@@ -23,6 +23,9 @@ export default function CreateListingPage() {
     price: "",
     condition: "",
     description: "",
+    status: "ACTIVE",
+    chargeTax: false,
+    taxRate: "6.625",
   });
 
   const [loading, setLoading] = useState(false);
@@ -133,6 +136,8 @@ export default function CreateListingPage() {
         description: form.description,
         condition: form.condition,
         price: `$${Number(form.price).toLocaleString()}`,
+        chargeTax: form.chargeTax,
+        taxRate: form.chargeTax ? 6.625 : 0,
 
         image: fullUrls[0] || "/logo.png",
         images: fullUrls.length ? fullUrls : ["/logo.png"],
@@ -213,6 +218,33 @@ export default function CreateListingPage() {
             value={form.price}
             onChange={(v: string) => update("price", v)}
           />
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4">
+            <label className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={form.chargeTax}
+                  onChange={(e) =>
+                    setForm((prev: any) => ({
+                      ...prev,
+                      chargeTax: e.target.checked,
+                      taxRate: "6.625",
+                    }))
+                  }
+                  className="h-5 w-5 accent-[#d6aa55]"
+                />
+
+                <div className="font-semibold text-white">
+                  Charge NJ Sales Tax
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-500">
+                Adds 6.625% sales tax at checkout
+              </div>
+            </label>
+          </div>
 
           <Input
             label="Condition"

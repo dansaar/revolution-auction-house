@@ -19,7 +19,50 @@ type CartItem = {
   amount: string;
   image?: string;
   href: string;
+  chargeTax?: boolean;
+  taxRate?: number;
+  buyerPremiumRate?: number;
 };
+
+function formatMoney(amount: number) {
+  return `$${Math.round(amount).toLocaleString()}`;
+}
+
+function calculateAuctionTotals(item: any) {
+  const hammerPrice = moneyToNumber(item.amount || 0);
+  const buyerPremiumRate = Number(item.buyerPremiumRate || 20);
+  const buyerPremium = hammerPrice * (buyerPremiumRate / 100);
+
+  const taxableAmount = hammerPrice + buyerPremium;
+  const taxRate = item.chargeTax ? Number(item.taxRate || 6.625) : 0;
+  const tax = item.chargeTax ? taxableAmount * (taxRate / 100) : 0;
+
+  return {
+    subtotal: hammerPrice,
+    buyerPremium,
+    tax,
+    total: hammerPrice + buyerPremium + tax,
+  };
+}
+
+function calculateMarketplaceTotals(item: any) {
+  const subtotal = moneyToNumber(item.amount || 0);
+  const taxRate = item.chargeTax ? Number(item.taxRate || 6.625) : 0;
+  const tax = item.chargeTax ? subtotal * (taxRate / 100) : 0;
+
+  return {
+    subtotal,
+    buyerPremium: 0,
+    tax,
+    total: subtotal + tax,
+  };
+}
+
+function calculateItemTotals(item: any) {
+  return item.type === "AUCTION"
+    ? calculateAuctionTotals(item)
+    : calculateMarketplaceTotals(item);
+}
 
 export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -73,6 +116,9 @@ export default function CartPage() {
               amount: auction.price || auction.winningBid || "$0",
               image: cdnUrl(rawImage),
               href: `/auctions/${auction.id}/results`,
+              chargeTax: Boolean(auction.chargeTax),
+              taxRate: Number(auction.taxRate || 6.625),
+              buyerPremiumRate: Number(auction.buyerPremiumRate || 20),
             };
           });
 
@@ -105,6 +151,9 @@ export default function CartPage() {
               amount: listing.acceptedOfferAmount || listing.price || "$0",
               image: cdnUrl(rawImage),
               href: `/marketplace/${listing.id}`,
+              chargeTax: Boolean(listing.chargeTax),
+              taxRate: Number(listing.taxRate || 6.625),
+              buyerPremiumRate: 0,
             };
           });
 
@@ -127,10 +176,9 @@ export default function CartPage() {
   );
 
   const total = useMemo(() => {
-    return selectedItems.reduce(
-      (sum, item) => sum + moneyToNumber(item.amount || 0),
-      0,
-    );
+    return selectedItems.reduce((sum, item) => {
+      return sum + calculateItemTotals(item).total;
+    }, 0);
   }, [selectedItems]);
 
   function toggleItem(item: CartItem) {
@@ -157,7 +205,17 @@ export default function CartPage() {
         },
         body: JSON.stringify({
           buyerEmail,
-          items: selectedItems,
+          items: selectedItems.map((item) => {
+            const totals = calculateItemTotals(item);
+
+            return {
+              ...item,
+              subtotal: formatMoney(totals.subtotal),
+              buyerPremium: formatMoney(totals.buyerPremium),
+              tax: formatMoney(totals.tax),
+              amount: formatMoney(totals.total),
+            };
+          }),
         }),
       });
 
@@ -264,11 +322,34 @@ export default function CartPage() {
                         </Link>
                       </div>
 
-                      <div className="text-right">
-                        <div className="font-serif text-3xl text-[#c0c0c0]">
-                          {item.amount}
-                        </div>
-                      </div>
+                      {(() => {
+                        const totals = calculateItemTotals(item);
+
+                        return (
+                          <div className="text-right">
+                            <div className="font-serif text-3xl text-[#c0c0c0]">
+                              {formatMoney(totals.total)}
+                            </div>
+
+                            <div className="mt-2 space-y-1 text-xs text-gray-500">
+                              <div>
+                                Subtotal: {formatMoney(totals.subtotal)}
+                              </div>
+
+                              {item.type === "AUCTION" && (
+                                <div>
+                                  Buyer Premium:{" "}
+                                  {formatMoney(totals.buyerPremium)}
+                                </div>
+                              )}
+
+                              {totals.tax > 0 && (
+                                <div>Tax: {formatMoney(totals.tax)}</div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 );

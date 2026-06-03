@@ -68,16 +68,16 @@ export default function AdminSellersPage() {
     try {
       setSaving(true);
 
-      const existing = await client.models.SellerProfile.get(
-        { email },
-        { authMode: "userPool" } as any,
-      );
+      const existing = await client.models.SellerProfile.get({ email }, {
+        authMode: "userPool",
+      } as any);
 
       if (existing.data) {
         await client.models.SellerProfile.update(
           {
             email,
-            displayName: newSellerName.trim() || existing.data.displayName || email,
+            displayName:
+              newSellerName.trim() || existing.data.displayName || email,
             status: "APPROVED",
             approvedBy: adminEmail,
             approvedAt: new Date().toISOString(),

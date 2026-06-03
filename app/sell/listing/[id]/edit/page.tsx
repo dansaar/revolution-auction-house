@@ -39,6 +39,8 @@ export default function EditListingPage() {
     condition: "",
     description: "",
     status: "ACTIVE",
+    chargeTax: false,
+    taxRate: "6.625",
   });
 
   useEffect(() => {
@@ -83,6 +85,8 @@ export default function EditListingPage() {
           condition: result.data.condition || "",
           description: result.data.description || "",
           status: result.data.status || "ACTIVE",
+          chargeTax: Boolean(result.data.chargeTax),
+          taxRate: String(result.data.taxRate || 6.625),
         });
 
         const existing = result.data.fullImages?.length
@@ -228,6 +232,10 @@ export default function EditListingPage() {
           condition: form.condition,
           price: `$${Number(form.price).toLocaleString()}`,
           status: form.status,
+
+          chargeTax: form.chargeTax,
+          taxRate: form.chargeTax ? 6.625 : 0,
+
           image: mainImage,
           images: finalFullImages,
           thumbImages: finalThumbImages,
@@ -483,6 +491,33 @@ export default function EditListingPage() {
               <option value="PAUSED">PAUSED</option>
               <option value="SOLD">SOLD</option>
             </select>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4">
+            <label className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={form.chargeTax}
+                  onChange={(e) =>
+                    setForm((prev: any) => ({
+                      ...prev,
+                      chargeTax: e.target.checked,
+                      taxRate: "6.625",
+                    }))
+                  }
+                  className="h-5 w-5 accent-[#d6aa55]"
+                />
+
+                <div className="font-semibold text-white">
+                  Charge NJ Sales Tax
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-500">
+                Adds 6.625% sales tax at checkout
+              </div>
+            </label>
           </div>
 
           <button

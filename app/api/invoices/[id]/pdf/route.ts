@@ -5,6 +5,8 @@ import type { Schema } from "@/amplify/data/resource";
 import outputs from "@/amplify_outputs.json";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import jsPDF from "jspdf";
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
 
 Amplify.configure(outputs);
 
@@ -22,6 +24,25 @@ function formatInvoiceAmount(value: string | number | null | undefined) {
   if (!Number.isFinite(amount)) return "$0";
 
   return `$${Math.round(amount).toLocaleString()}`;
+}
+
+function getInvoiceNumber(invoice: any) {
+  return `RAH-INV-${String(invoice.id || "")
+    .slice(0, 8)
+    .toUpperCase()}`;
+}
+
+function getLogoDataUrl() {
+  try {
+    const logoPath = join(process.cwd(), "public", "logo.png");
+
+    if (!existsSync(logoPath)) return null;
+
+    const logoBuffer = readFileSync(logoPath);
+    return `data:image/png;base64,${logoBuffer.toString("base64")}`;
+  } catch {
+    return null;
+  }
 }
 
 export async function GET(
@@ -72,38 +93,115 @@ export async function GET(
 
     const doc = new jsPDF();
 
+    const invoiceNumber = getInvoiceNumber(invoice);
+    const logoDataUrl = getLogoDataUrl();
+
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, 210, 297, "F");
 
+    // Header
+    if (logoDataUrl) {
+      try {
+        doc.addImage(logoDataUrl, "PNG", 20, 14, 28, 28);
+      } catch {
+        // Keep invoice generation working even if logo render fails.
+      }
+    }
+
     doc.setTextColor(20, 20, 20);
-    doc.setFontSize(26);
-    doc.text("Revolution Auction House", 20, 28);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(24);
+    doc.text("Revolution Auction House", logoDataUrl ? 55 : 20, 27);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(90, 90, 90);
+    doc.text("Buyer & Seller Invoice", logoDataUrl ? 55 : 20, 35);
 
     doc.setDrawColor(214, 170, 85);
-    doc.line(20, 35, 190, 35);
+    doc.setLineWidth(0.5);
+    doc.line(20, 48, 190, 48);
 
-    doc.setFontSize(12);
-    doc.setTextColor(30, 30, 30);
+    // Invoice heading
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(20, 20, 20);
+    doc.text("INVOICE", 20, 65);
 
-    doc.text(`Invoice Type: ${invoice.type}`, 20, 55);
-    doc.text(`Title: ${invoice.title}`, 20, 70);
-    doc.text(`Buyer: ${invoice.buyerEmail}`, 20, 85);
-    doc.text(`Seller: ${invoice.sellerEmail}`, 20, 100);
-    doc.text(`Amount Paid: ${formatInvoiceAmount(invoice.amount)}`, 20, 115);
-    doc.text(`Status: ${invoice.status}`, 20, 130);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Invoice #: ${invoiceNumber}`, 20, 74);
 
     doc.text(
       `Paid At: ${
         invoice.paidAt ? new Date(invoice.paidAt).toLocaleString() : "-"
       }`,
       20,
-      145,
+      82,
     );
 
-    const stripeSessionText = `Stripe Session: ${invoice.stripeSessionId || "-"}`;
-    const stripeSessionLines = doc.splitTextToSize(stripeSessionText, 170);
+    // Amount box
+    doc.setFillColor(248, 245, 238);
+    doc.setDrawColor(214, 170, 85);
+    doc.roundedRect(135, 58, 55, 28, 3, 3, "FD");
 
-    doc.text(stripeSessionLines, 20, 160);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(120, 90, 40);
+    doc.text("AMOUNT PAID", 141, 68);
+
+    doc.setFontSize(18);
+    doc.setTextColor(20, 20, 20);
+    doc.text(formatInvoiceAmount(invoice.amount), 141, 79);
+
+    // Details card
+    doc.setDrawColor(225, 225, 225);
+    doc.setFillColor(252, 252, 252);
+    doc.roundedRect(20, 98, 170, 96, 3, 3, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(20, 20, 20);
+    doc.text("Transaction Details", 28, 112);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(45, 45, 45);
+
+    let y = 126;
+
+    doc.text(`Invoice Type: ${invoice.type || "-"}`, 28, y);
+    y += 11;
+
+    const titleLines = doc.splitTextToSize(
+      `Title: ${invoice.title || "-"}`,
+      150,
+    );
+    doc.text(titleLines, 28, y);
+    y += titleLines.length * 7 + 4;
+
+    doc.text(`Buyer: ${invoice.buyerEmail || "-"}`, 28, y);
+    y += 11;
+
+    doc.text(`Seller: ${invoice.sellerEmail || "-"}`, 28, y);
+    y += 11;
+
+    doc.text(`Status: ${invoice.status || "PAID"}`, 28, y);
+    y += 11;
+
+    const stripeSessionText = `Stripe Session: ${invoice.stripeSessionId || "-"}`;
+    const stripeSessionLines = doc.splitTextToSize(stripeSessionText, 150);
+    doc.text(stripeSessionLines, 28, y);
+
+    // Footer
+    doc.setDrawColor(230, 230, 230);
+    doc.line(20, 260, 190, 260);
+
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    doc.text("Thank you for using Revolution Auction House.", 20, 270);
+    doc.text("This invoice is generated electronically.", 20, 277);
 
     const pdfBuffer = doc.output("arraybuffer");
 

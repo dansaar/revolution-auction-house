@@ -32,6 +32,8 @@ export default function CreateAuctionPage() {
     provenance: "",
     image: "",
     endsAt: `${new Date().toISOString().split("T")[0]}T12:00`,
+    chargeTax: false,
+    taxRate: "6.625",
   });
 
   const [loading, setLoading] = useState(false);
@@ -114,6 +116,8 @@ export default function CreateAuctionPage() {
           population: auction.population || "",
           provenance: auction.provenance || "",
           image: auction.image || "",
+          chargeTax: Boolean(auction.chargeTax),
+          taxRate: String(auction.taxRate || 6.625),
         }));
 
         const oldImagePaths =
@@ -226,6 +230,9 @@ export default function CreateAuctionPage() {
           cardNumber: form.cardNumber,
           population: form.population,
           provenance: form.provenance,
+
+          chargeTax: form.chargeTax,
+          taxRate: form.chargeTax ? 6.625 : 0,
 
           image: mainImage,
           images: finalImages,
@@ -620,6 +627,33 @@ export default function CreateAuctionPage() {
                 Date · Hour · Minute
               </div>
             </div>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4">
+            <label className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={form.chargeTax}
+                  onChange={(e) =>
+                    setForm((prev: any) => ({
+                      ...prev,
+                      chargeTax: e.target.checked,
+                      taxRate: "6.625",
+                    }))
+                  }
+                  className="h-5 w-5 accent-[#d6aa55]"
+                />
+
+                <div className="font-semibold text-white">
+                  Charge NJ Sales Tax
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-500">
+                Adds 6.625% sales tax at checkout
+              </div>
+            </label>
           </div>
 
           <button

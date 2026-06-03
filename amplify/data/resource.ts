@@ -34,6 +34,12 @@ const schema = a
         paid: a.boolean().default(false),
         paidAt: a.datetime(),
         stripeSessionId: a.string(),
+
+        chargeTax: a.boolean().default(false),
+        taxRate: a.float().default(6.625),
+
+        buyerPremiumRate: a.float().default(20),
+
         description: a.string(),
         grade: a.string(),
         certNumber: a.string(),
@@ -99,6 +105,8 @@ const schema = a
         paid: a.boolean().default(false),
         paidAt: a.datetime(),
         stripeSessionId: a.string(),
+        chargeTax: a.boolean().default(false),
+        taxRate: a.float().default(6.625),
 
         sellerUserId: a.string(),
         sellerDisplayName: a.string(),
