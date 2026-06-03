@@ -40,7 +40,7 @@ export default function SellAuctionContent() {
     endsAt: `${new Date().toISOString().split("T")[0]}T12:00`,
     chargeTax: false,
     taxRate: "6.625",
-    buyerPremiumRate: "20",
+    buyerPremiumRate: "18",
   });
 
   const [loading, setLoading] = useState(false);
@@ -260,7 +260,7 @@ export default function SellAuctionContent() {
 
         chargeTax: form.chargeTax,
         taxRate: form.chargeTax ? 6.625 : 0,
-        buyerPremiumRate: 20,
+        buyerPremiumRate: 18,
 
         endsAt: new Date(form.endsAt).toISOString(),
 
@@ -602,7 +602,7 @@ export default function SellAuctionContent() {
               <div className="font-semibold text-white">Buyer Premium</div>
 
               <div className="text-sm text-gray-500">
-                20% added to the winning auction price at checkout
+                18% added to the winning auction price at checkout
               </div>
             </div>
           </div>

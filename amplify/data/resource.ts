@@ -38,7 +38,7 @@ const schema = a
         chargeTax: a.boolean().default(false),
         taxRate: a.float().default(6.625),
 
-        buyerPremiumRate: a.float().default(20),
+        buyerPremiumRate: a.float().default(18),
 
         description: a.string(),
         grade: a.string(),
@@ -291,18 +291,23 @@ const schema = a
       .handler(a.handler.function(finalizeAuction)),
 
     Invoice: a
-      .model({
-        type: a.string(),
-        auctionId: a.string(),
-        listingId: a.string(),
-        title: a.string(),
-        buyerEmail: a.string(),
-        sellerEmail: a.string(),
-        amount: a.string(),
-        status: a.string(),
-        stripeSessionId: a.string(),
-        paidAt: a.datetime(),
-      })
+  .model({
+    type: a.string(),
+    auctionId: a.string(),
+    listingId: a.string(),
+    title: a.string(),
+    buyerEmail: a.string(),
+    sellerEmail: a.string(),
+
+    subtotal: a.string(),
+    buyerPremium: a.string(),
+    tax: a.string(),
+    amount: a.string(),
+
+    status: a.string(),
+    stripeSessionId: a.string(),
+    paidAt: a.datetime(),
+  })
       .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
   })
   .authorization((allow) => [

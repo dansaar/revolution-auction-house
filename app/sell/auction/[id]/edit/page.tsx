@@ -34,6 +34,7 @@ export default function CreateAuctionPage() {
     endsAt: `${new Date().toISOString().split("T")[0]}T12:00`,
     chargeTax: false,
     taxRate: "6.625",
+    buyerPremiumRate: "18",
   });
 
   const [loading, setLoading] = useState(false);
@@ -118,6 +119,7 @@ export default function CreateAuctionPage() {
           image: auction.image || "",
           chargeTax: Boolean(auction.chargeTax),
           taxRate: String(auction.taxRate || 6.625),
+          buyerPremiumRate: String(auction.buyerPremiumRate || 18),
         }));
 
         const oldImagePaths =
@@ -233,6 +235,7 @@ export default function CreateAuctionPage() {
 
           chargeTax: form.chargeTax,
           taxRate: form.chargeTax ? 6.625 : 0,
+          buyerPremiumRate: 18,
 
           image: mainImage,
           images: finalImages,
@@ -654,6 +657,16 @@ export default function CreateAuctionPage() {
                 Adds 6.625% sales tax at checkout
               </div>
             </label>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div className="font-semibold text-white">Buyer Premium</div>
+
+              <div className="text-sm text-gray-500">
+                18% added to the winning auction price at checkout
+              </div>
+            </div>
           </div>
 
           <button

@@ -26,6 +26,12 @@ function formatInvoiceAmount(value: string | number | null | undefined) {
   return `$${Math.round(amount).toLocaleString()}`;
 }
 
+function moneyToNumber(value: string | number | null | undefined) {
+  if (typeof value === "number") return value;
+  if (!value) return 0;
+  return Number(String(value).replace(/[$,]/g, ""));
+}
+
 function getInvoiceNumber(invoice: any) {
   return `RAH-INV-${String(invoice.id || "")
     .slice(0, 8)
@@ -189,6 +195,25 @@ export async function GET(
 
     doc.text(`Status: ${invoice.status || "PAID"}`, 28, y);
     y += 11;
+
+    if (invoice.subtotal) {
+      doc.text(`Subtotal: ${formatInvoiceAmount(invoice.subtotal)}`, 28, y);
+      y += 11;
+    }
+
+    if (invoice.buyerPremium && moneyToNumber(invoice.buyerPremium) > 0) {
+      doc.text(
+        `Buyer Premium: ${formatInvoiceAmount(invoice.buyerPremium)}`,
+        28,
+        y,
+      );
+      y += 11;
+    }
+
+    if (invoice.tax && moneyToNumber(invoice.tax) > 0) {
+      doc.text(`Tax: ${formatInvoiceAmount(invoice.tax)}`, 28, y);
+      y += 11;
+    }
 
     const stripeSessionText = `Stripe Session: ${invoice.stripeSessionId || "-"}`;
     const stripeSessionLines = doc.splitTextToSize(stripeSessionText, 150);

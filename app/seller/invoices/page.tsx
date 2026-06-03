@@ -8,6 +8,7 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { fetchAuthSession } from "aws-amplify/auth";
+import { moneyToNumber } from "@/lib/money";
 
 export default function SellerInvoicesPage() {
   const client = generateClient<Schema>();
@@ -43,63 +44,24 @@ export default function SellerInvoicesPage() {
   }, []);
 
   const totalRevenue = useMemo(() => {
-    return invoices.reduce((sum: number, invoice: any) => {
-      const value = Number(
-        String(invoice.amount || "0")
-          .replace("$", "")
-          .replaceAll(",", ""),
-      );
+  return invoices.reduce((sum: number, invoice: any) => {
+    const value = Number(
+      String(invoice.amount || "0")
+        .replace("$", "")
+        .replaceAll(",", ""),
+    );
 
-      async function getInvoicePdf(invoiceId: string) {
-        const session = await fetchAuthSession();
-        const token = session.tokens?.idToken?.toString();
+    return sum + value;
+  }, 0);
+}, [invoices]);
 
-        if (!token) {
-          alert("Please sign in again to view this invoice.");
-          return null;
-        }
+function formatInvoiceAmount(value: string | number | null | undefined) {
+  const amount = Number(String(value || "0").replace(/[$,]/g, ""));
 
-        const res = await fetch(`/api/invoices/${invoiceId}/pdf`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  if (!Number.isFinite(amount)) return "$0";
 
-        if (!res.ok) {
-          alert("Unable to open invoice PDF.");
-          return null;
-        }
-
-        return await res.blob();
-      }
-
-      async function viewInvoicePdf(invoiceId: string) {
-        const blob = await getInvoicePdf(invoiceId);
-        if (!blob) return;
-
-        const url = URL.createObjectURL(blob);
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
-
-      async function downloadInvoicePdf(invoiceId: string) {
-        const blob = await getInvoicePdf(invoiceId);
-        if (!blob) return;
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-
-        a.href = url;
-        a.download = `invoice-${invoiceId}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-
-        URL.revokeObjectURL(url);
-      }
-
-      return sum + value;
-    }, 0);
-  }, [invoices]);
+  return `$${Math.round(amount).toLocaleString()}`;
+}
 
   async function getInvoicePdf(invoiceId: string) {
     const session = await fetchAuthSession();
@@ -192,7 +154,7 @@ export default function SellerInvoicesPage() {
             </div>
 
             <div className="mt-3 font-serif text-4xl text-[#f0d28c]">
-              ${totalRevenue.toLocaleString()}
+              {formatInvoiceAmount(totalRevenue)}
             </div>
           </div>
         </div>
@@ -243,7 +205,27 @@ export default function SellerInvoicesPage() {
 
                   <div className="text-right">
                     <div className="font-serif text-4xl text-[#c0c0c0]">
-                      {invoice.amount}
+                      {formatInvoiceAmount(invoice.amount)}
+                    </div>
+
+                    <div className="mt-3 space-y-1 text-xs text-gray-500">
+                      {invoice.subtotal && (
+                        <div>
+                          Subtotal: {formatInvoiceAmount(invoice.subtotal)}
+                        </div>
+                      )}
+
+                      {invoice.buyerPremium &&
+                        moneyToNumber(invoice.buyerPremium) > 0 && (
+                          <div>
+                            Buyer Premium:{" "}
+                            {formatInvoiceAmount(invoice.buyerPremium)}
+                          </div>
+                        )}
+
+                      {invoice.tax && moneyToNumber(invoice.tax) > 0 && (
+                        <div>Tax: {formatInvoiceAmount(invoice.tax)}</div>
+                      )}
                     </div>
 
                     <span className="mt-3 inline-block rounded bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400">

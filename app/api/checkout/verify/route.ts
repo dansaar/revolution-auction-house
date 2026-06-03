@@ -104,7 +104,12 @@ export async function POST(req: Request) {
                 title: auction?.title || item.title || "Auction",
                 buyerEmail,
                 sellerEmail: auction?.sellerEmail || "",
+
+                subtotal: item.subtotal || item.amount,
+                buyerPremium: item.buyerPremium || "$0",
+                tax: item.tax || "$0",
                 amount: item.amount,
+
                 status: "PAID",
                 stripeSessionId: session.id,
                 paidAt: new Date().toISOString(),
@@ -147,7 +152,12 @@ export async function POST(req: Request) {
                 title: listing?.title || item.title || "Marketplace Listing",
                 buyerEmail,
                 sellerEmail: listing?.sellerEmail || "",
+
+                subtotal: item.subtotal || item.amount,
+                buyerPremium: item.buyerPremium || "$0",
+                tax: item.tax || "$0",
                 amount: item.amount,
+
                 status: "PAID",
                 stripeSessionId: session.id,
                 paidAt: new Date().toISOString(),

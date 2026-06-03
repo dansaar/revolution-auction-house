@@ -8,6 +8,7 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { fetchAuthSession } from "aws-amplify/auth";
+import { moneyToNumber } from "@/lib/money";
 
 export default function BuyerInvoicesPage() {
   const client = generateClient<Schema>();
@@ -160,6 +161,26 @@ export default function BuyerInvoicesPage() {
                   <div className="text-right">
                     <div className="font-serif text-3xl text-[#c0c0c0]">
                       {formatInvoiceAmount(invoice.amount)}
+                    </div>
+
+                    <div className="mt-3 space-y-1 text-xs text-gray-500">
+                      {invoice.subtotal && (
+                        <div>
+                          Subtotal: {formatInvoiceAmount(invoice.subtotal)}
+                        </div>
+                      )}
+
+                      {invoice.buyerPremium &&
+                        moneyToNumber(invoice.buyerPremium) > 0 && (
+                          <div>
+                            Buyer Premium:{" "}
+                            {formatInvoiceAmount(invoice.buyerPremium)}
+                          </div>
+                        )}
+
+                      {invoice.tax && moneyToNumber(invoice.tax) > 0 && (
+                        <div>Tax: {formatInvoiceAmount(invoice.tax)}</div>
+                      )}
                     </div>
 
                     <span className="mt-2 inline-block rounded bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400">

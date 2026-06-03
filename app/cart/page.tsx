@@ -30,7 +30,7 @@ function formatMoney(amount: number) {
 
 function calculateAuctionTotals(item: any) {
   const hammerPrice = moneyToNumber(item.amount || 0);
-  const buyerPremiumRate = Number(item.buyerPremiumRate || 20);
+  const buyerPremiumRate = Number(item.buyerPremiumRate || 18);
   const buyerPremium = hammerPrice * (buyerPremiumRate / 100);
 
   const taxableAmount = hammerPrice + buyerPremium;
@@ -118,7 +118,7 @@ export default function CartPage() {
               href: `/auctions/${auction.id}/results`,
               chargeTax: Boolean(auction.chargeTax),
               taxRate: Number(auction.taxRate || 6.625),
-              buyerPremiumRate: Number(auction.buyerPremiumRate || 20),
+              buyerPremiumRate: Number(auction.buyerPremiumRate || 18),
             };
           });
 
