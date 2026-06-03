@@ -119,6 +119,8 @@ export default function LiveAuctionPage() {
   const [selectedImage, setSelectedImage] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
   const [displayPrice, setDisplayPrice] = useState(0);
+  const [priceFlash, setPriceFlash] = useState(false);
+  const priceFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isWatching, setIsWatching] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -155,6 +157,18 @@ export default function LiveAuctionPage() {
       pendingRefreshRef.current = true;
       refreshBidsRef.current?.();
     }, 250);
+  }
+
+  function flashPrice() {
+    setPriceFlash(true);
+
+    if (priceFlashTimerRef.current) {
+      clearTimeout(priceFlashTimerRef.current);
+    }
+
+    priceFlashTimerRef.current = setTimeout(() => {
+      setPriceFlash(false);
+    }, 700);
   }
 
   const rawUserKey = user?.userId || user?.username || "";
@@ -371,7 +385,15 @@ export default function LiveAuctionPage() {
       next: (state: any) => {
         if (state.auctionId !== id) return;
 
-        setDisplayPrice(moneyToNumber(state.currentPrice || 0));
+        const nextPrice = moneyToNumber(state.currentPrice || 0);
+
+        setDisplayPrice((prev) => {
+          if (prev > 0 && nextPrice !== prev) {
+            flashPrice();
+          }
+
+          return nextPrice;
+        });
 
         const newLeader = state.leaderUserId || "";
 
@@ -661,7 +683,15 @@ export default function LiveAuctionPage() {
 
     if (!state) return;
 
-    setDisplayPrice(moneyToNumber(state.currentPrice || 0));
+    const nextPrice = moneyToNumber(state.currentPrice || 0);
+
+    setDisplayPrice((prev) => {
+      if (prev > 0 && nextPrice !== prev) {
+        flashPrice();
+      }
+
+      return nextPrice;
+    });
 
     setAuction((prev: any) => ({
       ...(prev || {}),
@@ -716,9 +746,12 @@ export default function LiveAuctionPage() {
         return;
       }
 
-      const newPrice = result.data.currentPrice || enteredMaxBid;
+      const newPrice = Number(result.data.currentPrice || enteredMaxBid);
 
-      setDisplayPrice(newPrice);
+      if (newPrice > 0) {
+        setDisplayPrice(newPrice);
+        flashPrice();
+      }
 
       setAuction((prev: any) => ({
         ...(prev || {}),
