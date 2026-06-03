@@ -30,6 +30,15 @@ function formatMoney(amount: number): string {
   return `$${amount.toLocaleString()}`;
 }
 
+function calculateBuyerPremium(amount: number, rate: number) {
+  return amount * (rate / 100);
+}
+
+function calculateTax(amount: number, chargeTax: boolean, taxRate: number) {
+  if (!chargeTax) return 0;
+  return amount * (taxRate / 100);
+}
+
 function makeBidderDisplayName(value: string) {
   if (!value) return "";
   if (value.startsWith("Bidder ")) return value;
@@ -108,6 +117,25 @@ export default function LiveAuctionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false); // FIX #10
   const [auctionEnded, setAuctionEnded] = useState(false); // FIX #3  reactive state
   const [resolvedImages, setResolvedImages] = useState<string[]>([]);
+
+  const enteredBidAmount = moneyToNumber(input || 0);
+  const estimateBaseAmount =
+    enteredBidAmount > 0 ? enteredBidAmount : displayPrice;
+
+  const buyerPremiumRate = Number(auction?.buyerPremiumRate || 18);
+  const buyerPremiumAmount = calculateBuyerPremium(
+    estimateBaseAmount,
+    buyerPremiumRate,
+  );
+
+  const taxRate = Number(auction?.taxRate || 6.625);
+  const taxAmount = calculateTax(
+    estimateBaseAmount + buyerPremiumAmount,
+    Boolean(auction?.chargeTax),
+    taxRate,
+  );
+
+  const estimatedTotalDue = estimateBaseAmount + buyerPremiumAmount + taxAmount;
 
   function scheduleBidRefresh() {
     if (bidRefreshTimerRef.current) {
@@ -879,36 +907,89 @@ export default function LiveAuctionPage() {
                   Your Maximum Bid
                 </label>
 
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input
-                    disabled={auctionEnded || isSubmitting}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !auctionEnded && !isSubmitting) {
-                        placeBid();
-                      }
-                    }}
-                    placeholder={`Min ${formatMoney(nextBid)}`}
-                    className="flex-1 rounded-xl border border-white/10 bg-black px-4 py-4 text-lg text-white outline-none transition placeholder:text-[#c8a96b] focus:border-[#c0c0c0]/60 disabled:opacity-40"
-                  />
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <input
+                      disabled={auctionEnded || isSubmitting}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Enter" &&
+                          !auctionEnded &&
+                          !isSubmitting
+                        ) {
+                          placeBid();
+                        }
+                      }}
+                      placeholder={`Min ${formatMoney(nextBid)}`}
+                      className="flex-1 rounded-xl border border-white/10 bg-black px-4 py-4 text-lg text-white outline-none transition placeholder:text-[#c8a96b] focus:border-[#c0c0c0]/60 disabled:opacity-40"
+                    />
 
-                  {auctionEnded ? (
-                    <Link
-                      href={`/auctions/${id}/results`}
-                      className="flex items-center rounded-xl bg-[#c0c0c0] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white"
-                    >
-                      View Results →
-                    </Link>
-                  ) : (
-                    <button
-                      onClick={placeBid}
-                      disabled={isSubmitting}
-                      className="rounded-xl bg-[#c0c0c0] px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isSubmitting ? "Placing..." : "Place Bid"}
-                    </button>
-                  )}
+                    {auctionEnded ? (
+                      <Link
+                        href={`/auctions/${id}/results`}
+                        className="flex items-center justify-center rounded-xl bg-[#c0c0c0] px-6 py-4 text-sm font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white"
+                      >
+                        View Results →
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={placeBid}
+                        disabled={isSubmitting}
+                        className="rounded-xl bg-[#c0c0c0] px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isSubmitting ? "Placing..." : "Place Bid"}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-[#d6aa55]/20 bg-[#1a1408]/60 p-4">
+                    <div className="text-xs uppercase tracking-[0.22em] text-[#b89b61]">
+                      Estimated Total If You Win
+                    </div>
+
+                    <div className="mt-3 space-y-2 text-sm text-gray-400">
+                      <div className="flex justify-between gap-4">
+                        <span>Bid Amount</span>
+                        <span className="text-white">
+                          {formatMoney(estimateBaseAmount)}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between gap-4">
+                        <span>Buyer Premium ({buyerPremiumRate}%)</span>
+                        <span className="text-white">
+                          {formatMoney(buyerPremiumAmount)}
+                        </span>
+                      </div>
+
+                      {auction?.chargeTax && (
+                        <div className="flex justify-between gap-4">
+                          <span>NJ Sales Tax ({taxRate}%)</span>
+                          <span className="text-white">
+                            {formatMoney(taxAmount)}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="border-t border-white/10 pt-2">
+                        <div className="flex justify-between gap-4 font-semibold">
+                          <span className="text-[#e7c77f]">
+                            Estimated Total
+                          </span>
+                          <span className="text-[#f0d28c]">
+                            {formatMoney(estimatedTotalDue)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-xs text-gray-500">
+                      Final invoice may include shipping or other applicable
+                      charges.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="mt-3 text-xs text-gray-500">
