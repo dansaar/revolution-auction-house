@@ -40,7 +40,7 @@ function getInvoiceNumber(invoice: any) {
 
 function getLogoDataUrl() {
   try {
-    const logoPath = join(process.cwd(), "public", "logo.png");
+    const logoPath = join(process.cwd(), "public", "invoice-logo.png");
 
     if (!existsSync(logoPath)) return null;
 
