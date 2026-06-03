@@ -30,8 +30,17 @@ export async function POST(req: Request) {
 
     const stripe = new Stripe(stripeSecretKey);
 
-    const { auctionId, listingId, title, amount, buyerEmail, items } =
-      await req.json();
+    const {
+      auctionId,
+      listingId,
+      title,
+      amount,
+      buyerEmail,
+      items,
+      subtotal,
+      buyerPremium,
+      tax,
+    } = await req.json();
 
     if (Array.isArray(items) && items.length > 0) {
       const lineItems = items.map((item: any) => ({
@@ -101,6 +110,9 @@ export async function POST(req: Request) {
         auctionId: auctionId || "",
         listingId: listingId || "",
         buyerEmail: buyerEmail || "",
+        subtotal: subtotal || amount || "",
+        buyerPremium: buyerPremium || "$0.00",
+        tax: tax || "$0.00",
       },
       success_url: successUrl,
       cancel_url: cancelUrl,

@@ -59,6 +59,10 @@ export async function POST(req: Request) {
       ? `$${(session.amount_total / 100).toFixed(2)}`
       : "$0.00";
 
+    const subtotal = session.metadata?.subtotal || amount;
+    const buyerPremium = session.metadata?.buyerPremium || "$0.00";
+    const tax = session.metadata?.tax || "$0.00";
+
     const existingInvoices = await client.models.Invoice.list({
       filter: {
         stripeSessionId: {
@@ -206,7 +210,12 @@ export async function POST(req: Request) {
             title: listing?.title || "Marketplace Listing",
             buyerEmail,
             sellerEmail: listing?.sellerEmail || "",
+
+            subtotal,
+            buyerPremium,
+            tax,
             amount,
+
             status: "PAID",
             stripeSessionId: session.id,
             paidAt: new Date().toISOString(),
@@ -246,7 +255,12 @@ export async function POST(req: Request) {
             title: auction?.title || "Auction",
             buyerEmail,
             sellerEmail: auction?.sellerEmail || "",
+
+            subtotal,
+            buyerPremium,
+            tax,
             amount,
+
             status: "PAID",
             stripeSessionId: session.id,
             paidAt: new Date().toISOString(),
