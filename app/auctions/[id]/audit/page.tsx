@@ -241,7 +241,9 @@ export default function AuctionAuditPage() {
 
         <section className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03]">
           {filteredAuditLogs.length === 0 ? (
-            <div className="p-8 text-gray-500">No audit records match these filters.</div>
+            <div className="p-8 text-gray-500">
+              No audit records match these filters.
+            </div>
           ) : (
             <div className="divide-y divide-white/10">
               {filteredAuditLogs.map((log: any) => (
@@ -259,9 +261,11 @@ export default function AuctionAuditPage() {
                           {log.accepted ? "Processed" : "Rejected"}
                         </span>
 
-                        <span className="rounded bg-blue-500/10 px-2 py-1 text-xs uppercase text-blue-300">
-                          {getAuditOutcome(log)}
-                        </span>
+                        {log.accepted && (
+                          <span className="rounded bg-blue-500/10 px-2 py-1 text-xs uppercase text-blue-300">
+                            {getAuditOutcome(log)}
+                          </span>
+                        )}
 
                         {log.rejectionReason && (
                           <span className="rounded bg-white/10 px-2 py-1 text-xs text-gray-300">
