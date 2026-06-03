@@ -164,7 +164,7 @@ export async function GET(
     // Details card
     doc.setDrawColor(225, 225, 225);
     doc.setFillColor(252, 252, 252);
-    doc.roundedRect(20, 98, 170, 96, 3, 3, "FD");
+    doc.roundedRect(20, 98, 170, 140, 3, 3, "FD");
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
@@ -196,27 +196,33 @@ export async function GET(
     doc.text(`Status: ${invoice.status || "PAID"}`, 28, y);
     y += 11;
 
-    if (invoice.subtotal) {
-      doc.text(`Subtotal: ${formatInvoiceAmount(invoice.subtotal)}`, 28, y);
+    const subtotal = invoice.subtotal || invoice.amount;
+    const buyerPremium = invoice.buyerPremium || "$0";
+    const tax = invoice.tax || "$0";
+
+    doc.text(`Subtotal: ${formatInvoiceAmount(subtotal)}`, 28, y);
+    y += 11;
+
+    if (moneyToNumber(buyerPremium) > 0) {
+      doc.text(`Buyer Premium: ${formatInvoiceAmount(buyerPremium)}`, 28, y);
       y += 11;
     }
 
-    if (invoice.buyerPremium && moneyToNumber(invoice.buyerPremium) > 0) {
-      doc.text(
-        `Buyer Premium: ${formatInvoiceAmount(invoice.buyerPremium)}`,
-        28,
-        y,
-      );
+    if (moneyToNumber(tax) > 0) {
+      doc.text(`Tax: ${formatInvoiceAmount(tax)}`, 28, y);
       y += 11;
     }
 
-    if (invoice.tax && moneyToNumber(invoice.tax) > 0) {
-      doc.text(`Tax: ${formatInvoiceAmount(invoice.tax)}`, 28, y);
-      y += 11;
-    }
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total Paid: ${formatInvoiceAmount(invoice.amount)}`, 28, y);
+    y += 12;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(70, 70, 70);
 
     const stripeSessionText = `Stripe Session: ${invoice.stripeSessionId || "-"}`;
-    const stripeSessionLines = doc.splitTextToSize(stripeSessionText, 150);
+    const stripeSessionLines = doc.splitTextToSize(stripeSessionText, 125);
     doc.text(stripeSessionLines, 28, y);
 
     // Footer

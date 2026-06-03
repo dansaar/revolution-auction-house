@@ -446,7 +446,11 @@ export default function SellerPage() {
 
         {activeTab === "marketplace" && (
           <>
-            <OfferSection offers={offers} client={client} />
+            <OfferSection
+              offers={offers}
+              listings={marketplaceListings}
+              client={client}
+            />
 
             <MarketplaceSection
               title="Active Listings"
@@ -504,7 +508,7 @@ function AuctionSection({
   );
 }
 
-function OfferSection({ offers, client }: any) {
+function OfferSection({ offers, listings, client }: any) {
   const pendingOffers = offers.filter(
     (offer: any) => offer.status === "PENDING",
   );
@@ -519,96 +523,146 @@ function OfferSection({ offers, client }: any) {
         <p className="text-gray-500">No pending offers.</p>
       ) : (
         <div className="grid gap-4">
-          {pendingOffers.map((offer: any) => (
-            <div
-              key={offer.id}
-              className="rounded-xl border border-white/10 bg-white/[0.03] p-5"
-            >
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <div className="text-xs uppercase tracking-[0.18em] text-gray-500">
-                    Offer Amount
+          {pendingOffers.map((offer: any) => {
+            const listing = listings.find(
+              (item: any) => String(item.id) === String(offer.listingId),
+            );
+
+            const listingImage =
+              listing?.imageUrl ||
+              cdnUrl(
+                listing?.thumbImages?.[0] ||
+                  listing?.images?.[0] ||
+                  listing?.image ||
+                  "",
+              ) ||
+              "/logo.png";
+
+            return (
+              <div
+                key={offer.id}
+                className="rounded-xl border border-white/10 bg-white/[0.03] p-5"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-1 flex-col gap-5 lg:flex-row lg:items-center">
+                    {listing && (
+                      <div className="flex items-center gap-4 rounded-xl border border-white/10 bg-black/30 p-3">
+                        <img
+                          src={listingImage}
+                          alt={listing.title || "Listing"}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "/logo.png";
+                          }}
+                          className="h-20 w-20 rounded-lg bg-black object-contain"
+                        />
+
+                        <div>
+                          <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                            Listing
+                          </div>
+
+                          <Link
+                            href={`/marketplace/${listing.id}`}
+                            className="mt-1 block font-serif text-xl text-white hover:text-[#e7c77f]"
+                          >
+                            {listing.title}
+                          </Link>
+
+                          <div className="mt-1 text-sm text-gray-500">
+                            Asking: {listing.price}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.18em] text-gray-500">
+                        Offer Amount
+                      </div>
+
+                      <div className="mt-2 font-serif text-3xl text-[#c0c0c0]">
+                        {offer.amount}
+                      </div>
+
+                      <div className="mt-3 text-sm text-gray-400">
+                        Buyer: {offer.buyerDisplayName || offer.buyerEmail}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="mt-2 font-serif text-3xl text-[#c0c0c0]">
-                    {offer.amount}
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await client.models.Offer.update(
+                            {
+                              id: offer.id,
+                              status: "ACCEPTED",
+                            },
+                            { authMode: "userPool" } as any,
+                          );
+
+                          await client.models.MarketplaceListing.update(
+                            {
+                              id: offer.listingId,
+                              sold: false,
+                              status: "OFFER_ACCEPTED",
+                              buyerEmail:
+                                offer.buyerEmail ||
+                                offer.buyerDisplayName ||
+                                "",
+                              acceptedOfferAmount: offer.amount,
+                            },
+                            { authMode: "apiKey" } as any,
+                          );
+
+                          window.location.reload();
+                        } catch (err) {
+                          console.error(err);
+                          toast.error("Failed to accept offer");
+                        }
+                      }}
+                      className="rounded border border-emerald-500/20 bg-emerald-500/10 px-5 py-3 text-sm text-emerald-300 hover:bg-emerald-500/20"
+                    >
+                      Accept
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await client.models.Offer.update(
+                            {
+                              id: offer.id,
+                              status: "DECLINED",
+                            },
+                            { authMode: "userPool" } as any,
+                          );
+
+                          await client.models.MarketplaceListing.update(
+                            {
+                              id: offer.listingId,
+                              status: "ACTIVE",
+                            },
+                            { authMode: "apiKey" } as any,
+                          );
+
+                          window.location.reload();
+                        } catch (err) {
+                          console.error(err);
+                          toast.error("Failed to decline offer");
+                        }
+                      }}
+                      className="rounded border border-red-500/20 bg-red-500/10 px-5 py-3 text-sm text-red-300 hover:bg-red-500/20"
+                    >
+                      Decline
+                    </button>
                   </div>
-
-                  <div className="mt-3 text-sm text-gray-400">
-                    Buyer: {offer.buyerDisplayName || offer.buyerEmail}
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await client.models.Offer.update(
-                          {
-                            id: offer.id,
-                            status: "ACCEPTED",
-                          },
-                          { authMode: "userPool" } as any,
-                        );
-
-                        await client.models.MarketplaceListing.update(
-                          {
-                            id: offer.listingId,
-                            sold: false,
-                            status: "OFFER_ACCEPTED",
-                            buyerEmail:
-                              offer.buyerEmail || offer.buyerDisplayName || "",
-                            acceptedOfferAmount: offer.amount,
-                          },
-                          { authMode: "apiKey" } as any,
-                        );
-
-                        window.location.reload();
-                      } catch (err) {
-                        console.error(err);
-                        toast.error("Failed to accept offer");
-                      }
-                    }}
-                    className="rounded border border-emerald-500/20 bg-emerald-500/10 px-5 py-3 text-sm text-emerald-300 hover:bg-emerald-500/20"
-                  >
-                    Accept
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await client.models.Offer.update(
-                          {
-                            id: offer.id,
-                            status: "DECLINED",
-                          },
-                          { authMode: "userPool" } as any,
-                        );
-
-                        await client.models.MarketplaceListing.update(
-                          {
-                            id: offer.listingId,
-                            status: "ACTIVE",
-                          },
-                          { authMode: "apiKey" } as any,
-                        );
-
-                        window.location.reload();
-                      } catch (err) {
-                        console.error(err);
-                        toast.error("Failed to decline offer");
-                      }
-                    }}
-                    className="rounded border border-red-500/20 bg-red-500/10 px-5 py-3 text-sm text-red-300 hover:bg-red-500/20"
-                  >
-                    Decline
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
