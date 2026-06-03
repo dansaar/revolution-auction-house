@@ -10,8 +10,27 @@ import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { getCurrentUser } from "aws-amplify/auth";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
+import { moneyToNumber } from "@/lib/money";
 
 const client = generateClient<Schema>();
+
+function formatCurrency(amount: number) {
+  return amount.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function calculateMarketplaceTax(
+  amount: number,
+  chargeTax: boolean,
+  taxRate: number,
+) {
+  if (!chargeTax) return 0;
+  return amount * (taxRate / 100);
+}
 
 export default function MarketplaceListingPage() {
   const params = useParams();
@@ -90,6 +109,15 @@ export default function MarketplaceListingPage() {
       </main>
     );
   }
+
+  const listingPrice = moneyToNumber(listing?.price || 0);
+  const taxRate = Number(listing?.taxRate || 6.625);
+  const taxAmount = calculateMarketplaceTax(
+    listingPrice,
+    Boolean(listing?.chargeTax),
+    taxRate,
+  );
+  const estimatedTotal = listingPrice + taxAmount;
 
   const sellerPublicId =
     listing.sellerPublicId ||
@@ -187,7 +215,10 @@ export default function MarketplaceListingPage() {
         body: JSON.stringify({
           listingId: id,
           title: listing.title,
-          amount: listing.price,
+          amount: formatCurrency(estimatedTotal),
+          subtotal: formatCurrency(listingPrice),
+          buyerPremium: "$0.00",
+          tax: formatCurrency(taxAmount),
           buyerEmail,
         }),
       });
@@ -315,6 +346,39 @@ export default function MarketplaceListingPage() {
                     ? "Offer Accepted"
                     : "Buy Now"}
             </button>
+
+            <div className="mt-4 rounded-xl border border-[#d6aa55]/20 bg-[#1a1408]/60 p-4">
+              <div className="text-xs uppercase tracking-[0.22em] text-[#b89b61]">
+                Estimated Checkout Total
+              </div>
+
+              <div className="mt-3 space-y-2 text-sm text-gray-400">
+                <div className="flex justify-between gap-4">
+                  <span>Item Price</span>
+                  <span className="text-white">
+                    {formatCurrency(listingPrice)}
+                  </span>
+                </div>
+
+                {listing?.chargeTax && (
+                  <div className="flex justify-between gap-4">
+                    <span>NJ Sales Tax ({taxRate}%)</span>
+                    <span className="text-white">
+                      {formatCurrency(taxAmount)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="border-t border-white/10 pt-2">
+                  <div className="flex justify-between gap-4 font-semibold">
+                    <span className="text-[#e7c77f]">Estimated Total</span>
+                    <span className="text-[#f0d28c]">
+                      {formatCurrency(estimatedTotal)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div className="mt-4 rounded border border-white/10 bg-white/[0.03] p-4">
               <div className="mb-3 text-xs uppercase tracking-[0.18em] text-gray-500">
