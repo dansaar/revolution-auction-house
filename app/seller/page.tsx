@@ -1105,15 +1105,6 @@ function SellerAuctionCard({
 
                   <div>
                     <div className="text-xs uppercase text-gray-500">
-                      Max Bid
-                    </div>
-                    <div className="mt-1 text-sm text-[#c0c0c0]">
-                      {auction.winningBid || "—"}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-xs uppercase text-gray-500">
                       Total Bids
                     </div>
                     <div className="mt-1 text-xl">{auction.bids || 0}</div>
@@ -1187,15 +1178,6 @@ function SellerAuctionCard({
                       className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-medium tracking-wide text-white backdrop-blur-sm transition hover:border-white/20 hover:bg-white/10"
                     >
                       View Results
-                    </Link>
-                  )}
-
-                  {auction?.id && (
-                    <Link
-                      href={`/auctions/${auction.id}/audit`}
-                      className="rounded-lg border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-3 text-center text-sm font-medium tracking-wide text-[#e7c77f] backdrop-blur-sm transition hover:bg-[#221909]"
-                    >
-                      View Audit
                     </Link>
                   )}
                 </div>

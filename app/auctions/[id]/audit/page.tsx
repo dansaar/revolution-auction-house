@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
+import { getCurrentUser } from "aws-amplify/auth";
+import { isPlatformAdmin } from "@/lib/sellers";
 
 function makeBidderDisplayName(value: string) {
   if (!value) return "—";
@@ -55,6 +57,25 @@ export default function AuctionAuditPage() {
   const [reasonFilter, setReasonFilter] = useState("ALL");
   const [tierFilter, setTierFilter] = useState("ALL");
   const [searchText, setSearchText] = useState("");
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkAccess() {
+      try {
+        const user = await getCurrentUser();
+        const email = user.signInDetails?.loginId || user.username || "";
+
+        setIsAdmin(isPlatformAdmin(email));
+      } catch {
+        setIsAdmin(false);
+      } finally {
+        setCheckingAccess(false);
+      }
+    }
+
+    checkAccess();
+  }, []);
 
   useEffect(() => {
     async function loadAudit() {
@@ -132,6 +153,30 @@ export default function AuctionAuditPage() {
 
   const accepted = cleanAuditLogs.filter((log: any) => log.accepted === true);
   const rejected = cleanAuditLogs.filter((log: any) => log.accepted !== true);
+
+  if (checkingAccess) {
+    return (
+      <main className="min-h-screen bg-[#050607] p-10 text-white">
+        Checking access...
+      </main>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <main className="min-h-screen bg-[#050607] p-10 text-white">
+        Admin access required.
+      </main>
+    );
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#050607] p-10 text-white">
+        Loading audit log...
+      </main>
+    );
+  }
 
   if (loading) {
     return (
