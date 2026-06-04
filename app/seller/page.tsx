@@ -4,12 +4,12 @@ import "@/lib/amplifyclient";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { getCurrentUser } from "aws-amplify/auth";
+import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
-import { Gavel, Tag, FileText, Archive } from "lucide-react";
+import { Gavel, Tag, Archive } from "lucide-react";
 import { toast } from "sonner";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
@@ -44,6 +44,8 @@ export default function SellerPage() {
 
   const [marketplaceListings, setMarketplaceListings] = useState<any[]>([]);
 
+  const [invoices, setInvoices] = useState<any[]>([]);
+
   const [offers, setOffers] = useState<any[]>([]);
   const [buyerRequests, setBuyerRequests] = useState<any[]>([]);
   const [buyerProfiles, setBuyerProfiles] = useState<any[]>([]);
@@ -58,6 +60,15 @@ export default function SellerPage() {
         const user = await getCurrentUser();
 
         const email = user.signInDetails?.loginId || user.username;
+
+        const invoiceResult = await client.models.Invoice.list({
+          filter: {
+            sellerEmail: { eq: email },
+          },
+          authMode: "apiKey",
+        } as any);
+
+        setInvoices(invoiceResult.data || []);
 
         const userId = user.userId || user.username || "";
 
@@ -346,6 +357,66 @@ export default function SellerPage() {
     (l) => l.status === "SOLD" || l.sold,
   );
 
+  function formatInvoiceAmount(value: string | number | null | undefined) {
+    const amount = Number(String(value || "0").replace(/[$,]/g, ""));
+
+    if (!Number.isFinite(amount)) return "$0.00";
+
+    return amount.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  async function getInvoicePdf(invoiceId: string) {
+    const session = await fetchAuthSession();
+    const token = session.tokens?.idToken?.toString();
+
+    if (!token) {
+      alert("Please sign in again to view this invoice.");
+      return null;
+    }
+
+    const res = await fetch(`/api/invoices/${invoiceId}/pdf`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      alert(`Unable to open invoice PDF. Status: ${res.status}`);
+      return null;
+    }
+
+    return await res.blob();
+  }
+
+  async function viewInvoicePdf(invoiceId: string) {
+    const blob = await getInvoicePdf(invoiceId);
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  async function downloadInvoicePdf(invoiceId: string) {
+    const blob = await getInvoicePdf(invoiceId);
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = `invoice-${invoiceId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <main className="min-h-screen bg-[#050607] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
@@ -361,7 +432,7 @@ export default function SellerPage() {
           </p>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
           <button
             type="button"
             onClick={() => setActiveTab("auctions")}
@@ -405,14 +476,6 @@ export default function SellerPage() {
           </Link>
 
           <Link
-            href="/seller/invoices"
-            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
-          >
-            <FileText className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
-            <div className="text-lg font-bold text-white">View Invoices</div>
-          </Link>
-
-          <Link
             href="/auctions/results"
             className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
@@ -449,6 +512,10 @@ export default function SellerPage() {
               client={client}
               sellerEmail={sellerEmail}
               sellerUserId={sellerUserId}
+              invoices={invoices}
+              onViewInvoice={viewInvoicePdf}
+              onDownloadInvoice={downloadInvoicePdf}
+              formatInvoiceAmount={formatInvoiceAmount}
             />
 
             <AuctionSection
@@ -457,6 +524,10 @@ export default function SellerPage() {
               client={client}
               sellerEmail={sellerEmail}
               sellerUserId={sellerUserId}
+              invoices={invoices}
+              onViewInvoice={viewInvoicePdf}
+              onDownloadInvoice={downloadInvoicePdf}
+              formatInvoiceAmount={formatInvoiceAmount}
             />
 
             <AuctionSection
@@ -465,6 +536,10 @@ export default function SellerPage() {
               client={client}
               sellerEmail={sellerEmail}
               sellerUserId={sellerUserId}
+              invoices={invoices}
+              onViewInvoice={viewInvoicePdf}
+              onDownloadInvoice={downloadInvoicePdf}
+              formatInvoiceAmount={formatInvoiceAmount}
             />
 
             <AuctionSection
@@ -473,6 +548,10 @@ export default function SellerPage() {
               client={client}
               sellerEmail={sellerEmail}
               sellerUserId={sellerUserId}
+              invoices={invoices}
+              onViewInvoice={viewInvoicePdf}
+              onDownloadInvoice={downloadInvoicePdf}
+              formatInvoiceAmount={formatInvoiceAmount}
             />
           </>
         )}
@@ -490,6 +569,10 @@ export default function SellerPage() {
               listings={activeListings}
               client={client}
               setMarketplaceListings={setMarketplaceListings}
+              invoices={invoices}
+              onViewInvoice={viewInvoicePdf}
+              onDownloadInvoice={downloadInvoicePdf}
+              formatInvoiceAmount={formatInvoiceAmount}
             />
 
             <MarketplaceSection
@@ -497,6 +580,10 @@ export default function SellerPage() {
               listings={pendingPaymentListings}
               client={client}
               setMarketplaceListings={setMarketplaceListings}
+              invoices={invoices}
+              onViewInvoice={viewInvoicePdf}
+              onDownloadInvoice={downloadInvoicePdf}
+              formatInvoiceAmount={formatInvoiceAmount}
             />
 
             <MarketplaceSection
@@ -504,6 +591,10 @@ export default function SellerPage() {
               listings={soldListings}
               client={client}
               setMarketplaceListings={setMarketplaceListings}
+              invoices={invoices}
+              onViewInvoice={viewInvoicePdf}
+              onDownloadInvoice={downloadInvoicePdf}
+              formatInvoiceAmount={formatInvoiceAmount}
             />
           </>
         )}
@@ -517,6 +608,10 @@ function AuctionSection({
   client,
   sellerEmail,
   sellerUserId,
+  invoices,
+  onViewInvoice,
+  onDownloadInvoice,
+  formatInvoiceAmount,
 }: any) {
   return (
     <section className="mt-12">
@@ -533,6 +628,13 @@ function AuctionSection({
               client={client}
               sellerEmail={sellerEmail}
               sellerUserId={sellerUserId}
+              invoice={invoices?.find(
+                (invoice: any) =>
+                  String(invoice.auctionId) === String(auction.id),
+              )}
+              onViewInvoice={onViewInvoice}
+              onDownloadInvoice={onDownloadInvoice}
+              formatInvoiceAmount={formatInvoiceAmount}
             />
           ))}
         </div>
@@ -974,6 +1076,10 @@ function SellerAuctionCard({
   client,
   sellerEmail,
   sellerUserId,
+  invoice,
+  onViewInvoice,
+  onDownloadInvoice,
+  formatInvoiceAmount,
 }: any) {
   const ended =
     auction.endsAt && new Date(auction.endsAt).getTime() < Date.now();
@@ -1084,11 +1190,14 @@ function SellerAuctionCard({
               <div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <div>
-                    <div className="text-xs uppercase text-gray-500">
-                      Current Price
+                    <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                      {invoice ? "Paid Total" : "Current Price"}
                     </div>
-                    <div className="mt-1 text-xl font-serif text-[#c0c0c0]">
-                      {auction.price}
+
+                    <div className="mt-1 font-serif text-2xl text-[#c0c0c0]">
+                      {invoice
+                        ? formatInvoiceAmount(invoice.amount)
+                        : auction.price}
                     </div>
                   </div>
 
@@ -1181,6 +1290,26 @@ function SellerAuctionCard({
                     </Link>
                   )}
                 </div>
+
+                {invoice && (
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => onViewInvoice(invoice.id)}
+                      className="flex-1 rounded border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white hover:bg-white/[0.08]"
+                    >
+                      View Invoice
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onDownloadInvoice(invoice.id)}
+                      className="flex-1 rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                    >
+                      Download Invoice
+                    </button>
+                  </div>
+                )}
               </div>
 
               {ended && auction.paid && (
@@ -1409,6 +1538,10 @@ function MarketplaceSection({
   listings,
   client,
   setMarketplaceListings,
+  invoices,
+  onViewInvoice,
+  onDownloadInvoice,
+  formatInvoiceAmount,
 }: any) {
   const [showShippingModal, setShowShippingModal] = useState(false);
   const [selectedListing, setSelectedListing] = useState<any>(null);
@@ -1433,144 +1566,244 @@ function MarketplaceSection({
         <p className="text-gray-500">No marketplace listings.</p>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {listings.map((listing: any) => (
-            <div
-              key={listing.id}
-              className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-[#c0c0c0]/40"
-            >
-              <div className="h-56 bg-black sm:h-72">
-                <img
-                  loading="lazy"
-                  src={
-                    listing.image && listing.image !== "undefined"
-                      ? listing.image
-                      : "/logo.png"
-                  }
-                  className="h-full w-full object-contain bg-black"
-                />
-              </div>
+          {listings.map((listing: any) => {
+            const invoice = invoices?.find(
+              (invoice: any) =>
+                String(invoice.listingId) === String(listing.id),
+            );
 
-              <div className="p-5">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                    Marketplace
-                  </div>
-
-                  {listing.status === "SOLD" ? (
-                    <span className="rounded bg-red-500/20 px-2 py-1 text-[10px] uppercase text-red-300">
-                      Sold
-                    </span>
-                  ) : listing.status === "OFFER_PENDING" ? (
-                    <span className="rounded bg-yellow-500/20 px-2 py-1 text-[10px] uppercase text-yellow-300">
-                      Offer Pending
-                    </span>
-                  ) : listing.status === "OFFER_ACCEPTED" ? (
-                    <span className="rounded bg-blue-500/20 px-2 py-1 text-[10px] uppercase text-blue-300">
-                      Pending Payment
-                    </span>
-                  ) : (
-                    <span className="rounded bg-emerald-500/20 px-2 py-1 text-[10px] uppercase text-emerald-300">
-                      Active
-                    </span>
-                  )}
+            return (
+              <div
+                key={listing.id}
+                className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-[#c0c0c0]/40"
+              >
+                <div className="h-56 bg-black sm:h-72">
+                  <img
+                    loading="lazy"
+                    src={
+                      listing.image && listing.image !== "undefined"
+                        ? listing.image
+                        : "/logo.png"
+                    }
+                    className="h-full w-full object-contain bg-black"
+                  />
                 </div>
 
-                <h3 className="mt-2 font-serif text-2xl">{listing.title}</h3>
-
-                <div className="mt-3 font-serif text-3xl text-[#c0c0c0]">
-                  {listing.acceptedOfferAmount || listing.price}
-                </div>
-
-                {listing.paid && (
-                  <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
-                    Paid
-                    {listing.buyerEmail && (
-                      <div className="mt-1 text-xs text-gray-300">
-                        Buyer: {listing.buyerEmail}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {listing.paid && (
-                  <div className="mt-3 rounded-xl border border-white/10 bg-black/30 p-4">
+                <div className="p-5">
+                  <div className="flex items-center justify-between">
                     <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                      Shipping
+                      Marketplace
                     </div>
 
-                    <div className="mt-2 flex items-center gap-3 text-sm text-gray-300">
-                      <span>Status: {listing.shippingStatus || "PAID"}</span>
+                    {listing.status === "SOLD" ? (
+                      <span className="rounded bg-red-500/20 px-2 py-1 text-[10px] uppercase text-red-300">
+                        Sold
+                      </span>
+                    ) : listing.status === "OFFER_PENDING" ? (
+                      <span className="rounded bg-yellow-500/20 px-2 py-1 text-[10px] uppercase text-yellow-300">
+                        Offer Pending
+                      </span>
+                    ) : listing.status === "OFFER_ACCEPTED" ? (
+                      <span className="rounded bg-blue-500/20 px-2 py-1 text-[10px] uppercase text-blue-300">
+                        Pending Payment
+                      </span>
+                    ) : (
+                      <span className="rounded bg-emerald-500/20 px-2 py-1 text-[10px] uppercase text-emerald-300">
+                        Active
+                      </span>
+                    )}
+                  </div>
 
-                      {trackingUrl(
-                        listing.carrier || "",
-                        listing.trackingNumber || "",
-                      ) && (
-                        <a
-                          href={trackingUrl(
-                            listing.carrier || "",
-                            listing.trackingNumber || "",
-                          )}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs font-semibold text-[#e7c77f] hover:text-white"
-                        >
-                          Track Package →
-                        </a>
+                  <h3 className="mt-2 font-serif text-2xl">{listing.title}</h3>
+
+                  <div className="mt-3">
+                    <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                      {invoice ? "Paid Total" : "Price"}
+                    </div>
+
+                    <div className="mt-1 font-serif text-3xl text-[#c0c0c0]">
+                      {invoice
+                        ? formatInvoiceAmount(invoice.amount)
+                        : listing.acceptedOfferAmount || listing.price}
+                    </div>
+                  </div>
+
+                  {listing.paid && (
+                    <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+                      Paid
+                      {listing.buyerEmail && (
+                        <div className="mt-1 text-xs text-gray-300">
+                          Buyer: {listing.buyerEmail}
+                        </div>
                       )}
                     </div>
+                  )}
 
-                    {listing.trackingNumber && (
-                      <div className="mt-3 text-xs text-gray-500">
-                        Tracking: {listing.carrier} {listing.trackingNumber}
+                  {listing.paid && (
+                    <div className="mt-3 rounded-xl border border-white/10 bg-black/30 p-4">
+                      <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                        Shipping
                       </div>
+
+                      <div className="mt-2 flex items-center gap-3 text-sm text-gray-300">
+                        <span>Status: {listing.shippingStatus || "PAID"}</span>
+
+                        {trackingUrl(
+                          listing.carrier || "",
+                          listing.trackingNumber || "",
+                        ) && (
+                          <a
+                            href={trackingUrl(
+                              listing.carrier || "",
+                              listing.trackingNumber || "",
+                            )}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-semibold text-[#e7c77f] hover:text-white"
+                          >
+                            Track Package →
+                          </a>
+                        )}
+                      </div>
+
+                      {listing.trackingNumber && (
+                        <div className="mt-3 text-xs text-gray-500">
+                          Tracking: {listing.carrier} {listing.trackingNumber}
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedListing(listing);
+                          setShippingCarrier(listing.carrier || "");
+                          setShippingTracking(listing.trackingNumber || "");
+                          setShowShippingModal(true);
+                        }}
+                        className="mt-4 w-full rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                      >
+                        {listing.trackingNumber
+                          ? "Update Shipping Info"
+                          : "Enter Shipping Info"}
+                      </button>
+                    </div>
+                  )}
+                  <Link
+                    href={`/marketplace/${listing.id}`}
+                    className="mt-4 block rounded border border-white/10 px-4 py-2 text-center text-sm text-white transition hover:bg-white/[0.05]"
+                  >
+                    View Listing
+                  </Link>
+
+                  {invoice && (
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={() => onViewInvoice(invoice.id)}
+                        className="flex-1 rounded border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white hover:bg-white/[0.08]"
+                      >
+                        View Invoice
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onDownloadInvoice(invoice.id)}
+                        className="flex-1 rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                      >
+                        Download Invoice
+                      </button>
+                    </div>
+                  )}
+
+                  <Link
+                    href={`/sell/listing/${listing.id}/edit`}
+                    className="mt-3 block rounded border border-[#d6aa55]/20 bg-[#1a1408] px-4 py-2 text-center text-sm text-[#e7c77f] transition hover:bg-[#221909]"
+                  >
+                    Edit Listing
+                  </Link>
+
+                  {(listing.sellerPublicId || listing.sellerUserId) && (
+                    <div className="mt-5 border-t border-white/10 pt-4 text-xs uppercase tracking-[0.22em] text-gray-500">
+                      Seller ID{" "}
+                      <span className="text-[#e7c77f]">
+                        {listing.sellerPublicId ||
+                          `RAH-${String(listing.sellerUserId)
+                            .replace(/[^a-zA-Z0-9]/g, "")
+                            .slice(0, 10)
+                            .toUpperCase()}`}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="mt-3 flex gap-2">
+                    {listing.status === "ACTIVE" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await client.models.MarketplaceListing.update(
+                                {
+                                  id: listing.id,
+                                  status: "PAUSED",
+                                },
+                                { authMode: "apiKey" } as any,
+                              );
+
+                              toast.success("Listing paused");
+
+                              setMarketplaceListings((prev: any[]) =>
+                                prev.map((item: any) =>
+                                  item.id === listing.id
+                                    ? { ...item, status: "PAUSED" }
+                                    : item,
+                                ),
+                              );
+                            } catch (err) {
+                              console.error(err);
+                              toast.error("Failed to pause listing");
+                            }
+                          }}
+                          className="flex-1 rounded border border-yellow-500/20 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-300 hover:bg-yellow-500/20"
+                        >
+                          Pause
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await client.models.MarketplaceListing.update(
+                                {
+                                  id: listing.id,
+                                  status: "SOLD",
+                                  sold: true,
+                                },
+                                { authMode: "apiKey" } as any,
+                              );
+
+                              toast.success("Listing marked sold");
+
+                              setMarketplaceListings((prev: any[]) =>
+                                prev.map((item: any) =>
+                                  item.id === listing.id
+                                    ? { ...item, status: "SOLD", sold: true }
+                                    : item,
+                                ),
+                              );
+                            } catch (err) {
+                              console.error(err);
+                              toast.error("Failed to mark sold");
+                            }
+                          }}
+                          className="flex-1 rounded border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300 hover:bg-emerald-500/20"
+                        >
+                          Mark Sold
+                        </button>
+                      </>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedListing(listing);
-                        setShippingCarrier(listing.carrier || "");
-                        setShippingTracking(listing.trackingNumber || "");
-                        setShowShippingModal(true);
-                      }}
-                      className="mt-4 w-full rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
-                    >
-                      {listing.trackingNumber
-                        ? "Update Shipping Info"
-                        : "Enter Shipping Info"}
-                    </button>
-                  </div>
-                )}
-                <Link
-                  href={`/marketplace/${listing.id}`}
-                  className="mt-4 block rounded border border-white/10 px-4 py-2 text-center text-sm text-white transition hover:bg-white/[0.05]"
-                >
-                  View Listing
-                </Link>
-
-                <Link
-                  href={`/sell/listing/${listing.id}/edit`}
-                  className="mt-3 block rounded border border-[#d6aa55]/20 bg-[#1a1408] px-4 py-2 text-center text-sm text-[#e7c77f] transition hover:bg-[#221909]"
-                >
-                  Edit Listing
-                </Link>
-
-                {(listing.sellerPublicId || listing.sellerUserId) && (
-                  <div className="mt-5 border-t border-white/10 pt-4 text-xs uppercase tracking-[0.22em] text-gray-500">
-                    Seller ID{" "}
-                    <span className="text-[#e7c77f]">
-                      {listing.sellerPublicId ||
-                        `RAH-${String(listing.sellerUserId)
-                          .replace(/[^a-zA-Z0-9]/g, "")
-                          .slice(0, 10)
-                          .toUpperCase()}`}
-                    </span>
-                  </div>
-                )}
-
-                <div className="mt-3 flex gap-2">
-                  {listing.status === "ACTIVE" && (
-                    <>
+                    {listing.status === "PAUSED" && (
                       <button
                         type="button"
                         onClick={async () => {
@@ -1578,100 +1811,35 @@ function MarketplaceSection({
                             await client.models.MarketplaceListing.update(
                               {
                                 id: listing.id,
-                                status: "PAUSED",
+                                status: "ACTIVE",
                               },
                               { authMode: "apiKey" } as any,
                             );
 
-                            toast.success("Listing paused");
+                            toast.success("Listing activated");
 
                             setMarketplaceListings((prev: any[]) =>
                               prev.map((item: any) =>
                                 item.id === listing.id
-                                  ? { ...item, status: "PAUSED" }
+                                  ? { ...item, status: "ACTIVE" }
                                   : item,
                               ),
                             );
                           } catch (err) {
                             console.error(err);
-                            toast.error("Failed to pause listing");
+                            toast.error("Failed to activate listing");
                           }
                         }}
-                        className="flex-1 rounded border border-yellow-500/20 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-300 hover:bg-yellow-500/20"
+                        className="w-full rounded border border-[#d6aa55]/20 bg-[#1a1408] px-4 py-2 text-sm text-[#e7c77f] hover:bg-[#221909]"
                       >
-                        Pause
+                        Activate
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            await client.models.MarketplaceListing.update(
-                              {
-                                id: listing.id,
-                                status: "SOLD",
-                                sold: true,
-                              },
-                              { authMode: "apiKey" } as any,
-                            );
-
-                            toast.success("Listing marked sold");
-
-                            setMarketplaceListings((prev: any[]) =>
-                              prev.map((item: any) =>
-                                item.id === listing.id
-                                  ? { ...item, status: "SOLD", sold: true }
-                                  : item,
-                              ),
-                            );
-                          } catch (err) {
-                            console.error(err);
-                            toast.error("Failed to mark sold");
-                          }
-                        }}
-                        className="flex-1 rounded border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300 hover:bg-emerald-500/20"
-                      >
-                        Mark Sold
-                      </button>
-                    </>
-                  )}
-
-                  {listing.status === "PAUSED" && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await client.models.MarketplaceListing.update(
-                            {
-                              id: listing.id,
-                              status: "ACTIVE",
-                            },
-                            { authMode: "apiKey" } as any,
-                          );
-
-                          toast.success("Listing activated");
-
-                          setMarketplaceListings((prev: any[]) =>
-                            prev.map((item: any) =>
-                              item.id === listing.id
-                                ? { ...item, status: "ACTIVE" }
-                                : item,
-                            ),
-                          );
-                        } catch (err) {
-                          console.error(err);
-                          toast.error("Failed to activate listing");
-                        }
-                      }}
-                      className="w-full rounded border border-[#d6aa55]/20 bg-[#1a1408] px-4 py-2 text-sm text-[#e7c77f] hover:bg-[#221909]"
-                    >
-                      Activate
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {showShippingModal && selectedListing && (
