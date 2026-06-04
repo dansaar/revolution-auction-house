@@ -44,24 +44,29 @@ export default function SellerInvoicesPage() {
   }, []);
 
   const totalRevenue = useMemo(() => {
-  return invoices.reduce((sum: number, invoice: any) => {
-    const value = Number(
-      String(invoice.amount || "0")
-        .replace("$", "")
-        .replaceAll(",", ""),
-    );
+    return invoices.reduce((sum: number, invoice: any) => {
+      const value = Number(
+        String(invoice.amount || "0")
+          .replace("$", "")
+          .replaceAll(",", ""),
+      );
 
-    return sum + value;
-  }, 0);
-}, [invoices]);
+      return sum + value;
+    }, 0);
+  }, [invoices]);
 
-function formatInvoiceAmount(value: string | number | null | undefined) {
-  const amount = Number(String(value || "0").replace(/[$,]/g, ""));
+  function formatInvoiceAmount(value: string | number | null | undefined) {
+    const amount = Number(String(value || "0").replace(/[$,]/g, ""));
 
-  if (!Number.isFinite(amount)) return "$0";
+    if (!Number.isFinite(amount)) return "$0.00";
 
-  return `$${Math.round(amount).toLocaleString()}`;
-}
+    return amount.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
 
   async function getInvoicePdf(invoiceId: string) {
     const session = await fetchAuthSession();

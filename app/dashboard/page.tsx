@@ -4,7 +4,7 @@ import "@/lib/amplifyclient";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { getCurrentUser } from "aws-amplify/auth";
+import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import {
@@ -70,6 +70,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [buyerProfile, setBuyerProfile] = useState<any>(null);
   const [now, setNow] = useState(Date.now());
+  const [invoices, setInvoices] = useState<any[]>([]);
 
   const dashboardRefreshTimerRef = React.useRef<ReturnType<
     typeof setTimeout
@@ -218,6 +219,16 @@ export default function DashboardPage() {
         setBuyerOffers(buyerOfferResult.data || []);
 
         setMarketplacePurchases(resolvedMarketplacePurchases);
+
+        const invoiceResult = await client.models.Invoice.list({
+          filter: {
+            buyerEmail: { eq: userKey },
+          },
+          authMode: "apiKey",
+        } as any);
+
+        setInvoices(invoiceResult.data || []);
+
         const acceptedMarketplaceResult =
           await client.models.MarketplaceListing.list({
             filter: {
@@ -584,6 +595,66 @@ export default function DashboardPage() {
     );
   }
 
+  function formatInvoiceAmount(value: string | number | null | undefined) {
+    const amount = Number(String(value || "0").replace(/[$,]/g, ""));
+
+    if (!Number.isFinite(amount)) return "$0.00";
+
+    return amount.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  async function getInvoicePdf(invoiceId: string) {
+    const session = await fetchAuthSession();
+    const token = session.tokens?.idToken?.toString();
+
+    if (!token) {
+      alert("Please sign in again to view this invoice.");
+      return null;
+    }
+
+    const res = await fetch(`/api/invoices/${invoiceId}/pdf`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      alert(`Unable to open invoice PDF. Status: ${res.status}`);
+      return null;
+    }
+
+    return await res.blob();
+  }
+
+  async function viewInvoicePdf(invoiceId: string) {
+    const blob = await getInvoicePdf(invoiceId);
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  async function downloadInvoicePdf(invoiceId: string) {
+    const blob = await getInvoicePdf(invoiceId);
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = `invoice-${invoiceId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  }
+
   if (loadingUser) {
     return (
       <div className="min-h-screen bg-[#050607] p-10 text-white">
@@ -900,6 +971,13 @@ export default function DashboardPage() {
                     <MarketplacePurchaseRow
                       key={listing.id}
                       listing={listing}
+                      invoice={invoices.find(
+                        (invoice: any) =>
+                          String(invoice.listingId) === String(listing.id),
+                      )}
+                      onViewInvoice={viewInvoicePdf}
+                      onDownloadInvoice={downloadInvoicePdf}
+                      formatInvoiceAmount={formatInvoiceAmount}
                     />
                   ))
                 )}
@@ -1204,7 +1282,13 @@ function OfferNotificationRow({ offer, onDismiss }: any) {
   );
 }
 
-function MarketplacePurchaseRow({ listing }: any) {
+function MarketplacePurchaseRow({
+  listing,
+  invoice,
+  onViewInvoice,
+  onDownloadInvoice,
+  formatInvoiceAmount,
+}: any) {
   return (
     <div className="mb-3 rounded border border-emerald-500/30 bg-emerald-500/10 p-4">
       <div className="flex items-center justify-between gap-4">
@@ -1253,7 +1337,11 @@ function MarketplacePurchaseRow({ listing }: any) {
         </Link>
 
         <div className="font-serif text-xl text-[#c0c0c0]">
-          {listing.acceptedOfferAmount || listing.offerAmount || listing.price}
+          {invoice
+            ? formatInvoiceAmount(invoice.amount)
+            : listing.acceptedOfferAmount ||
+              listing.offerAmount ||
+              listing.price}
         </div>
       </div>
 
@@ -1298,6 +1386,26 @@ function MarketplacePurchaseRow({ listing }: any) {
       >
         View Listing
       </Link>
+
+      {invoice && (
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => onViewInvoice(invoice.id)}
+            className="flex-1 rounded border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white hover:bg-white/[0.08]"
+          >
+            View Invoice
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onDownloadInvoice(invoice.id)}
+            className="flex-1 rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+          >
+            Download Invoice
+          </button>
+        </div>
+      )}
     </div>
   );
 }

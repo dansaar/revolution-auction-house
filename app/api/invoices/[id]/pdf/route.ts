@@ -21,9 +21,14 @@ const verifier = CognitoJwtVerifier.create({
 function formatInvoiceAmount(value: string | number | null | undefined) {
   const amount = Number(String(value || "0").replace(/[$,]/g, ""));
 
-  if (!Number.isFinite(amount)) return "$0";
+  if (!Number.isFinite(amount)) return "$0.00";
 
-  return `$${Math.round(amount).toLocaleString()}`;
+  return amount.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function moneyToNumber(value: string | number | null | undefined) {
