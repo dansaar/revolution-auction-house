@@ -1715,12 +1715,14 @@ function MarketplaceSection({
                     </div>
                   )}
 
-                  <Link
-                    href={`/sell/listing/${listing.id}/edit`}
-                    className="mt-3 block rounded border border-[#d6aa55]/20 bg-[#1a1408] px-4 py-2 text-center text-sm text-[#e7c77f] transition hover:bg-[#221909]"
-                  >
-                    Edit Listing
-                  </Link>
+                  {!listing.paid && listing.status !== "SOLD" && (
+                    <Link
+                      href={`/sell/listing/${listing.id}/edit`}
+                      className="mt-3 block rounded border border-[#d6aa55]/20 bg-[#1a1408] px-4 py-2 text-center text-sm text-[#e7c77f] transition hover:bg-[#221909]"
+                    >
+                      Edit Listing
+                    </Link>
+                  )}
 
                   {(listing.sellerPublicId || listing.sellerUserId) && (
                     <div className="mt-5 border-t border-white/10 pt-4 text-xs uppercase tracking-[0.22em] text-gray-500">
