@@ -13,7 +13,6 @@ import {
   Heart,
   Trophy,
   Tag,
-  FileText,
   Archive,
   ShoppingCart,
 } from "lucide-react";
@@ -709,7 +708,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
           <button
             type="button"
             onClick={() => setActiveTab("auctions")}
@@ -762,14 +761,6 @@ export default function DashboardPage() {
           >
             <ShoppingCart className="mb-4 h-8 w-8 text-[#e7c77f]" />
             <div className="text-base font-bold text-white">Payment Center</div>
-          </Link>
-
-          <Link
-            href="/dashboard/invoices"
-            className="group flex min-h-36 flex-col items-center justify-center rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-5 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
-          >
-            <FileText className="mb-4 h-8 w-8 text-[#e7c77f]" />
-            <div className="text-base font-bold text-white">View Invoices</div>
           </Link>
 
           <Link
@@ -944,6 +935,13 @@ export default function DashboardPage() {
                       bid={bid}
                       auctions={auctions}
                       trophy
+                      invoice={invoices.find(
+                        (invoice: any) =>
+                          String(invoice.auctionId) === String(bid.auctionId),
+                      )}
+                      onViewInvoice={viewInvoicePdf}
+                      onDownloadInvoice={downloadInvoicePdf}
+                      formatInvoiceAmount={formatInvoiceAmount}
                     />
                   ))
                 )}
@@ -1047,7 +1045,17 @@ function Empty({ text }: { text: string }) {
 
 //BID ROW
 
-function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
+function BidRow({
+  bid,
+  auctions,
+  danger,
+  showPayButton,
+  onCheckout,
+  invoice,
+  onViewInvoice,
+  onDownloadInvoice,
+  formatInvoiceAmount,
+}: any) {
   const auction = auctions.find((a: any) => a.id === bid.auctionId);
 
   const isEnded =
@@ -1138,7 +1146,9 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
         </Link>
 
         <div className="shrink-0 font-serif text-3xl text-[#c0c0c0] sm:text-right sm:text-xl">
-          {auction?.price || bid.amount}
+          {invoice
+            ? formatInvoiceAmount(invoice.amount)
+            : auction?.price || bid.amount}
         </div>
       </div>
 
@@ -1177,14 +1187,24 @@ function BidRow({ bid, auctions, danger, showPayButton, onCheckout }: any) {
         </div>
       )}
 
-      {showPayButton && auction && !auction.paid && (
-        <button
-          type="button"
-          onClick={() => onCheckout(auction)}
-          className="mt-5 w-full rounded bg-[#c0c0c0] px-4 py-4 text-lg font-semibold text-black hover:bg-white sm:py-3 sm:text-base"
-        >
-          Pay Now
-        </button>
+      {invoice && (
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => onViewInvoice(invoice.id)}
+            className="flex-1 rounded border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white hover:bg-white/[0.08]"
+          >
+            View Invoice
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onDownloadInvoice(invoice.id)}
+            className="flex-1 rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+          >
+            Download Invoice
+          </button>
+        </div>
       )}
     </div>
   );
