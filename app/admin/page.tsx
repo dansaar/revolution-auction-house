@@ -7,8 +7,7 @@ import Link from "next/link";
 import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-
-const ADMINS = ["dansaar52@gmail.com"];
+import { isPlatformAdmin } from "@/lib/sellers";
 
 export default function AdminPage() {
   const client = generateClient<Schema>();
@@ -28,7 +27,7 @@ export default function AdminPage() {
         const user = await getCurrentUser();
         const email = user.signInDetails?.loginId || user.username || "";
 
-        if (!ADMINS.includes(email)) {
+        if (!isPlatformAdmin(email)) {
           setIsAdmin(false);
           return;
         }
@@ -109,17 +108,25 @@ export default function AdminPage() {
           <Stat label="Watchlist Items" value={stats.watchlist} />
         </div>
 
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
+        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           <AdminCard
             title="Manage Auctions"
             description="Review active, ended, and reserve-not-met auctions."
             href="/admin/auctions"
           />
+
+          <AdminCard
+            title="Auction Audits"
+            description="Review admin-only auction bid audit logs."
+            href="/admin/audits"
+          />
+
           <AdminCard
             title="Manage Marketplace"
             description="Review listings, sellers, and featured inventory."
             href="/admin/marketplace"
           />
+
           <AdminCard
             title="Seller Controls"
             description="Approve sellers and manage invite-only access."

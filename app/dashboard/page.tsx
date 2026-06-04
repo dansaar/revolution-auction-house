@@ -19,6 +19,7 @@ import {
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
+import { isPlatformAdmin } from "@/lib/sellers";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
   const c = carrier.toLowerCase();
@@ -116,6 +117,7 @@ export default function DashboardPage() {
 
   const userKey = user?.signInDetails?.loginId || user?.username || "";
   const userId = user?.userId || user?.username || "";
+  const userIsAdmin = isPlatformAdmin(userKey);
 
   useEffect(() => {
     async function loadUser() {
@@ -746,7 +748,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           <button
             type="button"
             onClick={() => setActiveTab("auctions")}
@@ -810,6 +812,18 @@ export default function DashboardPage() {
               Results Archive
             </div>
           </Link>
+
+          {userIsAdmin && (
+            <Link
+              href="/admin"
+              className="group flex min-h-36 flex-col items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-5 text-center transition hover:-translate-y-1 hover:bg-red-500/20"
+            >
+              <BadgeCheck className="mb-4 h-8 w-8 text-red-300" />
+              <div className="text-base font-bold text-white">
+                Admin Dashboard
+              </div>
+            </Link>
+          )}
         </div>
 
         <section className="mt-10 grid gap-5 md:grid-cols-4">
