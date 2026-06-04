@@ -519,52 +519,6 @@ export default function DashboardPage() {
     return !isEnded;
   });
 
-  async function handleCheckout(auction: any) {
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        auctionId: auction.id,
-        title: auction.title,
-        amount: auction.price,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert(data.error || "Checkout failed");
-    }
-  }
-
-  async function handleMarketplaceCheckout(listing: any) {
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        listingId: listing.id,
-        title: listing.title,
-        amount:
-          listing.acceptedOfferAmount || listing.offerAmount || listing.price,
-        buyerEmail: userKey,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert(data.error || "Checkout failed");
-    }
-  }
-
   async function removeFromWatchlist(itemId: string) {
     await client.models.WatchlistItem.delete(
       { id: itemId },
@@ -919,7 +873,6 @@ export default function DashboardPage() {
                       auctions={auctions}
                       trophy
                       showPayButton
-                      onCheckout={handleCheckout}
                     />
                   ))
                 )}
@@ -989,7 +942,6 @@ export default function DashboardPage() {
                     <AcceptedMarketplaceRow
                       key={listing.id}
                       listing={listing}
-                      onCheckout={handleMarketplaceCheckout}
                     />
                   ))
                 )}
@@ -1185,6 +1137,15 @@ function BidRow({
             </div>
           )}
         </div>
+      )}
+
+      {showPayButton && auction && !auction.paid && (
+        <Link
+          href="/cart"
+          className="mt-5 block w-full rounded bg-[#c0c0c0] px-4 py-4 text-center text-lg font-semibold text-black hover:bg-white sm:py-3 sm:text-base"
+        >
+          Go to Payment Center
+        </Link>
       )}
 
       {invoice && (
@@ -1429,7 +1390,7 @@ function MarketplacePurchaseRow({
     </div>
   );
 }
-function AcceptedMarketplaceRow({ listing, onCheckout }: any) {
+function AcceptedMarketplaceRow({ listing }: any) {
   return (
     <div className="mb-3 rounded border border-yellow-400/30 bg-yellow-400/10 p-4">
       <div className="flex items-center justify-between gap-4">
@@ -1469,13 +1430,12 @@ function AcceptedMarketplaceRow({ listing, onCheckout }: any) {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => onCheckout(listing)}
-        className="mt-4 w-full rounded bg-[#c0c0c0] px-4 py-3 font-semibold text-black hover:bg-white"
+      <Link
+        href="/cart"
+        className="mt-4 block w-full rounded bg-[#c0c0c0] px-4 py-3 text-center font-semibold text-black hover:bg-white"
       >
-        Pay Now
-      </button>
+        Go to Payment Center
+      </Link>
     </div>
   );
 }

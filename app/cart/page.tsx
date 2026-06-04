@@ -25,7 +25,12 @@ type CartItem = {
 };
 
 function formatMoney(amount: number) {
-  return `$${Math.round(amount).toLocaleString()}`;
+  return amount.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function calculateAuctionTotals(item: any) {
@@ -269,7 +274,7 @@ export default function CartPage() {
             </div>
 
             <div className="mt-2 font-serif text-4xl text-[#f0d28c]">
-              ${total.toLocaleString()}
+              {formatMoney(total)}
             </div>
           </div>
         </div>
