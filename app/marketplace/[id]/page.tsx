@@ -36,10 +36,6 @@ export default function MarketplaceListingPage() {
   const params = useParams();
   const id = params.id as string;
 
-  useEffect(() => {
-    updateBuyerPresence(`/marketplace/${id}`);
-  }, [id]);
-
   const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,6 +45,34 @@ export default function MarketplaceListingPage() {
   const [images, setImages] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
+
+  useEffect(() => {
+    updateBuyerPresence(`/marketplace/${id}`);
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const listingUpdateSub = client.models.MarketplaceListing.onUpdate({
+      authMode: "apiKey",
+    }).subscribe({
+      next: (updatedListing: any) => {
+        if (String(updatedListing.id) !== String(id)) return;
+
+        setListing((prev: any) => ({
+          ...(prev || {}),
+
+          ...updatedListing,
+        }));
+      },
+
+      error: (e) => console.error("Marketplace listing update sub error:", e),
+    });
+
+    return () => {
+      listingUpdateSub.unsubscribe();
+    };
+  }, [id]);
 
   useEffect(() => {
     async function loadListing() {

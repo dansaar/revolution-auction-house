@@ -55,6 +55,30 @@ function resolveAuctionImage(auction: any) {
   return cdnUrl(rawImage);
 }
 
+function formatCurrency(amount: number) {
+  return amount.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function calculateAcceptedOfferTotal(listing: any) {
+  const subtotal = moneyToNumber(
+    listing.acceptedOfferAmount || listing.offerAmount || listing.price || 0,
+  );
+
+  const taxRate = Number(listing.taxRate || 6.625);
+  const tax = listing.chargeTax ? subtotal * (taxRate / 100) : 0;
+
+  return {
+    subtotal,
+    tax,
+    total: subtotal + tax,
+  };
+}
+
 export default function DashboardPage() {
   const clientRef = React.useRef(generateClient<Schema>());
   const client = clientRef.current;
@@ -64,6 +88,7 @@ export default function DashboardPage() {
   const [marketplacePurchases, setMarketplacePurchases] = useState<any[]>([]);
   const [acceptedOffers, setAcceptedOffers] = useState<any[]>([]);
   const [buyerOffers, setBuyerOffers] = useState<any[]>([]);
+  const [offerListings, setOfferListings] = useState<any[]>([]);
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -216,6 +241,40 @@ export default function DashboardPage() {
         } as any);
 
         setBuyerOffers(buyerOfferResult.data || []);
+
+        const offerListingIds = Array.from(
+          new Set(
+            (buyerOfferResult.data || [])
+              .map((offer: any) => offer.listingId)
+              .filter(Boolean),
+          ),
+        );
+
+        const offerListingResults = await Promise.all(
+          offerListingIds.map((listingId: any) =>
+            client.models.MarketplaceListing.get({ id: listingId }, {
+              authMode: "apiKey",
+            } as any).catch(() => null),
+          ),
+        );
+
+        const resolvedOfferListings = offerListingResults
+          .map((result: any) => result?.data)
+          .filter(Boolean)
+          .map((listing: any) => {
+            const rawImage =
+              listing.thumbImages?.[0] ||
+              listing.images?.[0] ||
+              listing.image ||
+              "";
+
+            return {
+              ...listing,
+              imageUrl: cdnUrl(rawImage),
+            };
+          });
+
+        setOfferListings(resolvedOfferListings);
 
         setMarketplacePurchases(resolvedMarketplacePurchases);
 
@@ -983,6 +1042,10 @@ export default function DashboardPage() {
                         key={offer.id}
                         offer={offer}
                         listing={
+                          offerListings.find(
+                            (listing: any) =>
+                              String(listing.id) === String(offer.listingId),
+                          ) ||
                           marketplacePurchases.find(
                             (listing: any) =>
                               String(listing.id) === String(offer.listingId),
@@ -1489,9 +1552,23 @@ function AcceptedMarketplaceRow({ listing }: any) {
           </div>
         </div>
 
-        <div className="font-serif text-xl text-[#c0c0c0]">
-          {listing.acceptedOfferAmount || listing.price}
-        </div>
+        {(() => {
+          const totals = calculateAcceptedOfferTotal(listing);
+
+          return (
+            <div className="text-right">
+              <div className="font-serif text-xl text-[#c0c0c0]">
+                {formatCurrency(totals.total)}
+              </div>
+
+              <div className="mt-1 space-y-1 text-xs text-gray-500">
+                <div>Offer: {formatCurrency(totals.subtotal)}</div>
+
+                {totals.tax > 0 && <div>Tax: {formatCurrency(totals.tax)}</div>}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <Link
