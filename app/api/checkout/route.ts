@@ -7,6 +7,52 @@ function moneyToCents(value: string | number) {
   );
 }
 
+function buildLineItemsForItem(item: any) {
+  const subtotal = item.subtotal || item.amount;
+  const buyerPremium = item.buyerPremium || "$0.00";
+  const tax = item.tax || "$0.00";
+
+  const lineItems: any[] = [
+    {
+      price_data: {
+        currency: "usd",
+        product_data: {
+          name: item.title,
+        },
+        unit_amount: moneyToCents(subtotal),
+      },
+      quantity: 1,
+    },
+  ];
+
+  if (moneyToCents(buyerPremium) > 0) {
+    lineItems.push({
+      price_data: {
+        currency: "usd",
+        product_data: {
+          name: `${item.title} — Buyer Premium`,
+        },
+        unit_amount: moneyToCents(buyerPremium),
+      },
+      quantity: 1,
+    });
+  }
+
+  if (moneyToCents(tax) > 0) {
+    lineItems.push({
+      price_data: {
+        currency: "usd",
+        product_data: {
+          name: `${item.title} — NJ Sales Tax`,
+        },
+        unit_amount: moneyToCents(tax),
+      },
+      quantity: 1,
+    });
+  }
+
+  return lineItems;
+}
 export async function POST(req: Request) {
   try {
     const stripeSecretKey =
@@ -43,16 +89,9 @@ export async function POST(req: Request) {
     } = await req.json();
 
     if (Array.isArray(items) && items.length > 0) {
-      const lineItems = items.map((item: any) => ({
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: item.title,
-          },
-          unit_amount: moneyToCents(item.amount),
-        },
-        quantity: 1,
-      }));
+      const lineItems = items.flatMap((item: any) =>
+        buildLineItemsForItem(item),
+      );
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
@@ -64,6 +103,9 @@ export async function POST(req: Request) {
               id: item.id,
               type: item.type,
               title: item.title,
+              subtotal: item.subtotal || item.amount,
+              buyerPremium: item.buyerPremium || "$0.00",
+              tax: item.tax || "$0.00",
               amount: item.amount,
             })),
           ),
@@ -94,18 +136,13 @@ export async function POST(req: Request) {
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: title,
-            },
-            unit_amount: amountCents,
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: buildLineItemsForItem({
+        title,
+        subtotal: subtotal || amount,
+        buyerPremium: buyerPremium || "$0.00",
+        tax: tax || "$0.00",
+        amount,
+      }),
       metadata: {
         auctionId: auctionId || "",
         listingId: listingId || "",

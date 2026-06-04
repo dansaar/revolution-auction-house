@@ -29,32 +29,59 @@ export default function MarketplacePage() {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadListings() {
-      try {
-        const result = await client.models.MarketplaceListing.list({
-          filter: {
-            status: { eq: "ACTIVE" },
-          },
-          authMode: "apiKey",
-        } as any);
+  async function loadListings() {
+    try {
+      const result = await client.models.MarketplaceListing.list({
+        authMode: "apiKey",
+        limit: 1000,
+      } as any);
 
-        const withImages = (result.data || []).map((listing: any) => ({
-          ...listing,
-          imageUrl: resolveImage(listing),
-        }));
+      const activeListings = (result.data || []).filter((listing: any) => {
+        return (
+          listing.sold !== true &&
+          listing.paid !== true &&
+          (listing.status === "ACTIVE" ||
+            listing.status === "OFFER_PENDING" ||
+            !listing.status)
+        );
+      });
 
-        console.log("MARKETPLACE LISTINGS", withImages);
+      const withImages = activeListings.map((listing: any) => ({
+        ...listing,
+        imageUrl: resolveImage(listing),
+      }));
 
-        setListings(withImages);
-      } catch (err) {
-        console.error("MARKETPLACE LOAD ERROR", err);
-      } finally {
-        setLoading(false);
-      }
+      console.log("MARKETPLACE ACTIVE LISTINGS", withImages);
+
+      setListings(withImages);
+    } catch (err) {
+      console.error("MARKETPLACE LOAD ERROR", err);
+    } finally {
+      setLoading(false);
     }
+  }
 
+  useEffect(() => {
     loadListings();
+
+    const listingUpdateSub = client.models.MarketplaceListing.onUpdate({
+      authMode: "apiKey",
+    }).subscribe({
+      next: () => loadListings(),
+      error: (e) => console.error("Marketplace listing update sub error:", e),
+    });
+
+    const listingCreateSub = client.models.MarketplaceListing.onCreate({
+      authMode: "apiKey",
+    }).subscribe({
+      next: () => loadListings(),
+      error: (e) => console.error("Marketplace listing create sub error:", e),
+    });
+
+    return () => {
+      listingUpdateSub.unsubscribe();
+      listingCreateSub.unsubscribe();
+    };
   }, []);
 
   if (loading) {
@@ -121,6 +148,12 @@ export default function MarketplacePage() {
                   <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
                     {listing.condition || "Marketplace"}
                   </div>
+
+                  {listing.status === "OFFER_PENDING" && (
+                    <div className="mt-3 inline-flex rounded bg-yellow-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-yellow-300">
+                      Offer Pending
+                    </div>
+                  )}
 
                   <h2 className="mt-2 font-serif text-2xl">{listing.title}</h2>
 

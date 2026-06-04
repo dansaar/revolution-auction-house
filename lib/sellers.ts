@@ -5,7 +5,7 @@ import type { Schema } from "@/amplify/data/resource";
 
 const client = generateClient<Schema>();
 
-const EMERGENCY_SELLERS = ["dansaar52@gmail.com", "dansaar@verizon.net"];
+const EMERGENCY_SELLERS = ["dansaar52@gmail.com"];
 
 export async function isApprovedSeller(email?: string | null) {
   if (!email) return false;

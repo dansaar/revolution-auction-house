@@ -332,11 +332,36 @@ export default function DashboardPage() {
       next: () => scheduleDashboardRefresh(loadDashboard),
     });
 
+    const offerCreateSub = client.models.Offer.onCreate({
+      authMode: "userPool",
+    }).subscribe({
+      next: () => scheduleDashboardRefresh(loadDashboard),
+      error: (e) => console.error("Offer create sub error:", e),
+    });
+
+    const offerUpdateSub = client.models.Offer.onUpdate({
+      authMode: "userPool",
+    }).subscribe({
+      next: () => scheduleDashboardRefresh(loadDashboard),
+      error: (e) => console.error("Offer update sub error:", e),
+    });
+
+    const listingUpdateSub = client.models.MarketplaceListing.onUpdate({
+      authMode: "apiKey",
+    }).subscribe({
+      next: () => scheduleDashboardRefresh(loadDashboard),
+      error: (e) => console.error("Marketplace listing update sub error:", e),
+    });
+
     return () => {
       bidCreateSub.unsubscribe();
       bidUpdateSub.unsubscribe();
       auctionUpdateSub.unsubscribe();
       stateUpdateSub.unsubscribe();
+
+      offerCreateSub.unsubscribe();
+      offerUpdateSub.unsubscribe();
+      listingUpdateSub.unsubscribe();
 
       window.removeEventListener("focus", loadDashboard);
       window.removeEventListener("pageshow", loadDashboard);
@@ -957,6 +982,16 @@ export default function DashboardPage() {
                       <OfferNotificationRow
                         key={offer.id}
                         offer={offer}
+                        listing={
+                          marketplacePurchases.find(
+                            (listing: any) =>
+                              String(listing.id) === String(offer.listingId),
+                          ) ||
+                          acceptedOffers.find(
+                            (listing: any) =>
+                              String(listing.id) === String(offer.listingId),
+                          )
+                        }
                         onDismiss={dismissOfferNotification}
                       />
                     ))
@@ -1191,7 +1226,13 @@ function LostAuctionRow({ auction }: any) {
   );
 }
 
-function OfferNotificationRow({ offer, onDismiss }: any) {
+function OfferNotificationRow({ offer, listing, onDismiss }: any) {
+  const listingImage =
+    listing?.imageUrl ||
+    cdnUrl(
+      listing?.thumbImages?.[0] || listing?.images?.[0] || listing?.image || "",
+    ) ||
+    "/logo.png";
   return (
     <div
       className="
@@ -1204,13 +1245,36 @@ function OfferNotificationRow({ offer, onDismiss }: any) {
   "
     >
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="font-serif text-lg text-[#d7d7d7]">
-            Marketplace Offer
-          </div>
+        <div className="flex min-w-0 items-center gap-4">
+          {listing && (
+            <img
+              src={listingImage}
+              alt={listing.title || "Listing"}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/logo.png";
+              }}
+              className="h-16 w-16 shrink-0 rounded-lg bg-black object-contain"
+            />
+          )}
 
-          <div className="mt-2 text-sm text-gray-400">
-            Offer amount: {offer.amount}
+          <div className="min-w-0">
+            <div className="font-serif text-lg text-[#d7d7d7]">
+              {listing?.title || "Marketplace Offer"}
+            </div>
+
+            <div className="mt-2 text-sm text-gray-400">
+              Offer amount: {offer.amount}
+            </div>
+
+            {listing && (
+              <Link
+                href={`/marketplace/${listing.id}`}
+                className="mt-2 inline-block text-xs font-semibold text-[#e7c77f] hover:text-white"
+              >
+                View Listing
+              </Link>
+            )}
           </div>
         </div>
 

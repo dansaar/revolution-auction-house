@@ -174,6 +174,36 @@ export default function SellerPage() {
         console.error("Seller auction subscription error:", error),
     });
 
+    const offerCreateSub = client.models.Offer.onCreate({
+      authMode: "userPool",
+    }).subscribe({
+      next: () => {
+        scheduleSellerRefresh();
+      },
+      error: (error) =>
+        console.error("Seller offer create subscription error:", error),
+    });
+
+    const offerUpdateSub = client.models.Offer.onUpdate({
+      authMode: "userPool",
+    }).subscribe({
+      next: () => {
+        scheduleSellerRefresh();
+      },
+      error: (error) =>
+        console.error("Seller offer update subscription error:", error),
+    });
+
+    const listingUpdateSub = client.models.MarketplaceListing.onUpdate({
+      authMode: "apiKey",
+    }).subscribe({
+      next: () => {
+        scheduleSellerRefresh();
+      },
+      error: (error) =>
+        console.error("Seller marketplace listing subscription error:", error),
+    });
+
     return () => {
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
@@ -181,6 +211,9 @@ export default function SellerPage() {
 
       bidSub.unsubscribe();
       auctionSub.unsubscribe();
+      offerCreateSub.unsubscribe();
+      offerUpdateSub.unsubscribe();
+      listingUpdateSub.unsubscribe();
     };
   }, []);
 

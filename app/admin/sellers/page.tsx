@@ -8,7 +8,7 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 
-const ADMINS = ["dansaar52@gmail.com", "dansaar@verizon.net"];
+const ADMINS = ["dansaar52@gmail.com"];
 
 const client = generateClient<Schema>();
 
