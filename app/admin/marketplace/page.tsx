@@ -16,6 +16,20 @@ export default function AdminMarketplacePage() {
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [listings, setListings] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+
+  function formatInvoiceAmount(value: string | number | null | undefined) {
+    const amount = Number(String(value || "0").replace(/[$,]/g, ""));
+
+    if (!Number.isFinite(amount)) return "$0.00";
+
+    return amount.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
 
   useEffect(() => {
     async function load() {
@@ -31,6 +45,13 @@ export default function AdminMarketplacePage() {
           authMode: "apiKey",
           limit: 1000,
         } as any);
+
+        const invoiceResult = await client.models.Invoice.list({
+          authMode: "apiKey",
+          limit: 1000,
+        } as any);
+
+        setInvoices(invoiceResult.data || []);
 
         setListings(result.data || []);
       } finally {
@@ -82,36 +103,56 @@ export default function AdminMarketplacePage() {
             </thead>
 
             <tbody>
-              {listings.map((listing) => (
-                <tr key={listing.id} className="border-t border-white/10">
-                  <td className="p-4 text-white">{listing.title}</td>
+              {listings.map((listing: any) => {
+                const invoice = invoices.find(
+                  (invoice: any) =>
+                    String(invoice.listingId) === String(listing.id),
+                );
 
-                  <td className="p-4 text-[#c0c0c0]">{listing.price}</td>
+                return (
+                  <tr key={listing.id} className="border-t border-white/10">
+                    <td className="p-4 text-white">{listing.title}</td>
 
-                  <td className="p-4 text-gray-400">
-                    {listing.sellerEmail || "—"}
-                  </td>
+                    <td className="p-4 text-[#c0c0c0]">
+                      <div>
+                        <div className="text-[#c0c0c0]">
+                          Offer/List Price:{" "}
+                          {listing.acceptedOfferAmount || listing.price}
+                        </div>
 
-                  <td className="p-4 text-gray-300">
-                    {listing.status || "ACTIVE"}
-                  </td>
+                        {invoice && (
+                          <div className="mt-1 text-xs text-emerald-400">
+                            Paid Total: {formatInvoiceAmount(invoice.amount)}
+                          </div>
+                        )}
+                      </div>
+                    </td>
 
-                  <td className="p-4 text-gray-400">
-                    {listing.createdAt
-                      ? new Date(listing.createdAt).toLocaleString()
-                      : "—"}
-                  </td>
+                    <td className="p-4 text-gray-400">
+                      {listing.sellerEmail || "—"}
+                    </td>
 
-                  <td className="p-4">
-                    <Link
-                      href={`/marketplace/${listing.id}`}
-                      className="text-[#c0c0c0] hover:text-white"
-                    >
-                      View →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+                    <td className="p-4 text-gray-300">
+                      {listing.status || "ACTIVE"}
+                    </td>
+
+                    <td className="p-4 text-gray-400">
+                      {listing.createdAt
+                        ? new Date(listing.createdAt).toLocaleString()
+                        : "—"}
+                    </td>
+
+                    <td className="p-4">
+                      <Link
+                        href={`/marketplace/${listing.id}`}
+                        className="text-[#c0c0c0] hover:text-white"
+                      >
+                        View →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

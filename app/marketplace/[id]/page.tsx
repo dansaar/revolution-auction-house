@@ -134,13 +134,27 @@ export default function MarketplaceListingPage() {
     );
   }
 
-  const listingPrice = moneyToNumber(listing?.price || 0);
+  const showAcceptedOfferPrice = Boolean(
+    listing?.acceptedOfferAmount &&
+    (listing.status === "OFFER_ACCEPTED" ||
+      listing.status === "SOLD" ||
+      listing.paid ||
+      listing.sold),
+  );
+
+  const displayPrice = showAcceptedOfferPrice
+    ? listing.acceptedOfferAmount
+    : listing.price;
+
+  const listingPrice = moneyToNumber(displayPrice || 0);
   const taxRate = Number(listing?.taxRate || 6.625);
+
   const taxAmount = calculateMarketplaceTax(
     listingPrice,
     Boolean(listing?.chargeTax),
     taxRate,
   );
+
   const estimatedTotal = listingPrice + taxAmount;
 
   const sellerPublicId =
@@ -326,8 +340,14 @@ export default function MarketplaceListingPage() {
               </div>
             )}
 
-            <div className="mt-8 font-serif text-6xl text-[#c0c0c0]">
-              {listing.price}
+            <div className="mt-8">
+              <div className="text-xs uppercase tracking-[0.22em] text-gray-500">
+                {showAcceptedOfferPrice ? "Accepted Offer Price" : "Price"}
+              </div>
+
+              <div className="mt-2 font-serif text-6xl text-[#c0c0c0]">
+                {displayPrice}
+              </div>
             </div>
 
             {listing.condition && (
@@ -378,7 +398,9 @@ export default function MarketplaceListingPage() {
 
               <div className="mt-3 space-y-2 text-sm text-gray-400">
                 <div className="flex justify-between gap-4">
-                  <span>Item Price</span>
+                  <span>
+                    {showAcceptedOfferPrice ? "Accepted Offer" : "Item Price"}
+                  </span>
                   <span className="text-white">
                     {formatCurrency(listingPrice)}
                   </span>
