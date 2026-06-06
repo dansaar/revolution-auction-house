@@ -66,11 +66,11 @@ const schema = a
         leaderUserId: a.string(),
         leaderDisplayName: a.string(),
         leaderEmail: a.string(),
-        leaderMaxBid: a.string(),
+        leaderMaxBid: a.string().authorization((allow) => [allow.group("Admin")]),
 
         secondUserId: a.string(),
         secondEmail: a.string(),
-        secondMaxBid: a.string(),
+        secondMaxBid: a.string().authorization((allow) => [allow.group("Admin")]),
 
         bidCount: a.integer().default(0),
 
@@ -147,7 +147,7 @@ const schema = a
         bidderUserId: a.string(),
         bidderEmail: a.string(),
         amount: a.string(),
-        maxBid: a.string(),
+        maxBid: a.string().authorization((allow) => [allow.group("Admin")]),
         isProxy: a.boolean(),
         createdAt: a.datetime(),
       })
@@ -211,8 +211,8 @@ const schema = a
 
         displayName: a.string(),
 
-        verificationTier: a.string().default("BASIC"),
-        bidLimit: a.integer().default(1000),
+        verificationTier: a.string().default("BASIC").authorization((allow) => [allow.group("Admin")]),
+        bidLimit: a.integer().default(1000).authorization((allow) => [allow.group("Admin")]),
 
         status: a.string().default("APPROVED"),
 
@@ -223,14 +223,18 @@ const schema = a
         requestedLimit: a.integer(),
         verificationNotes: a.string(),
 
-        reviewedBy: a.string(),
-        reviewedAt: a.datetime(),
+        reviewedBy: a.string().authorization((allow) => [allow.group("Admin")]),
+        reviewedAt: a.datetime().authorization((allow) => [allow.group("Admin")]),
       })
       .identifier(["userId"])
       .secondaryIndexes((index) => [
         index("email").queryField("buyerProfileByEmail"),
       ])
-      .authorization((allow) => [allow.authenticated()]),
+      .authorization((allow) => [
+        allow.ownerDefinedIn("userId"),
+        allow.authenticated().to(["read"]),
+        allow.group("Admin"),
+      ]),
 
     SellerProfile: a
       .model({
@@ -246,7 +250,10 @@ const schema = a
         revokedAt: a.datetime(),
       })
       .identifier(["email"])
-      .authorization((allow) => [allow.authenticated()]),
+      .authorization((allow) => [
+        allow.authenticated().to(["read"]),
+        allow.group("Admin"),
+      ]),
 
     WatchlistItem: a
       .model({

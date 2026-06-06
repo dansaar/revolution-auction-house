@@ -153,8 +153,6 @@ export default function VerifyPage() {
             userId,
             email,
             displayName: email,
-            verificationTier: "BASIC",
-            bidLimit: 1000,
             requestedTier,
             requestedLimit: Number(requestedLimit),
             verificationNotes,
