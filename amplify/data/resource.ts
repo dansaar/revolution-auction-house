@@ -3,6 +3,7 @@ import { placeBid } from "../functions/placeBid/resource";
 import { finalizeAuction } from "../functions/finalizeAuction/resource";
 import { scheduledFinalize } from "../functions/scheduledFinalize/resource";
 import { verifyPayment } from "../functions/verifyPayment/resource";
+import { reviewBuyerVerification } from "../functions/reviewBuyerVerification/resource";
 
 const schema = a
   .schema({
@@ -335,12 +336,28 @@ const schema = a
       )
       .authorization((allow) => [allow.authenticated(), allow.publicApiKey()])
       .handler(a.handler.function(verifyPayment)),
+
+    reviewBuyerVerification: a
+      .mutation()
+      .arguments({
+        userId: a.string().required(),
+        approved: a.boolean().required(),
+      })
+      .returns(
+        a.customType({
+          success: a.boolean(),
+          message: a.string(),
+        }),
+      )
+      .authorization((allow) => [allow.authenticated()])
+      .handler(a.handler.function(reviewBuyerVerification)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
     allow.resource(finalizeAuction),
     allow.resource(scheduledFinalize),
     allow.resource(verifyPayment),
+    allow.resource(reviewBuyerVerification),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

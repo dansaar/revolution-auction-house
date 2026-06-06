@@ -287,6 +287,16 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
     const bidderDisplayName = makeBidderDisplayName(bidderUserId);
 
+    const auctionOwnerCheck = await client.models.Auction.get({ id: auctionId });
+    if (auctionOwnerCheck.data?.sellerUserId === bidderUserId) {
+      return {
+        success: false,
+        message: "Sellers cannot bid on their own auctions.",
+        currentPrice: 0,
+        winner: "",
+      };
+    }
+
     const existingAuditLog = await getBidAuditLogDirect(bidRequestId);
 
     if (existingAuditLog) {

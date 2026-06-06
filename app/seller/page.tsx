@@ -876,23 +876,14 @@ function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
                     type="button"
                     onClick={async () => {
                       try {
-                        await client.models.BuyerProfile.update(
-                          {
-                            userId: request.userId,
-                            verificationTier:
-                              request.requestedTier ||
-                              request.verificationTier ||
-                              "BASIC",
-                            bidLimit: Number(
-                              request.requestedLimit ||
-                                request.bidLimit ||
-                                1000,
-                            ),
-                            status: "APPROVED",
-                            reviewedAt: new Date().toISOString(),
-                          },
+                        const result = await client.mutations.reviewBuyerVerification(
+                          { userId: request.userId, approved: true },
                           { authMode: "userPool" } as any,
                         );
+
+                        if (!result.data?.success) {
+                          throw new Error(result.data?.message || "Failed");
+                        }
 
                         setBuyerRequests((prev: any[]) =>
                           prev.filter(
@@ -915,14 +906,14 @@ function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
                     type="button"
                     onClick={async () => {
                       try {
-                        await client.models.BuyerProfile.update(
-                          {
-                            userId: request.userId,
-                            status: "DECLINED",
-                            reviewedAt: new Date().toISOString(),
-                          },
+                        const result = await client.mutations.reviewBuyerVerification(
+                          { userId: request.userId, approved: false },
                           { authMode: "userPool" } as any,
                         );
+
+                        if (!result.data?.success) {
+                          throw new Error(result.data?.message || "Failed");
+                        }
 
                         setBuyerRequests((prev: any[]) =>
                           prev.filter(

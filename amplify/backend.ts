@@ -6,6 +6,7 @@ import { placeBid } from "./functions/placeBid/resource";
 import { finalizeAuction } from "./functions/finalizeAuction/resource";
 import { scheduledFinalize } from "./functions/scheduledFinalize/resource";
 import { verifyPayment } from "./functions/verifyPayment/resource";
+import { reviewBuyerVerification } from "./functions/reviewBuyerVerification/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 
 const backend = defineBackend({
@@ -16,6 +17,7 @@ const backend = defineBackend({
   finalizeAuction,
   scheduledFinalize,
   verifyPayment,
+  reviewBuyerVerification,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];

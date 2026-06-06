@@ -155,6 +155,17 @@ export async function POST(req: Request) {
           const auction = result.data;
           if (!auction) continue;
 
+          if (
+            buyerEmail &&
+            auction.sellerEmail &&
+            buyerEmail.toLowerCase() === auction.sellerEmail.toLowerCase()
+          ) {
+            return NextResponse.json(
+              { error: "Sellers cannot purchase their own auctions." },
+              { status: 400 },
+            );
+          }
+
           const amounts = calcAuctionAmounts(auction);
           const title = auction.title || "Auction";
 
@@ -175,6 +186,17 @@ export async function POST(req: Request) {
           );
           const listing = result.data;
           if (!listing) continue;
+
+          if (
+            buyerEmail &&
+            listing.sellerEmail &&
+            buyerEmail.toLowerCase() === listing.sellerEmail.toLowerCase()
+          ) {
+            return NextResponse.json(
+              { error: "Sellers cannot purchase their own listings." },
+              { status: 400 },
+            );
+          }
 
           const amounts = calcListingAmounts(listing);
           const title = listing.title || "Marketplace Listing";
@@ -228,6 +250,17 @@ export async function POST(req: Request) {
         );
       }
 
+      if (
+        buyerEmail &&
+        auction.sellerEmail &&
+        buyerEmail.toLowerCase() === auction.sellerEmail.toLowerCase()
+      ) {
+        return NextResponse.json(
+          { error: "Sellers cannot purchase their own auctions." },
+          { status: 400 },
+        );
+      }
+
       const amounts = calcAuctionAmounts(auction);
 
       if (amounts.total < 0.5) {
@@ -268,6 +301,17 @@ export async function POST(req: Request) {
         return NextResponse.json(
           { error: "Listing not found" },
           { status: 404 },
+        );
+      }
+
+      if (
+        buyerEmail &&
+        listing.sellerEmail &&
+        buyerEmail.toLowerCase() === listing.sellerEmail.toLowerCase()
+      ) {
+        return NextResponse.json(
+          { error: "Sellers cannot purchase their own listings." },
+          { status: 400 },
         );
       }
 
