@@ -7,7 +7,9 @@ import { finalizeAuction } from "./functions/finalizeAuction/resource";
 import { scheduledFinalize } from "./functions/scheduledFinalize/resource";
 import { verifyPayment } from "./functions/verifyPayment/resource";
 import { reviewBuyerVerification } from "./functions/reviewBuyerVerification/resource";
+import { manageSellerGroup } from "./functions/manageSellerGroup/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
+import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 const backend = defineBackend({
   auth,
@@ -18,6 +20,7 @@ const backend = defineBackend({
   scheduledFinalize,
   verifyPayment,
   reviewBuyerVerification,
+  manageSellerGroup,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];
@@ -58,4 +61,25 @@ placeBidCfn.addPropertyOverride(
 placeBidCfn.addPropertyOverride(
   "Environment.Variables.BID_AUDIT_LOG_TABLE_NAME",
   bidAuditLogTable.tableName,
+);
+
+const userPool = backend.auth.resources.userPool;
+
+backend.manageSellerGroup.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: [
+      "cognito-idp:ListUsers",
+      "cognito-idp:AdminAddUserToGroup",
+      "cognito-idp:AdminRemoveUserFromGroup",
+    ],
+    resources: [userPool.userPoolArn],
+  }),
+);
+
+const manageSellerGroupCfn = backend.manageSellerGroup.resources.lambda.node
+  .defaultChild as CfnFunction;
+
+manageSellerGroupCfn.addPropertyOverride(
+  "Environment.Variables.USER_POOL_ID",
+  userPool.userPoolId,
 );

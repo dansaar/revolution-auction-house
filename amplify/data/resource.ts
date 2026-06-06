@@ -4,6 +4,7 @@ import { finalizeAuction } from "../functions/finalizeAuction/resource";
 import { scheduledFinalize } from "../functions/scheduledFinalize/resource";
 import { verifyPayment } from "../functions/verifyPayment/resource";
 import { reviewBuyerVerification } from "../functions/reviewBuyerVerification/resource";
+import { manageSellerGroup } from "../functions/manageSellerGroup/resource";
 
 const schema = a
   .schema({
@@ -379,6 +380,21 @@ const schema = a
       )
       .authorization((allow) => [allow.authenticated()])
       .handler(a.handler.function(reviewBuyerVerification)),
+
+    manageSellerGroup: a
+      .mutation()
+      .arguments({
+        email: a.string().required(),
+        action: a.string().required(),
+      })
+      .returns(
+        a.customType({
+          success: a.boolean(),
+          message: a.string(),
+        }),
+      )
+      .authorization((allow) => [allow.group("Admin")])
+      .handler(a.handler.function(manageSellerGroup)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -386,6 +402,7 @@ const schema = a
     allow.resource(scheduledFinalize),
     allow.resource(verifyPayment),
     allow.resource(reviewBuyerVerification),
+    allow.resource(manageSellerGroup),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

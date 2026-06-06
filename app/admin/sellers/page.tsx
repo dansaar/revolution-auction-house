@@ -99,6 +99,17 @@ export default function AdminSellersPage() {
         );
       }
 
+      const groupResult = await client.mutations.manageSellerGroup(
+        { email, action: "add" },
+        { authMode: "userPool" } as any,
+      );
+
+      if (!groupResult.data?.success) {
+        alert(
+          `Seller profile saved, but Cognito group update failed: ${groupResult.data?.message ?? "unknown error"}\nThe seller must have an account before they can list items.`,
+        );
+      }
+
       setNewSellerEmail("");
       setNewSellerName("");
 
@@ -126,6 +137,11 @@ export default function AdminSellersPage() {
         { authMode: "userPool" } as any,
       );
 
+      await client.mutations.manageSellerGroup(
+        { email: seller.email, action: "remove" },
+        { authMode: "userPool" } as any,
+      );
+
       await loadSellers();
     } catch (err) {
       console.error(err);
@@ -146,6 +162,17 @@ export default function AdminSellersPage() {
         },
         { authMode: "userPool" } as any,
       );
+
+      const groupResult = await client.mutations.manageSellerGroup(
+        { email: seller.email, action: "add" },
+        { authMode: "userPool" } as any,
+      );
+
+      if (!groupResult.data?.success) {
+        alert(
+          `Seller re-approved, but Cognito group update failed: ${groupResult.data?.message ?? "unknown error"}`,
+        );
+      }
 
       await loadSellers();
     } catch (err) {
