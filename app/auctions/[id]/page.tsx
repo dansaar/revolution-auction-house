@@ -876,10 +876,13 @@ export default function LiveAuctionPage() {
           <div>
             <h1 className="text-4xl font-serif">{auction.title}</h1>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-3">
               {auction.grade && <GradeBadge grade={auction.grade} />}
+              <span className="text-xs uppercase tracking-[0.18em] text-gray-600">
+                LOT-{auction.id.slice(-6).toUpperCase()}
+              </span>
               {auction.certNumber && (
-                <span className="text-xs text-gray-500">#{auction.certNumber}</span>
+                <span className="text-xs text-gray-500">Cert #{auction.certNumber}</span>
               )}
               {auction.population && (
                 <span className="text-xs text-gray-500">Pop: {auction.population}</span>

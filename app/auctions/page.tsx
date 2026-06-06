@@ -104,11 +104,16 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
       </div>
 
       <div className="p-3 sm:p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <GradeBadge grade={item.grade} />
-          {item.population && (
-            <span className="text-xs text-gray-500">Pop: {item.population}</span>
-          )}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <GradeBadge grade={item.grade} />
+            {item.population && (
+              <span className="text-xs text-gray-500">Pop: {item.population}</span>
+            )}
+          </div>
+          <span className="text-[10px] uppercase tracking-[0.18em] text-gray-600">
+            LOT-{item.id.slice(-6).toUpperCase()}
+          </span>
         </div>
 
         <div className="mt-2 text-sm font-semibold text-white sm:text-base">
@@ -516,18 +521,43 @@ export default function AuctionsPage() {
       <section className="mx-auto max-w-7xl">
         <h2 className="mb-4 font-serif text-2xl">Live Auctions</h2>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {visibleLiveAuctions.map((item) => (
-            <Link key={item.id} href={`/auctions/${item.id}`}>
-              <AuctionCard
-                item={item}
-                isWatching={isWatching}
-                toggleWatchlist={toggleWatchlist}
-              />
-            </Link>
-          ))}
-        </div>
+        {visibleLiveAuctions.length === 0 ? (
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-gray-500">
+            No live auctions{search ? ` matching "${search}"` : ""}.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {visibleLiveAuctions.map((item) => (
+              <Link key={item.id} href={`/auctions/${item.id}`}>
+                <AuctionCard
+                  item={item}
+                  ended={false}
+                  isWatching={isWatching}
+                  toggleWatchlist={toggleWatchlist}
+                />
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
+
+      {visibleEndedAuctions.length > 0 && (
+        <section className="mx-auto mt-16 max-w-7xl">
+          <h2 className="mb-4 font-serif text-2xl text-gray-500">Ended Auctions</h2>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {visibleEndedAuctions.map((item) => (
+              <Link key={item.id} href={`/auctions/${item.id}/results`}>
+                <AuctionCard
+                  item={item}
+                  ended={true}
+                  isWatching={isWatching}
+                  toggleWatchlist={toggleWatchlist}
+                />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="mx-auto mt-16 max-w-7xl text-center">
         <h2 className="mb-4 font-serif text-3xl">

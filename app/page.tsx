@@ -42,6 +42,7 @@ function resolveAuctionImage(auction: any) {
 
 export default function RevolutionAuctionHouseHomepage() {
   const [endingSoon, setEndingSoon] = useState<any[]>([]);
+  const [recentSales, setRecentSales] = useState<any[]>([]);
   const [now, setNow] = useState(Date.now());
   const featuredAuction =
     endingSoon.find((auction) => auction?.endsAt) || endingSoon[0];
@@ -82,6 +83,17 @@ export default function RevolutionAuctionHouseHomepage() {
         }));
 
         setEndingSoon(resolved);
+
+        // Recent sales: ended auctions with a winning bid, sorted newest first
+        const sold = (result.data || [])
+          .filter((a: any) => a.ended && a.winningBid && a.winnerUserId)
+          .sort((a: any, b: any) =>
+            new Date(b.endsAt || b.updatedAt || 0).getTime() -
+            new Date(a.endsAt || a.updatedAt || 0).getTime()
+          )
+          .slice(0, 20);
+
+        setRecentSales(sold);
       } catch (err) {
         console.error("HOME AUCTIONS ERROR", err);
       }
@@ -226,6 +238,36 @@ export default function RevolutionAuctionHouseHomepage() {
             </div>
           </div>
         </section>
+
+        {recentSales.length > 0 && (
+          <section className="mb-8 overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
+            <div className="flex items-center">
+              <div className="shrink-0 border-r border-white/10 bg-white/[0.04] px-4 py-3 text-[10px] uppercase tracking-[0.22em] text-[#d6aa55]">
+                Recent Sales
+              </div>
+              <div className="relative flex-1 overflow-hidden">
+                <div className="animate-marquee flex gap-0 whitespace-nowrap py-3">
+                  {[...recentSales, ...recentSales].map((a: any, i: number) => (
+                    <Link
+                      key={i}
+                      href={`/auctions/${a.id}/results`}
+                      className="mx-6 inline-flex shrink-0 items-center gap-2 text-sm hover:text-white"
+                    >
+                      <span className="text-gray-400">{a.title}</span>
+                      {a.grade && (
+                        <span className="rounded border border-white/20 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">
+                          {a.grade}
+                        </span>
+                      )}
+                      <span className="font-semibold text-[#c0c0c0]">${Number(a.winningBid).toLocaleString()}</span>
+                      <span className="text-white/20">·</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:grid-cols-5">
           <Trust
