@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Trophy, Gavel } from "lucide-react";
+import { ArrowLeft, Trophy, Gavel, ExternalLink } from "lucide-react";
 import { cdnUrl } from "@/lib/cdn";
 
 import { generateClient } from "aws-amplify/data";
@@ -16,6 +16,33 @@ function makeBidderDisplayName(value: string) {
   if (!value) return "";
   if (value.startsWith("Bidder ")) return value;
   return `Bidder ${value.slice(0, 4).toUpperCase()}`;
+}
+
+function moneyToNumber(value: string | number | null | undefined) {
+  if (typeof value === "number") return value;
+  if (!value) return 0;
+  return Number(String(value).replace("$", "").replaceAll(",", ""));
+}
+
+function GradeBadge({ grade }: { grade?: string | null }) {
+  if (!grade) return null;
+  const g = grade.trim();
+  const num = parseFloat((g.match(/(\d+\.?\d*)/) || [])[1] || "0");
+  const color =
+    num >= 10
+      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+      : num >= 9.5
+        ? "border-[#d6aa55]/50 bg-[#d6aa55]/10 text-[#e7c77f]"
+        : num >= 9
+          ? "border-white/30 bg-white/[0.06] text-[#c0c0c0]"
+          : "border-white/20 bg-white/[0.04] text-gray-400";
+  return (
+    <span
+      className={`inline-flex items-center rounded border px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] ${color}`}
+    >
+      {g}
+    </span>
+  );
 }
 
 export default function AuctionResultsPage() {
@@ -38,30 +65,23 @@ export default function AuctionResultsPage() {
         setUser(null);
       }
     }
-
     loadUser();
   }, []);
 
   useEffect(() => {
     async function loadResults() {
       try {
-        const auctionResult = await client.models.Auction.get({ id }, {
-          authMode: "apiKey",
-        } as any);
-
-        const stateResult = await client.models.AuctionState.get(
-          { auctionId: id },
-          { authMode: "apiKey" } as any,
-        );
-
-        const bidResult = await client.models.Bid.bidsByAuction(
-          { auctionId: id },
-          {
-            authMode: "apiKey",
-            limit: 100,
-            sortDirection: "DESC",
-          } as any,
-        );
+        const [auctionResult, stateResult, bidResult] = await Promise.all([
+          client.models.Auction.get({ id }, { authMode: "apiKey" } as any),
+          client.models.AuctionState.get(
+            { auctionId: id },
+            { authMode: "apiKey" } as any,
+          ),
+          client.models.Bid.bidsByAuction(
+            { auctionId: id },
+            { authMode: "apiKey", limit: 100, sortDirection: "DESC" } as any,
+          ),
+        ]);
 
         const baseAuction = auctionResult.data;
         const state = stateResult.data;
@@ -107,7 +127,6 @@ export default function AuctionResultsPage() {
 
   useEffect(() => {
     if (!auction) return;
-
     const rawImage =
       auction.fullImages?.[0] ||
       auction.mediumImages?.[0] ||
@@ -115,53 +134,62 @@ export default function AuctionResultsPage() {
       auction.images?.[0] ||
       auction.image ||
       "";
-
     setResolvedImage(cdnUrl(rawImage) || "/logo.png");
   }, [auction]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white p-10">
-        Loading results...
+      <div className="min-h-screen bg-[#050607] text-white">
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          <div className="h-8 w-40 animate-pulse rounded bg-white/10" />
+          <div className="mt-10 grid gap-10 lg:grid-cols-2">
+            <div className="h-96 animate-pulse rounded-2xl bg-white/[0.04]" />
+            <div className="space-y-4">
+              <div className="h-6 w-24 animate-pulse rounded bg-white/10" />
+              <div className="h-12 w-3/4 animate-pulse rounded bg-white/10" />
+              <div className="h-4 w-1/2 animate-pulse rounded bg-white/10" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!auction) {
     return (
-      <div className="min-h-screen bg-black text-white p-10">
-        Auction not found
+      <div className="flex min-h-screen items-center justify-center bg-[#050607] text-white">
+        <div className="text-center">
+          <p className="text-gray-400">Auction not found.</p>
+          <Link href="/auctions" className="mt-4 inline-block text-sm text-[#c0c0c0] underline">
+            Back to Auctions
+          </Link>
+        </div>
       </div>
     );
   }
-
-  const winner = bids[0];
 
   const userValues = [
     user?.userId,
     user?.username,
     user?.signInDetails?.loginId,
-  ].map((value) => String(value || ""));
+  ].map((v) => String(v || ""));
 
   const winnerValues = [
     auction.winnerUserId,
     auction.winnerEmail,
     auction.winnerDisplayName,
-  ].map((value) => String(value || ""));
+  ].map((v) => String(v || ""));
 
-  const isWinner = winnerValues.some((winnerValue) =>
-    userValues.includes(winnerValue),
-  );
+  const isWinner = winnerValues.some((wv) => userValues.includes(wv));
 
   const finalPrice = moneyToNumber(auction.price || auction.winningBid || 0);
   const reservePrice = moneyToNumber(auction.reservePrice || 0);
-
   const reserveMet = reservePrice === 0 || finalPrice >= reservePrice;
 
   const winningBidderName =
     auction.winnerDisplayName ||
     (auction.winnerUserId ? makeBidderDisplayName(auction.winnerUserId) : "") ||
-    winner?.bidderName ||
+    bids[0]?.bidderName ||
     "";
 
   async function handleCheckout() {
@@ -195,18 +223,36 @@ export default function AuctionResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050607] text-white px-6 py-10">
-      <main className="mx-auto max-w-6xl">
+    <div className="min-h-screen bg-[#050607] text-white">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_30%)]" />
+
+      <main className="relative z-10 mx-auto max-w-6xl px-6 py-10">
         <Link
           href="/auctions"
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-white"
+          className="inline-flex items-center gap-2 text-sm text-gray-500 transition hover:text-white"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={15} />
           Back to Auctions
         </Link>
 
+        {/* Winner banner */}
+        {isWinner && reserveMet && (
+          <div className="mt-6 flex items-center gap-4 rounded-2xl border border-[#d6aa55]/30 bg-[#d6aa55]/[0.07] px-6 py-5">
+            <Trophy className="shrink-0 text-[#d6aa55]" size={28} />
+            <div>
+              <div className="font-serif text-2xl text-[#e7c77f]">
+                Congratulations — you won this auction
+              </div>
+              <p className="mt-1 text-sm text-[#d6aa55]/70">
+                Complete your purchase below to claim this lot.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="mt-8 grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-          <div>
+          {/* Image */}
+          <div className="flex items-start justify-center rounded-2xl border border-white/10 bg-black p-6">
             <img
               src={resolvedImage}
               alt={auction.title}
@@ -214,102 +260,149 @@ export default function AuctionResultsPage() {
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = "/logo.png";
               }}
-              className="w-full rounded-xl border border-white/10 object-cover"
+              className="max-h-[480px] w-full object-contain"
             />
           </div>
 
+          {/* Details */}
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#c0c0c0]/30 bg-[#c0c0c0]/10 px-4 py-2 text-xs uppercase tracking-[0.25em] text-[#c0c0c0]">
-              <Trophy size={15} />
+            <div className="inline-flex items-center gap-2 rounded border border-[#c0c0c0]/25 bg-[#c0c0c0]/[0.07] px-4 py-2 text-xs uppercase tracking-[0.25em] text-[#c0c0c0]">
+              <Trophy size={13} />
               Auction Results
             </div>
 
-            <h1 className="mt-5 font-serif text-5xl">{auction.title}</h1>
-            <p className="mt-3 text-gray-400">{auction.subtitle}</p>
+            <h1 className="mt-5 font-serif text-4xl leading-tight text-[#d7d7d7] md:text-5xl">
+              {auction.title}
+            </h1>
 
-            <div className="mt-8 rounded-xl border border-white/10 bg-white/[0.03] p-6">
-              <div className="text-xs uppercase tracking-widest text-gray-500">
+            {auction.subtitle && (
+              <p className="mt-2 text-lg text-gray-400">{auction.subtitle}</p>
+            )}
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              {auction.grade && <GradeBadge grade={auction.grade} />}
+              <span className="text-xs uppercase tracking-[0.18em] text-gray-600">
+                LOT-{id.slice(-6).toUpperCase()}
+              </span>
+              {auction.certNumber && (
+                <span className="text-xs text-gray-500">
+                  Cert #{auction.certNumber}
+                </span>
+              )}
+              {auction.population && (
+                <span className="text-xs text-gray-500">
+                  Pop: {auction.population}
+                </span>
+              )}
+              {auction.year && (
+                <span className="text-xs text-gray-500">{auction.year}</span>
+              )}
+            </div>
+
+            {/* Final price */}
+            <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+              <div className="text-xs uppercase tracking-[0.22em] text-gray-500">
                 Final Price
               </div>
               <div className="mt-2 font-serif text-6xl text-[#c0c0c0]">
                 {auction.price || auction.winningBid || "$0"}
               </div>
-
-              <div className="mt-4">
-                {reserveMet ? (
-                  <span className="rounded bg-green-500/10 px-3 py-1 text-green-400">
-                    Reserve Met
-                  </span>
-                ) : (
-                  <span className="rounded bg-yellow-500/10 px-3 py-1 text-yellow-400">
-                    Reserve Not Met
-                  </span>
-                )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span
+                  className={`rounded px-3 py-1 text-sm ${
+                    reserveMet
+                      ? "bg-emerald-500/10 text-emerald-400"
+                      : "bg-yellow-500/10 text-yellow-400"
+                  }`}
+                >
+                  {reserveMet ? "Reserve Met" : "Reserve Not Met"}
+                </span>
+                <span className="rounded bg-white/[0.05] px-3 py-1 text-sm text-gray-400">
+                  {auction.bids || 0} bids
+                </span>
               </div>
+
               {isWinner && auction.paid && (
-                <div className="mt-4 rounded bg-green-500/10 px-3 py-2 text-green-400">
-                  ✅ Paid
+                <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-3 text-emerald-400">
+                  <span className="text-base">✓</span>
+                  <span className="text-sm font-semibold">Payment received</span>
                 </div>
               )}
 
               {isWinner && reserveMet && !auction.paid && (
                 <button
                   onClick={handleCheckout}
-                  className="mt-6 w-full rounded bg-[#c0c0c0] px-6 py-4 font-semibold text-black hover:bg-white"
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-[#c0c0c0] px-6 py-4 font-bold text-black transition hover:bg-white"
                 >
-                  Pay Now
+                  Complete Purchase <ExternalLink size={15} />
                 </button>
               )}
             </div>
 
-            <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-6">
-              <div className="flex items-center gap-2 text-[#c0c0c0]">
-                <Gavel size={18} />
+            {/* Winner */}
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-gray-500">
+                <Gavel size={14} />
                 Winning Bidder
               </div>
-
-              <div className="mt-3 text-2xl font-semibold">
+              <div className="mt-3 font-serif text-3xl text-[#d7d7d7]">
                 {winningBidderName || "No bids placed"}
               </div>
-
               {auction.endsAt && (
                 <div className="mt-2 text-sm text-gray-500">
-                  Ended at {new Date(auction.endsAt).toLocaleString()}
+                  Closed {new Date(auction.endsAt).toLocaleString()}
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        <section className="mt-12 rounded-xl border border-white/10 bg-white/[0.03] p-6">
-          <h2 className="font-serif text-3xl">Final Bid History</h2>
+        {/* Bid History */}
+        <section className="mt-12">
+          <h2 className="font-serif text-3xl text-[#d7d7d7]">Bid History</h2>
 
           {bids.length === 0 ? (
-            <p className="mt-5 text-gray-500">No bids were placed.</p>
+            <p className="mt-6 text-gray-500">No bids were placed.</p>
           ) : (
-            <div className="mt-6 space-y-3">
+            <div className="mt-6 overflow-hidden rounded-2xl border border-white/10">
               {bids.map((bid, index) => (
                 <div
                   key={bid.id || index}
-                  className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
+                  className={`flex items-center justify-between px-6 py-4 ${
                     index === 0
-                      ? "border-green-500/40 bg-green-500/10"
-                      : "border-white/10 bg-black/30"
+                      ? "border-b border-emerald-500/20 bg-emerald-500/[0.06]"
+                      : "border-b border-white/[0.05] bg-white/[0.02] last:border-b-0"
                   }`}
                 >
-                  <div>
-                    <div className="font-semibold">
-                      {index === 0 ? "🏆 " : ""}
-                      {bid.bidderName}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {bid.createdAt
-                        ? new Date(bid.createdAt).toLocaleString()
-                        : "Unknown time"}
+                  <div className="flex items-center gap-4">
+                    {index === 0 && (
+                      <Trophy size={16} className="shrink-0 text-[#d6aa55]" />
+                    )}
+                    {index > 0 && (
+                      <span className="w-4 text-center text-xs text-gray-600">
+                        {index + 1}
+                      </span>
+                    )}
+                    <div>
+                      <div
+                        className={`font-semibold ${
+                          index === 0 ? "text-emerald-300" : "text-gray-300"
+                        }`}
+                      >
+                        {bid.bidderName || makeBidderDisplayName(bid.userId || "")}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {bid.createdAt
+                          ? new Date(bid.createdAt).toLocaleString()
+                          : ""}
+                      </div>
                     </div>
                   </div>
-
-                  <div className="font-serif text-2xl text-[#c0c0c0]">
+                  <div
+                    className={`font-serif text-2xl ${
+                      index === 0 ? "text-emerald-300" : "text-[#c0c0c0]"
+                    }`}
+                  >
                     {bid.amount}
                   </div>
                 </div>
@@ -320,10 +413,4 @@ export default function AuctionResultsPage() {
       </main>
     </div>
   );
-}
-
-function moneyToNumber(value: string | number | null | undefined) {
-  if (typeof value === "number") return value;
-  if (!value) return 0;
-  return Number(String(value).replace("$", "").replaceAll(",", ""));
 }
