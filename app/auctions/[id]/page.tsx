@@ -263,30 +263,20 @@ export default function LiveAuctionPage() {
 
       if (!auction?.id || !imagePaths?.length) return;
 
-      const cacheKey = fullscreen
-        ? `auction-full-images-${auction.id}`
-        : `auction-medium-images-${auction.id}`;
-
-      const cached = sessionStorage.getItem(cacheKey);
-
-      if (cached) {
-        const cachedUrls = JSON.parse(cached);
-
-        setResolvedImages(cachedUrls);
-        setSelectedImage(cachedUrls[0] || "/logo.png");
-
-        return;
-      }
-
       const urls = imagePaths.map((path: string) => cdnUrl(path));
 
       setResolvedImages(urls);
       setSelectedImage(urls[0] || "/logo.png");
-      sessionStorage.setItem(cacheKey, JSON.stringify(urls));
     }
 
     resolveImages();
-  }, [auction?.id, fullscreen]);
+  }, [
+    auction?.id,
+    fullscreen,
+    auction?.images,
+    auction?.mediumImages,
+    auction?.fullImages,
+  ]);
 
   useEffect(() => {
     if (!fullscreen && resolvedImages.length > 0) {
