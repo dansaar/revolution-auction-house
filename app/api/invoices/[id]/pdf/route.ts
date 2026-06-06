@@ -63,16 +63,6 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const invoiceResult = await client.models.Invoice.get({ id }, {
-      authMode: "apiKey",
-    } as any);
-
-    const invoice = invoiceResult.data;
-
-    if (!invoice) {
-      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
-    }
-
     const authHeader = req.headers.get("authorization") || "";
     const token = authHeader.startsWith("Bearer ")
       ? authHeader.slice("Bearer ".length)
@@ -89,6 +79,17 @@ export async function GET(
     } catch (err) {
       console.error("INVOICE JWT VERIFY ERROR:", err);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const invoiceResult = await client.models.Invoice.get({ id }, {
+      authMode: "userPool",
+      authToken: token,
+    } as any);
+
+    const invoice = invoiceResult.data;
+
+    if (!invoice) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
     const currentEmail = String(payload.email || "").toLowerCase();
