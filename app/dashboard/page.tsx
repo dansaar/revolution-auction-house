@@ -174,20 +174,29 @@ export default function DashboardPage() {
 
         let profile = null;
 
-        const profileResult = await client.models.BuyerProfile.get({ userId }, {
-          authMode: "userPool",
-        } as any);
+        if (client.models.BuyerProfile) {
+          const profileResult = await client.models.BuyerProfile.get(
+            { userId },
+            {
+              authMode: "userPool",
+            } as any,
+          );
 
-        profile = profileResult.data || null;
+          profile = profileResult.data || null;
 
-        if (!profile && userKey) {
-          const profileByEmailResult =
-            await client.models.BuyerProfile.buyerProfileByEmail(
-              { email: userKey },
-              { authMode: "userPool" } as any,
-            );
+          if (!profile && userKey) {
+            const profileByEmailResult =
+              await client.models.BuyerProfile.buyerProfileByEmail(
+                { email: userKey },
+                { authMode: "userPool" } as any,
+              );
 
-          profile = profileByEmailResult.data?.[0] || null;
+            profile = profileByEmailResult.data?.[0] || null;
+          }
+        } else {
+          console.warn(
+            "BuyerProfile model is missing from amplify_outputs.json",
+          );
         }
 
         setBuyerProfile(profile);

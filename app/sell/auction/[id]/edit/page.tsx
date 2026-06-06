@@ -11,6 +11,7 @@ import { uploadData } from "aws-amplify/storage";
 import { cdnUrl } from "@/lib/cdn";
 import Link from "next/link";
 import { isApprovedSeller } from "@/lib/sellers";
+import imageCompression from "browser-image-compression";
 
 export default function CreateAuctionPage() {
   const clientRef = React.useRef(generateClient<Schema>());
@@ -154,32 +155,63 @@ export default function CreateAuctionPage() {
     setLoading(true);
 
     try {
-      let imageUrls: string[] = [];
+      let thumbUrls: string[] = [];
+      let mediumUrls: string[] = [];
+      let fullUrls: string[] = [];
 
-      // Upload images
+      // Upload new images
       if (imageFiles.length > 0) {
-        for (const file of imageFiles) {
-          const safeName = file.name.replaceAll(" ", "-");
+        for (const file of imageFiles.filter(Boolean)) {
+          const safeName = (file.name || "auction-image.jpg").replaceAll(
+            " ",
+            "-",
+          );
+          const baseName = `${Date.now()}-${safeName}`;
 
-          const path = `auction-images/${Date.now()}-${safeName}`;
+          const thumbFile = await imageCompression(file, {
+            maxWidthOrHeight: 500,
+            maxSizeMB: 0.25,
+            useWebWorker: true,
+          });
 
-          await uploadData({
-            path,
-            data: file,
-          }).result;
+          const mediumFile = await imageCompression(file, {
+            maxWidthOrHeight: 1400,
+            maxSizeMB: 1.2,
+            useWebWorker: true,
+          });
 
-          imageUrls.push(path);
+          const thumbPath = `auction-images/thumb/${baseName}`;
+          const mediumPath = `auction-images/medium/${baseName}`;
+          const fullPath = `auction-images/full/${baseName}`;
+
+          await uploadData({ path: thumbPath, data: thumbFile }).result;
+          await uploadData({ path: mediumPath, data: mediumFile }).result;
+          await uploadData({ path: fullPath, data: file }).result;
+
+          thumbUrls.push(thumbPath);
+          mediumUrls.push(mediumPath);
+          fullUrls.push(fullPath);
         }
       }
 
-      const finalImages =
-        existingImagePaths.length > 0 || imageUrls.length > 0
-          ? [...existingImagePaths, ...imageUrls]
+      const finalFullImages =
+        existingImagePaths.length > 0 || fullUrls.length > 0
+          ? [...existingImagePaths, ...fullUrls]
           : form.image
             ? [form.image]
             : ["/logo.png"];
 
-      const mainImage = finalImages[0];
+      const finalMediumImages =
+        existingImagePaths.length > 0 || mediumUrls.length > 0
+          ? [...existingImagePaths, ...mediumUrls]
+          : finalFullImages;
+
+      const finalThumbImages =
+        existingImagePaths.length > 0 || thumbUrls.length > 0
+          ? [...existingImagePaths, ...thumbUrls]
+          : finalFullImages;
+
+      const mainImage = finalFullImages[0];
 
       let currentUser;
 
@@ -238,10 +270,10 @@ export default function CreateAuctionPage() {
           buyerPremiumRate: 18,
 
           image: mainImage,
-          images: finalImages,
-          thumbImages: finalImages,
-          mediumImages: finalImages,
-          fullImages: finalImages,
+          images: finalFullImages,
+          thumbImages: finalThumbImages,
+          mediumImages: finalMediumImages,
+          fullImages: finalFullImages,
 
           endsAt: new Date(form.endsAt).toISOString(),
         },

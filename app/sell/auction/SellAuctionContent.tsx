@@ -246,7 +246,7 @@ export default function SellAuctionContent() {
         provenance: form.provenance,
 
         image: mainImage,
-        images: finalImages,
+        images: finalFullImages,
 
         thumbImages: finalThumbImages,
         mediumImages: finalMediumImages,

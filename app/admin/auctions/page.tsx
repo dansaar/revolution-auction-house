@@ -15,6 +15,20 @@ export default function AdminAuctionsPage() {
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [auctions, setAuctions] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+
+  function formatInvoiceAmount(value: string | number | null | undefined) {
+    const amount = Number(String(value || "0").replace(/[$,]/g, ""));
+
+    if (!Number.isFinite(amount)) return "$0.00";
+
+    return amount.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
 
   useEffect(() => {
     async function load() {
@@ -30,6 +44,13 @@ export default function AdminAuctionsPage() {
           authMode: "apiKey",
           limit: 1000,
         } as any);
+
+        const invoiceResult = await client.models.Invoice.list({
+          authMode: "apiKey",
+          limit: 1000,
+        } as any);
+
+        setInvoices(invoiceResult.data || []);
 
         setAuctions(result.data || []);
       } finally {
@@ -78,31 +99,49 @@ export default function AdminAuctionsPage() {
               </tr>
             </thead>
             <tbody>
-              {auctions.map((auction) => (
-                <tr key={auction.id} className="border-t border-white/10">
-                  <td className="p-4 text-white">{auction.title}</td>
-                  <td className="p-4 text-[#c0c0c0]">
-                    {auction.price || "$0"}
-                  </td>
-                  <td className="p-4 text-gray-300">
-                    {auction.status || (auction.ended ? "ENDED" : "ACTIVE")}
-                  </td>
-                  <td className="p-4 text-gray-400">
-                    {auction.endsAt
-                      ? new Date(auction.endsAt).toLocaleString()
-                      : "—"}
-                  </td>
-                  <td className="p-4 text-gray-400">{auction.bids || 0}</td>
-                  <td className="p-4">
-                    <Link
-                      href={`/auctions/${auction.id}`}
-                      className="text-[#c0c0c0] hover:text-white"
-                    >
-                      View →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {auctions.map((auction: any) => {
+                const invoice = invoices.find(
+                  (invoice: any) =>
+                    String(invoice.auctionId) === String(auction.id),
+                );
+
+                return (
+                  <tr key={auction.id} className="border-t border-white/10">
+                    <td className="p-4 text-white">{auction.title}</td>
+                    <td className="p-4 text-[#c0c0c0]">
+                      <div>
+                        <div className="text-[#c0c0c0]">
+                          Hammer Price:{" "}
+                          {auction.winningBid || auction.price || "$0"}
+                        </div>
+
+                        {invoice && (
+                          <div className="mt-1 text-xs text-emerald-400">
+                            Paid Total: {formatInvoiceAmount(invoice.amount)}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-4 text-gray-300">
+                      {auction.status || (auction.ended ? "ENDED" : "ACTIVE")}
+                    </td>
+                    <td className="p-4 text-gray-400">
+                      {auction.endsAt
+                        ? new Date(auction.endsAt).toLocaleString()
+                        : "—"}
+                    </td>
+                    <td className="p-4 text-gray-400">{auction.bids || 0}</td>
+                    <td className="p-4">
+                      <Link
+                        href={`/auctions/${auction.id}`}
+                        className="text-[#c0c0c0] hover:text-white"
+                      >
+                        View →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
