@@ -8,7 +8,7 @@ import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
-import { getCurrentUser } from "aws-amplify/auth";
+import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 import { moneyToNumber } from "@/lib/money";
 
@@ -216,14 +216,16 @@ export default function MarketplaceListingPage() {
   }
 
   async function handleBuyNow() {
-    let buyerEmail = "";
+    let token = "";
 
     try {
-      const currentUser = await getCurrentUser();
-
-      buyerEmail =
-        currentUser.signInDetails?.loginId || currentUser.username || "";
+      const session = await fetchAuthSession();
+      token = session.tokens?.idToken?.toString() || "";
     } catch {
+      // fall through
+    }
+
+    if (!token) {
       window.location.href = "/signin";
       return;
     }
@@ -236,6 +238,7 @@ export default function MarketplaceListingPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           listingId: id,
@@ -244,7 +247,6 @@ export default function MarketplaceListingPage() {
           subtotal: formatCurrency(listingPrice),
           buyerPremium: "$0.00",
           tax: formatCurrency(taxAmount),
-          buyerEmail,
         }),
       });
 

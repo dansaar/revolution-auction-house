@@ -4,7 +4,7 @@ import "@/lib/amplifyclient";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { getCurrentUser } from "aws-amplify/auth";
+import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
@@ -200,16 +200,20 @@ export default function CartPage() {
     try {
       setCheckingOut(true);
 
-      const user = await getCurrentUser();
-      const buyerEmail = user.signInDetails?.loginId || user.username || "";
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString();
+      if (!token) {
+        alert("Please sign in to checkout.");
+        return;
+      }
 
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          buyerEmail,
           items: selectedItems.map((item) => {
             const totals = calculateItemTotals(item);
 

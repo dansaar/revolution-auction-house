@@ -4,10 +4,29 @@ import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import outputs from "@/amplify_outputs.json";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
+
+const { aws_region: region, user_pool_id: userPoolId } = (outputs as any).auth;
+const JWKS = createRemoteJWKSet(
+  new URL(
+    `https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`,
+  ),
+);
+
+async function getBuyerEmailFromRequest(req: Request): Promise<string | null> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return null;
+  try {
+    const { payload } = await jwtVerify(authHeader.slice(7), JWKS);
+    return (payload.email as string) || null;
+  } catch {
+    return null;
+  }
+}
 
 function moneyToNumber(value: string | number | null | undefined): number {
   if (typeof value === "number") return value;
@@ -118,6 +137,15 @@ function buildListingLineItems(
 
 export async function POST(req: Request) {
   try {
+    const buyerEmail = await getBuyerEmailFromRequest(req);
+
+    if (!buyerEmail) {
+      return NextResponse.json(
+        { error: "Authentication required." },
+        { status: 401 },
+      );
+    }
+
     const stripeSecretKey =
       process.env.STRIPE_SECRET_KEY || process.env.AMPLIFY_STRIPE_SECRET_KEY;
 
@@ -139,7 +167,7 @@ export async function POST(req: Request) {
 
     const stripe = new Stripe(stripeSecretKey);
 
-    const { auctionId, listingId, buyerEmail, items } = await req.json();
+    const { auctionId, listingId, items } = await req.json();
 
     // Cart checkout — look up each item from the DB, ignore client-provided amounts
     if (Array.isArray(items) && items.length > 0) {

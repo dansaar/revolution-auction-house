@@ -9,7 +9,7 @@ import { cdnUrl } from "@/lib/cdn";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 
-import { getCurrentUser } from "aws-amplify/auth";
+import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import "@/lib/amplifyclient";
 
 function makeBidderDisplayName(value: string) {
@@ -165,10 +165,18 @@ export default function AuctionResultsPage() {
     "";
 
   async function handleCheckout() {
+    const session = await fetchAuthSession();
+    const token = session.tokens?.idToken?.toString();
+    if (!token) {
+      alert("Please sign in to checkout.");
+      return;
+    }
+
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         auctionId: id,

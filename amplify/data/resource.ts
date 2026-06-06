@@ -81,7 +81,11 @@ const schema = a
         ended: a.boolean().default(false),
       })
       .identifier(["auctionId"])
-      .authorization((allow) => [allow.publicApiKey().to(['read']), allow.authenticated()]),
+      .authorization((allow) => [
+        allow.publicApiKey().to(['read']),
+        allow.authenticated().to(['create']),
+        allow.group("Admin"),
+      ]),
 
     MarketplaceListing: a
       .model({
@@ -167,7 +171,10 @@ const schema = a
           .sortKeys(["createdAt"])
           .queryField("bidsByBidderEmail"),
       ])
-      .authorization((allow) => [allow.publicApiKey().to(['read']), allow.authenticated()]),
+      .authorization((allow) => [
+        allow.publicApiKey().to(['read']),
+        allow.group("Admin"),
+      ]),
 
     BidAuditLog: a
       .model({
