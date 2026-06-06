@@ -8,6 +8,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
   GetCommand,
+  PutCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 
@@ -19,22 +20,20 @@ Amplify.configure(resourceConfig, libraryOptions);
 const client = generateClient<Schema>();
 const dynamoClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
+const AUCTION_TABLE_NAME = (env as any).AUCTION_TABLE_NAME;
 const AUCTION_STATE_TABLE_NAME = (env as any).AUCTION_STATE_TABLE_NAME;
-
-if (!AUCTION_STATE_TABLE_NAME) {
-  throw new Error("Missing AUCTION_STATE_TABLE_NAME");
-}
-
+const BID_TABLE_NAME = (env as any).BID_TABLE_NAME;
 const BUYER_PROFILE_TABLE_NAME = (env as any).BUYER_PROFILE_TABLE_NAME;
-
-if (!BUYER_PROFILE_TABLE_NAME) {
-  throw new Error("Missing BUYER_PROFILE_TABLE_NAME");
-}
-
 const BID_AUDIT_LOG_TABLE_NAME = (env as any).BID_AUDIT_LOG_TABLE_NAME;
 
-if (!BID_AUDIT_LOG_TABLE_NAME) {
-  throw new Error("Missing BID_AUDIT_LOG_TABLE_NAME");
+for (const [name, val] of [
+  ["AUCTION_TABLE_NAME", AUCTION_TABLE_NAME],
+  ["AUCTION_STATE_TABLE_NAME", AUCTION_STATE_TABLE_NAME],
+  ["BID_TABLE_NAME", BID_TABLE_NAME],
+  ["BUYER_PROFILE_TABLE_NAME", BUYER_PROFILE_TABLE_NAME],
+  ["BID_AUDIT_LOG_TABLE_NAME", BID_AUDIT_LOG_TABLE_NAME],
+]) {
+  if (!val) throw new Error(`Missing env var: ${name}`);
 }
 
 const BID_COOLDOWN_MS = 3000; // stress test only. Restore to 3000 before production.
@@ -99,13 +98,90 @@ async function getBidAuditLogDirect(bidRequestId: string) {
   const result = await dynamoClient.send(
     new GetCommand({
       TableName: BID_AUDIT_LOG_TABLE_NAME,
-      Key: {
-        bidRequestId,
+      Key: { bidRequestId },
+    }),
+  );
+  return result.Item || null;
+}
+
+async function getAuctionDirect(auctionId: string) {
+  const result = await dynamoClient.send(
+    new GetCommand({
+      TableName: AUCTION_TABLE_NAME,
+      Key: { id: auctionId },
+    }),
+  );
+  return result.Item || null;
+}
+
+async function writeBidDirect(bid: {
+  auctionId: string;
+  bidderUserId: string;
+  bidderEmail: string;
+  bidderName: string;
+  amount: string;
+  maxBid: string;
+  isProxy: boolean;
+  createdAt: string;
+}) {
+  const id = crypto.randomUUID();
+  await dynamoClient.send(
+    new PutCommand({
+      TableName: BID_TABLE_NAME,
+      Item: {
+        __typename: "Bid",
+        id,
+        ...bid,
+        updatedAt: bid.createdAt,
       },
     }),
   );
+  return id;
+}
 
-  return result.Item || null;
+async function updateAuctionPriceDirect({
+  auctionId,
+  price,
+  bids,
+  winnerUserId,
+  winnerDisplayName,
+  winnerEmail,
+  winningBid,
+  endsAt,
+}: {
+  auctionId: string;
+  price: string;
+  bids: number;
+  winnerUserId: string;
+  winnerDisplayName: string;
+  winnerEmail: string;
+  winningBid: string;
+  endsAt: string | null | undefined;
+}) {
+  await dynamoClient.send(
+    new UpdateCommand({
+      TableName: AUCTION_TABLE_NAME,
+      Key: { id: auctionId },
+      UpdateExpression: `SET price = :price,
+        bids = :bids,
+        winnerUserId = :winnerUserId,
+        winnerDisplayName = :winnerDisplayName,
+        winnerEmail = :winnerEmail,
+        winningBid = :winningBid,
+        endsAt = :endsAt,
+        updatedAt = :updatedAt`,
+      ExpressionAttributeValues: {
+        ":price": price,
+        ":bids": bids,
+        ":winnerUserId": winnerUserId,
+        ":winnerDisplayName": winnerDisplayName,
+        ":winnerEmail": winnerEmail,
+        ":winningBid": winningBid,
+        ":endsAt": endsAt ?? null,
+        ":updatedAt": new Date().toISOString(),
+      },
+    }),
+  );
 }
 
 async function writeBidAuditLogDirect(log: {
@@ -287,8 +363,8 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
     const bidderDisplayName = makeBidderDisplayName(bidderUserId);
 
-    const auctionOwnerCheck = await client.models.Auction.get({ id: auctionId });
-    if (auctionOwnerCheck.data?.sellerUserId === bidderUserId) {
+    const auctionOwnerCheck = await getAuctionDirect(auctionId);
+    if (auctionOwnerCheck?.sellerUserId === bidderUserId) {
       return {
         success: false,
         message: "Sellers cannot bid on their own auctions.",
@@ -373,11 +449,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       let state = await getAuctionStateDirect(auctionId);
 
       if (!state) {
-        const auctionResult = await client.models.Auction.get({
-          id: auctionId,
-        });
-
-        const auction = auctionResult.data;
+        const auction = await getAuctionDirect(auctionId);
 
         if (!auction) {
           return {
@@ -388,7 +460,9 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
           };
         }
 
-        const createdState = await client.models.AuctionState.create({
+        const initNow = new Date().toISOString();
+        const initState = {
+          __typename: "AuctionState",
           auctionId,
           currentPrice: auction.price || "$0",
           leaderUserId: null,
@@ -397,11 +471,29 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
           secondMaxBid: null,
           bidCount: auction.bids || 0,
           version: 1,
-          endsAt: auction.endsAt,
+          endsAt: auction.endsAt || null,
           ended: auction.ended || false,
-        });
+          createdAt: initNow,
+          updatedAt: initNow,
+        };
 
-        state = createdState.data;
+        try {
+          await dynamoClient.send(
+            new PutCommand({
+              TableName: AUCTION_STATE_TABLE_NAME,
+              Item: initState,
+              ConditionExpression: "attribute_not_exists(auctionId)",
+            }),
+          );
+          state = initState;
+        } catch (err: any) {
+          if (err?.name === "ConditionalCheckFailedException") {
+            // Another invocation just initialized it — re-read
+            state = await getAuctionStateDirect(auctionId);
+          } else {
+            throw err;
+          }
+        }
       }
 
       if (!state) {
@@ -616,19 +708,20 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         continue;
       }
 
-      const bidCreateResult = await client.models.Bid.create({
+      const now = new Date().toISOString();
+      await writeBidDirect({
         auctionId,
-        bidderUserId: bidderUserId,
-        bidderEmail: bidderEmail,
+        bidderUserId,
+        bidderEmail,
         bidderName: bidderDisplayName,
         amount: formatMoney(visiblePrice),
         maxBid: formatMoney(maxBid),
         isProxy: false,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
       });
 
       if (proxyUserId) {
-        await client.models.Bid.create({
+        await writeBidDirect({
           auctionId,
           bidderUserId: proxyUserId,
           bidderEmail: "proxy-bid",
@@ -636,15 +729,14 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
           amount: formatMoney(visiblePrice),
           maxBid: formatMoney(leaderMaxBid),
           isProxy: true,
-          createdAt: new Date().toISOString(),
+          createdAt: now,
         });
       }
 
-      await client.models.Auction.update({
-        id: auctionId,
+      await updateAuctionPriceDirect({
+        auctionId,
         price: formatMoney(visiblePrice),
         bids: newBidCount,
-
         winnerUserId: newLeaderUserId,
         winnerDisplayName: makeBidderDisplayName(newLeaderUserId),
         winnerEmail: newLeaderUserId === bidderUserId ? bidderEmail : "",
