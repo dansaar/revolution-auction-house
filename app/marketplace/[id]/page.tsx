@@ -264,55 +264,57 @@ export default function MarketplaceListingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050607] px-6 py-12 text-white">
+    <main className="min-h-screen bg-[#050607] px-4 py-8 text-white md:px-6 md:py-12">
       <div className="mx-auto max-w-7xl">
         <Link
           href="/marketplace"
-          className="mb-8 inline-block rounded border border-white/10 px-5 py-3 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/[0.04]"
+          className="mb-6 inline-block rounded border border-white/10 px-4 py-2 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/[0.04] md:mb-8 md:px-5 md:py-3"
         >
           ← Marketplace
         </Link>
 
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
           {/* LEFT */}
           <div>
             <button
               type="button"
               onClick={() => setFullscreen(true)}
-              className="group relative block overflow-hidden rounded-2xl border border-white/10 bg-black"
+              className="group relative block w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
             >
               <img
                 loading="eager"
                 src={selectedImage || "/logo.png"}
                 alt={listing.title}
-                className="relative z-10 h-[320px] w-full object-contain md:h-[600px]"
+                className="relative z-10 h-[280px] w-full object-contain sm:h-[360px] md:h-[500px] lg:h-[600px]"
               />
               <div className="pointer-events-none absolute bottom-3 right-3 rounded bg-black/70 px-3 py-1 text-xs text-[#c0c0c0] opacity-0 transition group-hover:opacity-100">
                 Click to fullscreen
               </div>
             </button>
 
-            <div className="mt-4 grid grid-cols-4 gap-2 md:gap-3">
-              {images.map((src, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setSelectedImage(src)}
-                  className={`overflow-hidden rounded border ${
-                    selectedImage === src
-                      ? "border-[#c0c0c0]"
-                      : "border-white/10"
-                  }`}
-                >
-                  <img
-                    loading="lazy"
-                    src={src}
-                    alt={`${listing.title} ${i + 1}`}
-                    className="h-16 w-full object-cover md:h-24"
-                  />
-                </button>
-              ))}
-            </div>
+            {images.length > 1 && (
+              <div className="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-6 md:mt-4 md:grid-cols-4 md:gap-3">
+                {images.map((src, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setSelectedImage(src)}
+                    className={`overflow-hidden rounded border ${
+                      selectedImage === src
+                        ? "border-[#c0c0c0]"
+                        : "border-white/10"
+                    }`}
+                  >
+                    <img
+                      loading="lazy"
+                      src={src}
+                      alt={`${listing.title} ${i + 1}`}
+                      className="h-14 w-full object-cover sm:h-16 md:h-20 lg:h-24"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* RIGHT */}
@@ -321,41 +323,41 @@ export default function MarketplaceListingPage() {
               Marketplace Listing
             </div>
 
-            <h1 className="mt-4 font-serif text-5xl">{listing.title}</h1>
+            <h1 className="mt-3 font-serif text-3xl sm:text-4xl md:text-5xl">{listing.title}</h1>
 
             {listing.subtitle && (
-              <div className="mt-3 text-xl text-gray-400">
+              <div className="mt-2 text-base text-gray-400 sm:text-xl">
                 {listing.subtitle}
               </div>
             )}
 
-            <div className="mt-8">
+            <div className="mt-6 md:mt-8">
               <div className="text-xs uppercase tracking-[0.22em] text-gray-500">
                 {showAcceptedOfferPrice ? "Accepted Offer Price" : "Price"}
               </div>
 
-              <div className="mt-2 font-serif text-6xl text-[#c0c0c0]">
+              <div className="mt-2 font-serif text-4xl text-[#c0c0c0] sm:text-5xl md:text-6xl">
                 {displayPrice}
               </div>
             </div>
 
             {listing.condition && (
-              <div className="mt-6">
+              <div className="mt-5 md:mt-6">
                 <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
                   Condition
                 </div>
 
-                <div className="mt-2 text-lg">{listing.condition}</div>
+                <div className="mt-2 text-base md:text-lg">{listing.condition}</div>
               </div>
             )}
 
             {listing.description && (
-              <div className="mt-8">
+              <div className="mt-6 md:mt-8">
                 <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
                   Description
                 </div>
 
-                <div className="mt-3 whitespace-pre-line text-gray-300">
+                <div className="mt-3 whitespace-pre-line text-sm text-gray-300 md:text-base">
                   {listing.description}
                 </div>
               </div>
@@ -369,7 +371,7 @@ export default function MarketplaceListingPage() {
                 listing.status === "OFFER_PENDING" ||
                 listing.status === "OFFER_ACCEPTED"
               }
-              className="mt-10 w-full rounded bg-[#c0c0c0] py-4 font-semibold text-black transition hover:bg-white disabled:opacity-50"
+              className="mt-8 w-full rounded bg-[#c0c0c0] py-4 font-semibold text-black transition hover:bg-white disabled:opacity-50 md:mt-10"
             >
               {listing.sold || listing.status === "SOLD"
                 ? "Sold"
@@ -415,34 +417,36 @@ export default function MarketplaceListingPage() {
               </div>
             </div>
 
-            <div className="mt-4 rounded border border-white/10 bg-white/[0.03] p-4">
-              <div className="mb-3 text-xs uppercase tracking-[0.18em] text-gray-500">
-                Make Offer
-              </div>
+            {listing.acceptsOffers && (
+              <div className="mt-4 rounded border border-white/10 bg-white/[0.03] p-4">
+                <div className="mb-3 text-xs uppercase tracking-[0.18em] text-gray-500">
+                  Make Offer
+                </div>
 
-              <div className="flex gap-3">
-                <input
-                  value={offerAmount}
-                  onChange={(e) => setOfferAmount(e.target.value)}
-                  placeholder="Offer Amount"
-                  className="flex-1 rounded border border-white/10 bg-black px-4 py-3 text-white"
-                />
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    value={offerAmount}
+                    onChange={(e) => setOfferAmount(e.target.value)}
+                    placeholder="Offer Amount"
+                    className="flex-1 rounded border border-white/10 bg-black px-4 py-3 text-white"
+                  />
 
-                <button
-                  onClick={handleMakeOffer}
-                  disabled={
-                    submittingOffer ||
-                    listing.sold ||
-                    listing.status === "SOLD" ||
-                    listing.status === "OFFER_PENDING" ||
-                    listing.status === "OFFER_ACCEPTED"
-                  }
-                  className="rounded border border-white/10 bg-white/[0.05] px-6 py-3 font-semibold text-white transition hover:bg-white/[0.08] disabled:opacity-50"
-                >
-                  {submittingOffer ? "Sending..." : "Submit"}
-                </button>
+                  <button
+                    onClick={handleMakeOffer}
+                    disabled={
+                      submittingOffer ||
+                      listing.sold ||
+                      listing.status === "SOLD" ||
+                      listing.status === "OFFER_PENDING" ||
+                      listing.status === "OFFER_ACCEPTED"
+                    }
+                    className="rounded border border-white/10 bg-white/[0.05] px-6 py-3 font-semibold text-white transition hover:bg-white/[0.08] disabled:opacity-50"
+                  >
+                    {submittingOffer ? "Sending..." : "Submit"}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {sellerPublicId && (
               <div className="mt-8 border-t border-white/10 pt-5">

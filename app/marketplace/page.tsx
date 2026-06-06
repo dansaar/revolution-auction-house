@@ -86,15 +86,15 @@ export default function MarketplacePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#050607] px-6 py-12 text-white">
+      <main className="min-h-screen bg-[#050607] px-4 py-8 text-white md:px-6 md:py-12">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-10 h-16 w-80 animate-pulse rounded bg-white/[0.06]" />
+          <div className="mb-8 h-16 w-64 animate-pulse rounded bg-white/[0.06] md:w-80" />
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((item) => (
               <div
                 key={item}
-                className="h-[420px] animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]"
+                className="h-[360px] animate-pulse rounded-2xl border border-white/10 bg-white/[0.04] md:h-[420px]"
               />
             ))}
           </div>
@@ -104,33 +104,30 @@ export default function MarketplacePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050607] px-6 py-12 text-white">
+    <main className="min-h-screen bg-[#050607] px-4 py-8 text-white md:px-6 md:py-12">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-10 flex items-center justify-between border-b border-white/10 pb-8">
-          <div className="flex items-center gap-6">
-            <img
-              src="/logo.png"
-              alt="Revolution"
-              className="h-40 w-auto object-contain"
-            />
-
-            <h1 className="font-serif text-5xl">Marketplace</h1>
-          </div>
+        <div className="mb-8 flex flex-col items-start gap-3 border-b border-white/10 pb-6 sm:flex-row sm:items-center sm:gap-6 md:mb-10 md:pb-8">
+          <img
+            src="/logo.png"
+            alt="Revolution"
+            className="h-20 w-auto object-contain sm:h-28 md:h-40"
+          />
+          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl">Marketplace</h1>
         </div>
 
         {listings.length === 0 ? (
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-10 text-gray-400">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-gray-400 md:p-10">
             No listings found.
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
             {listings.map((listing) => (
               <Link
                 key={listing.id}
                 href={`/marketplace/${listing.id}`}
                 className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-[#c0c0c0]/50"
               >
-                <div className="relative h-72 bg-black">
+                <div className="relative h-56 bg-black sm:h-64 md:h-72">
                   <div className="absolute inset-0 animate-pulse bg-white/[0.04]" />
 
                   <img
@@ -144,18 +141,18 @@ export default function MarketplacePage() {
                   />
                 </div>
 
-                <div className="p-5">
+                <div className="p-4 md:p-5">
                   <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
                     {listing.condition || "Marketplace"}
                   </div>
 
                   {listing.status === "OFFER_PENDING" && (
-                    <div className="mt-3 inline-flex rounded bg-yellow-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-yellow-300">
+                    <div className="mt-2 inline-flex rounded bg-yellow-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-yellow-300">
                       Offer Pending
                     </div>
                   )}
 
-                  <h2 className="mt-2 font-serif text-2xl">{listing.title}</h2>
+                  <h2 className="mt-2 font-serif text-xl md:text-2xl">{listing.title}</h2>
 
                   {listing.subtitle && (
                     <p className="mt-1 text-sm text-gray-400">
@@ -163,7 +160,7 @@ export default function MarketplacePage() {
                     </p>
                   )}
 
-                  <div className="mt-4 font-serif text-3xl text-[#c0c0c0]">
+                  <div className="mt-3 font-serif text-2xl text-[#c0c0c0] md:mt-4 md:text-3xl">
                     {listing.price}
                   </div>
                 </div>
