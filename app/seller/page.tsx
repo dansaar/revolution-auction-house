@@ -749,7 +749,7 @@ function OfferSection({ offers, listings, client }: any) {
                                 "",
                               acceptedOfferAmount: offer.amount,
                             },
-                            { authMode: "apiKey" } as any,
+                            { authMode: "userPool" } as any,
                           );
 
                           window.location.reload();
@@ -780,7 +780,7 @@ function OfferSection({ offers, listings, client }: any) {
                               id: offer.listingId,
                               status: "ACTIVE",
                             },
-                            { authMode: "apiKey" } as any,
+                            { authMode: "userPool" } as any,
                           );
 
                           window.location.reload();
@@ -1445,7 +1445,7 @@ function SellerAuctionCard({
                         trackingNumber: shippingTracking.trim(),
                         shippedAt: new Date().toISOString(),
                       },
-                      { authMode: "apiKey" } as any,
+                      { authMode: "userPool" } as any,
                     );
 
                     toast.success("Shipping info updated");
@@ -1499,7 +1499,7 @@ function SellerAuctionCard({
                         status: "ENDED",
                         endsAt: new Date().toISOString(),
                       },
-                      { authMode: "apiKey" } as any,
+                      { authMode: "userPool" } as any,
                     );
 
                     toast.success("Auction ended");
@@ -1740,7 +1740,7 @@ function MarketplaceSection({
                                   id: listing.id,
                                   status: "PAUSED",
                                 },
-                                { authMode: "apiKey" } as any,
+                                { authMode: "userPool" } as any,
                               );
 
                               toast.success("Listing paused");
@@ -1772,7 +1772,7 @@ function MarketplaceSection({
                                   status: "SOLD",
                                   sold: true,
                                 },
-                                { authMode: "apiKey" } as any,
+                                { authMode: "userPool" } as any,
                               );
 
                               toast.success("Listing marked sold");
@@ -1806,7 +1806,7 @@ function MarketplaceSection({
                                 id: listing.id,
                                 status: "ACTIVE",
                               },
-                              { authMode: "apiKey" } as any,
+                              { authMode: "userPool" } as any,
                             );
 
                             toast.success("Listing activated");
@@ -1899,7 +1899,7 @@ function MarketplaceSection({
                         trackingNumber: shippingTracking.trim(),
                         shippedAt: new Date().toISOString(),
                       },
-                      { authMode: "apiKey" } as any,
+                      { authMode: "userPool" } as any,
                     );
 
                     toast.success("Shipping info updated");

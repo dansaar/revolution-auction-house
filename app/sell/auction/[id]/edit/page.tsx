@@ -278,7 +278,7 @@ export default function CreateAuctionPage() {
           endsAt: new Date(form.endsAt).toISOString(),
         },
         {
-          authMode: "apiKey",
+          authMode: "userPool",
         } as any,
       );
 

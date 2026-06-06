@@ -242,7 +242,7 @@ export default function EditListingPage() {
           mediumImages: finalMediumImages,
           fullImages: finalFullImages,
         },
-        { authMode: "apiKey" } as any,
+        { authMode: "userPool" } as any,
       );
 
       router.push(`/marketplace/${listingId}`);

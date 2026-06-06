@@ -205,19 +205,6 @@ export default function MarketplaceListingPage() {
         } as any,
       );
 
-      await client.models.MarketplaceListing.update(
-        {
-          id: listing.id,
-          status: "OFFER_PENDING",
-        },
-        { authMode: "apiKey" } as any,
-      );
-
-      setListing((prev: any) => ({
-        ...prev,
-        status: "OFFER_PENDING",
-      }));
-
       alert("Offer submitted");
       setOfferAmount("");
     } catch (err) {
