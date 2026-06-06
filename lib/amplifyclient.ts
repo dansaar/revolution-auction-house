@@ -1,8 +1,12 @@
 import { Amplify } from "aws-amplify";
+import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito";
+import { CookieStorage } from "aws-amplify/utils";
 import outputs from "@/amplify_outputs.json";
 
-Amplify.configure(outputs);
+Amplify.configure(outputs, { ssr: true });
 
-console.log("Amplify configured");
+cognitoUserPoolsTokenProvider.setKeyValueStorage(
+  new CookieStorage({ sameSite: "strict", secure: true }),
+);
 
 export {};

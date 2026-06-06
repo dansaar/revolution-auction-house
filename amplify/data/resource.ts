@@ -56,7 +56,12 @@ const schema = a
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
       })
-      .authorization((allow) => [allow.publicApiKey().to(['read']), allow.ownerDefinedIn("sellerUserId"), allow.group("Admin")]),
+      .authorization((allow) => [
+        allow.publicApiKey().to(['read']),
+        allow.group("Seller").to(['create']),
+        allow.ownerDefinedIn("sellerUserId").to(['read', 'update']),
+        allow.group("Admin"),
+      ]),
 
     AuctionState: a
       .model({
@@ -124,7 +129,12 @@ const schema = a
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
       })
-      .authorization((allow) => [allow.publicApiKey().to(['read']), allow.ownerDefinedIn("sellerUserId"), allow.group("Admin")]),
+      .authorization((allow) => [
+        allow.publicApiKey().to(['read']),
+        allow.group("Seller").to(['create']),
+        allow.ownerDefinedIn("sellerUserId").to(['read', 'update']),
+        allow.group("Admin"),
+      ]),
 
     Offer: a
       .model({

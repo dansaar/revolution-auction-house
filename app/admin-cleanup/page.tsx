@@ -2,15 +2,26 @@
 
 import "@/lib/amplifyclient";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { list, remove } from "aws-amplify/storage";
+import { isAdminUser } from "@/lib/sellers";
 
 const client = generateClient<Schema>();
 
 export default function AdminCleanupPage() {
   const [status, setStatus] = useState("Ready");
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    isAdminUser().then((ok) => {
+      if (!ok) window.location.href = "/";
+      else setAuthorized(true);
+    });
+  }, []);
+
+  if (!authorized) return null;
 
   async function deleteAll(modelName: string, model: any) {
     setStatus(`Loading ${modelName}...`);
