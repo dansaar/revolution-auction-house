@@ -29,7 +29,7 @@ export default function SellerInvoicesPage() {
               eq: email,
             },
           },
-          authMode: "apiKey",
+          authMode: "userPool",
         } as any);
 
         setInvoices(result.data || []);

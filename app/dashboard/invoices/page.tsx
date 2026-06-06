@@ -25,7 +25,7 @@ export default function BuyerInvoicesPage() {
           filter: {
             buyerEmail: { eq: email },
           },
-          authMode: "apiKey",
+          authMode: "userPool",
         } as any);
 
         setInvoices(result.data || []);

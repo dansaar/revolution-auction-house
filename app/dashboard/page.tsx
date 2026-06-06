@@ -294,7 +294,7 @@ export default function DashboardPage() {
           filter: {
             buyerEmail: { eq: userKey },
           },
-          authMode: "apiKey",
+          authMode: "userPool",
         } as any);
 
         setInvoices(invoiceResult.data || []);

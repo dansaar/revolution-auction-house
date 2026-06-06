@@ -41,7 +41,7 @@ export default function AdminAuctionsPage() {
         } as any);
 
         const invoiceResult = await client.models.Invoice.list({
-          authMode: "apiKey",
+          authMode: "userPool",
           limit: 1000,
         } as any);
 
