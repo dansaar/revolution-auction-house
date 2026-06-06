@@ -11,6 +11,25 @@ import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 
+function GradeBadge({ grade }: { grade?: string | null }) {
+  if (!grade) return null;
+  const g = grade.trim();
+  const num = parseFloat((g.match(/(\d+\.?\d*)/) || [])[1] || "0");
+  const color =
+    num >= 10
+      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+      : num >= 9.5
+        ? "border-[#d6aa55]/50 bg-[#d6aa55]/10 text-[#e7c77f]"
+        : num >= 9
+          ? "border-white/30 bg-white/[0.06] text-[#c0c0c0]"
+          : "border-white/20 bg-white/[0.04] text-gray-400";
+  return (
+    <span className={`inline-flex items-center rounded border px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] ${color}`}>
+      {g}
+    </span>
+  );
+}
+
 function getIncrement(amount: number): number {
   if (amount < 100) return 5;
   if (amount < 500) return 10;
@@ -856,6 +875,19 @@ export default function LiveAuctionPage() {
           {/* RIGHT SIDE */}
           <div>
             <h1 className="text-4xl font-serif">{auction.title}</h1>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {auction.grade && <GradeBadge grade={auction.grade} />}
+              {auction.certNumber && (
+                <span className="text-xs text-gray-500">#{auction.certNumber}</span>
+              )}
+              {auction.population && (
+                <span className="text-xs text-gray-500">Pop: {auction.population}</span>
+              )}
+              {auction.year && (
+                <span className="text-xs text-gray-500">{auction.year}</span>
+              )}
+            </div>
 
             {/* FIX #11  single source of truth: always use displayPrice number state */}
 

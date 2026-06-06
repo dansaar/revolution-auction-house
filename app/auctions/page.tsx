@@ -11,6 +11,25 @@ import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
 
+function GradeBadge({ grade }: { grade?: string | null }) {
+  if (!grade) return null;
+  const g = grade.trim();
+  const num = parseFloat((g.match(/(\d+\.?\d*)/) || [])[1] || "0");
+  const color =
+    num >= 10
+      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+      : num >= 9.5
+        ? "border-[#d6aa55]/50 bg-[#d6aa55]/10 text-[#e7c77f]"
+        : num >= 9
+          ? "border-white/30 bg-white/[0.06] text-[#c0c0c0]"
+          : "border-white/20 bg-white/[0.04] text-gray-400";
+  return (
+    <span className={`inline-flex items-center rounded border px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] ${color}`}>
+      {g}
+    </span>
+  );
+}
+
 function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
   const time = getTimeLeft(item.endsAt);
   const watching = isWatching(item.id);
@@ -85,7 +104,14 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
       </div>
 
       <div className="p-3 sm:p-4">
-        <div className="text-sm font-semibold text-white sm:text-base">
+        <div className="flex flex-wrap items-center gap-2">
+          <GradeBadge grade={item.grade} />
+          {item.population && (
+            <span className="text-xs text-gray-500">Pop: {item.population}</span>
+          )}
+        </div>
+
+        <div className="mt-2 text-sm font-semibold text-white sm:text-base">
           {item.title}
         </div>
         <div className="text-sm text-gray-400">{item.subtitle}</div>
@@ -97,15 +123,20 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
             </div>
             <div className="text-xl text-[#c0c0c0]">{item.price}</div>
           </div>
-
           <div className="text-sm text-gray-400">{item.bids || 0} bids</div>
         </div>
+
+        {!ended && (
+          <div className="mt-3 w-full rounded bg-white/[0.06] py-2 text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#c0c0c0] opacity-0 transition group-hover:opacity-100">
+            Bid Now →
+          </div>
+        )}
+
         {ended && (
           <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
             <span className="text-xs uppercase tracking-[0.16em] text-gray-500">
               Result
             </span>
-
             {reserveMet ? (
               <span className="rounded bg-emerald-500/15 px-2 py-1 text-[11px] uppercase text-emerald-300">
                 Reserve Met
@@ -134,6 +165,7 @@ export default function AuctionsPage() {
   const [filter, setFilter] = useState<
     "ALL" | "ENDING_SOON" | "HIGH_VALUE" | "PSA_10"
   >("ALL");
+  const [search, setSearch] = useState("");
 
   function isWatching(auctionId: string) {
     return watchedIds.includes(auctionId);
@@ -355,6 +387,15 @@ export default function AuctionsPage() {
     return new Date(a.endsAt).getTime() <= now;
   });
 
+  function applySearch(items: any[]) {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((a) =>
+      [a.title, a.subtitle, a.grade, a.certNumber, a.year, a.setName]
+        .some((f) => String(f || "").toLowerCase().includes(q))
+    );
+  }
+
   function applyFilter(items: any[]) {
     if (filter === "ENDING_SOON") {
       return [...items].sort(
@@ -380,8 +421,8 @@ export default function AuctionsPage() {
     return items;
   }
 
-  const visibleLiveAuctions = applyFilter(liveAuctions);
-  const visibleEndedAuctions = applyFilter(endedAuctions);
+  const visibleLiveAuctions = applyFilter(applySearch(liveAuctions));
+  const visibleEndedAuctions = applyFilter(applySearch(endedAuctions));
 
   if (loading) {
     return (
@@ -415,6 +456,15 @@ export default function AuctionsPage() {
         >
           View Auction Results Archive →
         </Link>
+      </div>
+
+      <div className="mx-auto mb-6 max-w-7xl">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by title, grade, year, set, cert number..."
+          className="w-full rounded-xl border border-white/10 bg-black px-5 py-4 text-white outline-none placeholder:text-gray-600 focus:border-[#d6aa55]/50"
+        />
       </div>
 
       <div className="mx-auto mb-8 flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
