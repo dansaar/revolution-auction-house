@@ -193,7 +193,7 @@ export default function MarketplaceListingPage() {
           buyerEmail,
           buyerDisplayName: buyerEmail,
 
-          sellerUserId: listing.sellerEmail || "",
+          sellerUserId: listing.sellerUserId || "",
           sellerEmail: listing.sellerEmail || "",
 
           amount: `$${Number(offerAmount).toLocaleString()}`,

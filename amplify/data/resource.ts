@@ -139,7 +139,11 @@ const schema = a
         status: a.string().default("PENDING"),
         read: a.boolean().default(false),
       })
-      .authorization((allow) => [allow.authenticated()]),
+      .authorization((allow) => [
+        allow.ownerDefinedIn("buyerUserId"),
+        allow.ownerDefinedIn("sellerEmail").identityClaim("email"),
+        allow.group("Admin"),
+      ]),
 
     Bid: a
       .model({
@@ -264,7 +268,10 @@ const schema = a
         href: a.string(),
         userEmail: a.string().required(),
       })
-      .authorization((allow) => [allow.authenticated()]),
+      .authorization((allow) => [
+        allow.ownerDefinedIn("userEmail").identityClaim("email"),
+        allow.group("Admin"),
+      ]),
 
     placeBid: a
       .mutation()
@@ -317,7 +324,11 @@ const schema = a
     stripeSessionId: a.string(),
     paidAt: a.datetime(),
   })
-      .authorization((allow) => [allow.authenticated()]),
+      .authorization((allow) => [
+        allow.ownerDefinedIn("buyerEmail").identityClaim("email"),
+        allow.ownerDefinedIn("sellerEmail").identityClaim("email"),
+        allow.group("Admin"),
+      ]),
 
     verifyPayment: a
       .mutation()
