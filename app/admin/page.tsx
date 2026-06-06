@@ -128,6 +128,12 @@ export default function AdminPage() {
             description="Approve sellers and manage invite-only access."
             href="/admin/sellers"
           />
+
+          <AdminCard
+            title="Shill Detection"
+            description="Flag bidder/seller pairs with suspicious concentration or identity overlap."
+            href="/admin/shill"
+          />
         </div>
       </div>
     </main>
