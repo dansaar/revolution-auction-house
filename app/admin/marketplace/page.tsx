@@ -4,11 +4,9 @@ import "@/lib/amplifyclient";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-
-const ADMINS = ["dansaar52@gmail.com"];
+import { isAdminUser } from "@/lib/sellers";
 
 export default function AdminMarketplacePage() {
   const client = generateClient<Schema>();
@@ -34,10 +32,7 @@ export default function AdminMarketplacePage() {
   useEffect(() => {
     async function load() {
       try {
-        const user = await getCurrentUser();
-        const email = user.signInDetails?.loginId || user.username || "";
-
-        if (!ADMINS.includes(email)) return;
+        if (!await isAdminUser()) return;
 
         setIsAdmin(true);
 

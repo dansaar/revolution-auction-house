@@ -1,20 +1,20 @@
 import "@/lib/amplifyclient";
 
+import { fetchAuthSession } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 
 const client = generateClient<Schema>();
 
-export const PLATFORM_ADMINS = ["dansaar52@gmail.com", "dansaar@verizon.net"];
-
-const EMERGENCY_SELLERS = ["dansaar52@gmail.com"];
-
-export function isPlatformAdmin(email?: string | null) {
-  if (!email) return false;
-
-  return PLATFORM_ADMINS.map((admin) => admin.toLowerCase()).includes(
-    email.toLowerCase(),
-  );
+export async function isAdminUser(): Promise<boolean> {
+  try {
+    const session = await fetchAuthSession();
+    const groups =
+      (session.tokens?.idToken?.payload["cognito:groups"] as string[]) || [];
+    return groups.includes("Admin");
+  } catch {
+    return false;
+  }
 }
 
 export async function isApprovedSeller(email?: string | null) {
@@ -22,17 +22,7 @@ export async function isApprovedSeller(email?: string | null) {
 
   const normalizedEmail = email.toLowerCase();
 
-  if (isPlatformAdmin(normalizedEmail)) {
-    return true;
-  }
-
-  if (
-    EMERGENCY_SELLERS.map((seller) => seller.toLowerCase()).includes(
-      normalizedEmail,
-    )
-  ) {
-    return true;
-  }
+  if (await isAdminUser()) return true;
 
   try {
     const result = await client.models.SellerProfile.get(

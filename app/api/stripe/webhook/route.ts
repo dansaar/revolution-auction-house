@@ -1,7 +1,13 @@
-// app/api/stripe/webhook/route.ts
-
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { Amplify } from "aws-amplify";
+import { generateClient } from "aws-amplify/data";
+import type { Schema } from "@/amplify/data/resource";
+import outputs from "@/amplify_outputs.json";
+
+Amplify.configure(outputs);
+
+const client = generateClient<Schema>();
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,21 +63,22 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
 
-        console.log("Checkout session completed:", session.id);
+        console.log("WEBHOOK checkout.session.completed:", session.id);
 
-        // TODO:
-        // - Mark order as paid
-        // - Save payment intent/session id
-        // - Clear user's cart
-        // - Mark auction/listing as sold if applicable
+        const result = await client.mutations.verifyPayment(
+          { sessionId: session.id },
+          { authMode: "apiKey" } as any,
+        );
 
-        break;
-      }
-
-      case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-
-        console.log("Payment succeeded:", paymentIntent.id);
+        if (result.data?.paid) {
+          console.log("WEBHOOK payment verified:", session.id, result.data);
+        } else {
+          console.error(
+            "WEBHOOK payment verification failed:",
+            session.id,
+            result.data?.error,
+          );
+        }
 
         break;
       }

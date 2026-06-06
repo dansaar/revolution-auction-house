@@ -7,8 +7,7 @@ import { useEffect, useState } from "react";
 import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-
-const ADMINS = ["dansaar52@gmail.com"];
+import { isAdminUser } from "@/lib/sellers";
 
 const client = generateClient<Schema>();
 
@@ -40,11 +39,12 @@ export default function AdminSellersPage() {
       try {
         const user = await getCurrentUser();
         const email = user.signInDetails?.loginId || user.username || "";
-
         setAdminEmail(email);
-        setIsAdmin(ADMINS.includes(email));
 
-        if (ADMINS.includes(email)) {
+        const admin = await isAdminUser();
+        setIsAdmin(admin);
+
+        if (admin) {
           await loadSellers();
         }
       } finally {

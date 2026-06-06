@@ -2,6 +2,7 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { placeBid } from "../functions/placeBid/resource";
 import { finalizeAuction } from "../functions/finalizeAuction/resource";
 import { scheduledFinalize } from "../functions/scheduledFinalize/resource";
+import { verifyPayment } from "../functions/verifyPayment/resource";
 
 const schema = a
   .schema({
@@ -54,7 +55,7 @@ const schema = a
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
       })
-      .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
+      .authorization((allow) => [allow.publicApiKey().to(['read']), allow.authenticated()]),
 
     AuctionState: a
       .model({
@@ -79,7 +80,7 @@ const schema = a
         ended: a.boolean().default(false),
       })
       .identifier(["auctionId"])
-      .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
+      .authorization((allow) => [allow.publicApiKey().to(['read']), allow.authenticated()]),
 
     MarketplaceListing: a
       .model({
@@ -118,7 +119,7 @@ const schema = a
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
       })
-      .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
+      .authorization((allow) => [allow.publicApiKey().to(['read']), allow.authenticated()]),
 
     Offer: a
       .model({
@@ -161,7 +162,7 @@ const schema = a
           .sortKeys(["createdAt"])
           .queryField("bidsByBidderEmail"),
       ])
-      .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
+      .authorization((allow) => [allow.publicApiKey().to(['read']), allow.authenticated()]),
 
     BidAuditLog: a
       .model({
@@ -201,7 +202,7 @@ const schema = a
           .sortKeys(["createdAt"])
           .queryField("bidAuditByBidder"),
       ])
-      .authorization((allow) => [allow.authenticated()]),
+      .authorization((allow) => [allow.group("Admin").to(["read"])]),
 
     BuyerProfile: a
       .model({
@@ -308,12 +309,31 @@ const schema = a
     stripeSessionId: a.string(),
     paidAt: a.datetime(),
   })
-      .authorization((allow) => [allow.publicApiKey(), allow.authenticated()]),
+      .authorization((allow) => [allow.authenticated()]),
+
+    verifyPayment: a
+      .mutation()
+      .arguments({
+        sessionId: a.string().required(),
+      })
+      .returns(
+        a.customType({
+          paid: a.boolean(),
+          type: a.string(),
+          itemCount: a.integer(),
+          auctionId: a.string(),
+          listingId: a.string(),
+          error: a.string(),
+        }),
+      )
+      .authorization((allow) => [allow.authenticated(), allow.publicApiKey()])
+      .handler(a.handler.function(verifyPayment)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
     allow.resource(finalizeAuction),
     allow.resource(scheduledFinalize),
+    allow.resource(verifyPayment),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

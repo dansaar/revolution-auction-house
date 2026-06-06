@@ -1,8 +1,14 @@
 "use client";
 
+import "@/lib/amplifyclient";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { generateClient } from "aws-amplify/data";
+import type { Schema } from "@/amplify/data/resource";
+
+const client = generateClient<Schema>();
 
 export default function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
@@ -17,22 +23,23 @@ export default function CheckoutSuccessContent() {
         return;
       }
 
-      const res = await fetch("/api/checkout/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sessionId,
-        }),
-      });
+      try {
+        const result = await client.mutations.verifyPayment(
+          { sessionId },
+          { authMode: "userPool" } as any,
+        );
 
-      const data = await res.json();
-
-      if (data.paid) {
-        setStatus("Payment verified. Auction marked as paid.");
-      } else {
-        setStatus("Payment could not be verified.");
+        if (result.data?.paid) {
+          setStatus("Payment verified. Your invoice has been created.");
+        } else {
+          setStatus(
+            result.data?.error ||
+              "Payment could not be verified. Please contact support.",
+          );
+        }
+      } catch (err: any) {
+        console.error("VERIFY PAYMENT ERROR", err);
+        setStatus("Payment verification failed. Please contact support.");
       }
     }
 

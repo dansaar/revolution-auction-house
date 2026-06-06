@@ -4,10 +4,9 @@ import "@/lib/amplifyclient";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import { isPlatformAdmin } from "@/lib/sellers";
+import { isAdminUser } from "@/lib/sellers";
 import { cdnUrl } from "@/lib/cdn";
 
 const client = generateClient<Schema>();
@@ -35,10 +34,7 @@ export default function AdminAuditsPage() {
   useEffect(() => {
     async function checkAccessAndLoad() {
       try {
-        const user = await getCurrentUser();
-        const email = user.signInDetails?.loginId || user.username || "";
-
-        const admin = isPlatformAdmin(email);
+        const admin = await isAdminUser();
         setIsAdmin(admin);
 
         if (!admin) return;

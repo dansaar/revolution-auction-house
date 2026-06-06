@@ -7,8 +7,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import { getCurrentUser } from "aws-amplify/auth";
-import { isPlatformAdmin } from "@/lib/sellers";
+import { isAdminUser } from "@/lib/sellers";
 
 function makeBidderDisplayName(value: string) {
   if (!value) return "—";
@@ -63,10 +62,7 @@ export default function AuctionAuditPage() {
   useEffect(() => {
     async function checkAccess() {
       try {
-        const user = await getCurrentUser();
-        const email = user.signInDetails?.loginId || user.username || "";
-
-        setIsAdmin(isPlatformAdmin(email));
+        setIsAdmin(await isAdminUser());
       } catch {
         setIsAdmin(false);
       } finally {

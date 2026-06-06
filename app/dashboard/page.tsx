@@ -19,7 +19,7 @@ import {
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
-import { isPlatformAdmin } from "@/lib/sellers";
+import { isAdminUser } from "@/lib/sellers";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
   const c = carrier.toLowerCase();
@@ -96,6 +96,7 @@ export default function DashboardPage() {
   const [buyerProfile, setBuyerProfile] = useState<any>(null);
   const [now, setNow] = useState(Date.now());
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [userIsAdmin, setUserIsAdmin] = useState(false);
 
   const dashboardRefreshTimerRef = React.useRef<ReturnType<
     typeof setTimeout
@@ -117,13 +118,13 @@ export default function DashboardPage() {
 
   const userKey = user?.signInDetails?.loginId || user?.username || "";
   const userId = user?.userId || user?.username || "";
-  const userIsAdmin = isPlatformAdmin(userKey);
 
   useEffect(() => {
     async function loadUser() {
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
+        setUserIsAdmin(await isAdminUser());
         updateBuyerPresence("/dashboard");
       } catch {
         setUser(null);
