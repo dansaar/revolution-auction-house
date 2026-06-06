@@ -36,7 +36,7 @@ for (const [name, val] of [
   if (!val) throw new Error(`Missing env var: ${name}`);
 }
 
-const BID_COOLDOWN_MS = 0; // LOAD TEST — restore to 3000 before production
+const BID_COOLDOWN_MS = 3000;
 
 function getIncrement(amount: number): number {
   if (amount < 100) return 5;
