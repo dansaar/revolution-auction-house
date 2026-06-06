@@ -1,16 +1,9 @@
 import { NextResponse } from "next/server";
-import { Amplify } from "aws-amplify";
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
 import outputs from "@/amplify_outputs.json";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import jsPDF from "jspdf";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
-
-Amplify.configure(outputs);
-
-const client = generateClient<Schema>();
 
 const verifier = CognitoJwtVerifier.create({
   userPoolId: outputs.auth.user_pool_id,
@@ -81,12 +74,27 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const invoiceResult = await client.models.Invoice.get({ id }, {
-      authMode: "userPool",
-      authToken: token,
-    } as any);
+    const gqlResponse = await fetch(outputs.data.url as string, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+      body: JSON.stringify({
+        query: `query GetInvoice($id: ID!) {
+          getInvoice(id: $id) {
+            id type auctionId listingId title
+            buyerEmail sellerEmail
+            subtotal buyerPremium tax amount
+            status stripeSessionId paidAt
+          }
+        }`,
+        variables: { id },
+      }),
+    });
 
-    const invoice = invoiceResult.data;
+    const gqlData = await gqlResponse.json();
+    const invoice = gqlData?.data?.getInvoice;
 
     if (!invoice) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
