@@ -148,6 +148,7 @@ async function updateAuctionPriceDirect({
   winnerEmail,
   winningBid,
   endsAt,
+  stateVersion,
 }: {
   auctionId: string;
   price: string;
@@ -157,31 +158,44 @@ async function updateAuctionPriceDirect({
   winnerEmail: string;
   winningBid: string;
   endsAt: string | null | undefined;
+  stateVersion: number;
 }) {
-  await dynamoClient.send(
-    new UpdateCommand({
-      TableName: AUCTION_TABLE_NAME,
-      Key: { id: auctionId },
-      UpdateExpression: `SET price = :price,
-        bids = :bids,
-        winnerUserId = :winnerUserId,
-        winnerDisplayName = :winnerDisplayName,
-        winnerEmail = :winnerEmail,
-        winningBid = :winningBid,
-        endsAt = :endsAt,
-        updatedAt = :updatedAt`,
-      ExpressionAttributeValues: {
-        ":price": price,
-        ":bids": bids,
-        ":winnerUserId": winnerUserId,
-        ":winnerDisplayName": winnerDisplayName,
-        ":winnerEmail": winnerEmail,
-        ":winningBid": winningBid,
-        ":endsAt": endsAt ?? null,
-        ":updatedAt": new Date().toISOString(),
-      },
-    }),
-  );
+  try {
+    await dynamoClient.send(
+      new UpdateCommand({
+        TableName: AUCTION_TABLE_NAME,
+        Key: { id: auctionId },
+        UpdateExpression: `SET price = :price,
+          bids = :bids,
+          winnerUserId = :winnerUserId,
+          winnerDisplayName = :winnerDisplayName,
+          winnerEmail = :winnerEmail,
+          winningBid = :winningBid,
+          endsAt = :endsAt,
+          updatedAt = :updatedAt,
+          stateVersion = :stateVersion`,
+        ConditionExpression:
+          "attribute_not_exists(stateVersion) OR stateVersion < :stateVersion",
+        ExpressionAttributeValues: {
+          ":price": price,
+          ":bids": bids,
+          ":winnerUserId": winnerUserId,
+          ":winnerDisplayName": winnerDisplayName,
+          ":winnerEmail": winnerEmail,
+          ":winningBid": winningBid,
+          ":endsAt": endsAt ?? null,
+          ":updatedAt": new Date().toISOString(),
+          ":stateVersion": stateVersion,
+        },
+      }),
+    );
+  } catch (err: any) {
+    if (err?.name === "ConditionalCheckFailedException") {
+      // A later bid already wrote a higher stateVersion — our update is stale, skip it
+      return;
+    }
+    throw err;
+  }
 }
 
 async function writeBidAuditLogDirect(log: {
@@ -742,6 +756,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         winnerEmail: newLeaderUserId === bidderUserId ? bidderEmail : "",
         winningBid: formatMoney(visiblePrice),
         endsAt: updatedEndsAt,
+        stateVersion: expectedVersion + 1,
       });
 
       await writeBidAuditLogDirect({
