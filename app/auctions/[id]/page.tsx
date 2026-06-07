@@ -1133,11 +1133,17 @@ export default function LiveAuctionPage() {
                 ref={listRef}
                 className="max-h-[420px] overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0b0d]"
               >
-                {history.slice(0, 50).map((bid, i) => (
+                {history.slice(0, 50).map((bid, i) => {
+                  const isLeading =
+                    !auctionEnded &&
+                    !!auction?.winnerUserId &&
+                    String(bid.bidderUserId || "") === String(auction.winnerUserId);
+
+                  return (
                   <div
                     key={i}
                     className={`border-b border-white/5 px-5 py-4 transition-all duration-500 ${
-                      i === 0
+                      isLeading
                         ? "bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.15)] animate-pulse"
                         : "hover:bg-white/[0.03]"
                     }`}
@@ -1146,7 +1152,7 @@ export default function LiveAuctionPage() {
                       <div className="flex items-center gap-3">
                         <div
                           className={`h-2.5 w-2.5 rounded-full ${
-                            i === 0 ? "bg-emerald-400" : "bg-[#c0c0c0]/40"
+                            isLeading ? "bg-emerald-400" : "bg-[#c0c0c0]/40"
                           }`}
                         />
 
@@ -1168,19 +1174,11 @@ export default function LiveAuctionPage() {
                               </span>
                             )}
 
-                            {i === 0 &&
-                              String(
-                                bid.bidderUserId || bid.bidderName || "",
-                              ) ===
-                                String(
-                                  auction?.winnerUserId ||
-                                    auction?.winnerDisplayName ||
-                                    "",
-                                ) && (
-                                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-emerald-300">
-                                  Leading
-                                </span>
-                              )}
+                            {isLeading && (
+                              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-emerald-300">
+                                Leading
+                              </span>
+                            )}
                           </div>
 
                           <div className="mt-1 text-[11px] uppercase tracking-[0.18em] text-gray-500">
@@ -1200,7 +1198,8 @@ export default function LiveAuctionPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+                })}
               </div>
             </div>
           </div>
