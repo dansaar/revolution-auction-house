@@ -285,6 +285,12 @@ export default function AdminPage() {
           />
 
           <AdminCard
+            title="Buyer Management"
+            description="View all buyers, filter by tier, and manually adjust bid limits."
+            href="/admin/buyers"
+          />
+
+          <AdminCard
             title="Shill Detection"
             description="Flag bidder/seller pairs with suspicious concentration or identity overlap."
             href="/admin/shill"
