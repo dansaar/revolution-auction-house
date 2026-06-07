@@ -20,6 +20,17 @@ export const handler: Schema["notifySellerOfferSms"]["functionHandler"] = async 
   const { sellerEmail, listingId, listingTitle, offerAmount } = event.arguments;
 
   try {
+    // Verify the listing exists and actually belongs to the claimed seller
+    const listingResult = await client.models.MarketplaceListing.get(
+      { id: listingId },
+      { authMode: "iam" } as any,
+    );
+    const listing = listingResult.data;
+    if (!listing || listing.sellerEmail?.toLowerCase() !== sellerEmail?.toLowerCase()) {
+      console.warn("NOTIFY_OFFER_SMS: listing/seller mismatch", { listingId, sellerEmail });
+      return { sent: false };
+    }
+
     const result = await client.models.BuyerProfile.buyerProfileByEmail(
       { email: sellerEmail },
       { authMode: "iam" } as any,

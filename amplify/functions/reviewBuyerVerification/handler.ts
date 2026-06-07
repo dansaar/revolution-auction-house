@@ -45,6 +45,19 @@ export const handler: Schema["reviewBuyerVerification"]["functionHandler"] =
       if (!sellerResult.data || sellerResult.data.status !== "APPROVED") {
         return { success: false, message: "Unauthorized" };
       }
+
+      // Sellers cannot approve their own buyer profile
+      const selfCheck = await client.models.BuyerProfile.get({ userId });
+      if (selfCheck.data?.email?.toLowerCase() === callerEmail) {
+        return { success: false, message: "Cannot approve your own profile" };
+      }
+
+      // Sellers can only approve up to VERIFIED; higher tiers require Admin
+      const SELLER_ALLOWED_TIERS = ["BASIC", "VERIFIED"];
+      const effectiveTier = tierOverride || "VERIFIED";
+      if (!SELLER_ALLOWED_TIERS.includes(effectiveTier)) {
+        return { success: false, message: "Sellers can only approve up to VERIFIED tier" };
+      }
     }
 
     const profileResult = await client.models.BuyerProfile.get({ userId });

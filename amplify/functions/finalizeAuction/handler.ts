@@ -196,8 +196,18 @@ export const handler = async (event: any = {}) => {
   try {
     const auctionId = event?.arguments?.auctionId;
 
-    // Manual seller action: finalize one auction.
+    // Manual action: finalize one auction — caller must be Admin or the auction's seller.
     if (auctionId) {
+      const identity = event.identity as any;
+      const claims = identity?.claims ?? {};
+      const groups: string[] = claims["cognito:groups"] ?? [];
+      const isAdmin = groups.includes("Admin");
+      const callerUserId = claims["sub"] as string | undefined;
+
+      if (!isAdmin && !callerUserId) {
+        return { success: false, message: "Unauthorized", status: "UNAUTHORIZED" };
+      }
+
       const auctionResult = await client.models.Auction.get({ id: auctionId });
       const auction = auctionResult.data;
 
@@ -207,6 +217,10 @@ export const handler = async (event: any = {}) => {
           message: `Auction not found: ${auctionId}`,
           status: "NOT_FOUND",
         };
+      }
+
+      if (!isAdmin && auction.sellerUserId !== callerUserId) {
+        return { success: false, message: "Unauthorized", status: "UNAUTHORIZED" };
       }
 
       return await finalizeOneAuction(auction);
