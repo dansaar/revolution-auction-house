@@ -5,4 +5,10 @@ export const auth = defineAuth({
     email: true,
   },
   groups: ["Admin", "Seller"],
+  senders: {
+    email: {
+      fromEmail: "noreply@revolutionauctionhouse.com",
+      fromName: "Revolution Auction House",
+    },
+  },
 });
