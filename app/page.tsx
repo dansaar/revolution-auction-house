@@ -291,7 +291,7 @@ export default function RevolutionAuctionHouseHomepage() {
                         </span>
                       )}
                       <span className="font-semibold text-[#c0c0c0]">
-                        ${Number(a.winningBid).toLocaleString()}
+                        ${Number(String(a.winningBid).replace(/[$,]/g, "")).toLocaleString()}
                       </span>
                       <span className="text-white/20">·</span>
                     </Link>
