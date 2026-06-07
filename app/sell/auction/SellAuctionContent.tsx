@@ -50,6 +50,9 @@ export default function SellAuctionContent() {
   const [checkingSeller, setCheckingSeller] = useState(true);
   const [isSeller, setIsSeller] = useState(false);
   const [existingImagePaths, setExistingImagePaths] = useState<string[]>([]);
+  const [existingThumbPaths, setExistingThumbPaths] = useState<string[]>([]);
+  const [existingMediumPaths, setExistingMediumPaths] = useState<string[]>([]);
+  const [existingFullPaths, setExistingFullPaths] = useState<string[]>([]);
 
   useEffect(() => {
     async function checkSeller() {
@@ -100,17 +103,23 @@ export default function SellAuctionContent() {
             : "",
         }));
 
-        const oldImagePaths =
-          auction.images?.filter(
-            (path: string | null | undefined): path is string =>
-              !!path && path !== "undefined",
-          ) || [];
+        const validPaths = (arr: (string | null | undefined)[] | null | undefined) =>
+          arr?.filter((p): p is string => !!p && p !== "undefined") || [];
 
+        const oldThumbPaths = validPaths(auction.thumbImages);
+        const oldMediumPaths = validPaths(auction.mediumImages);
+        const oldFullPaths = validPaths(auction.fullImages?.length ? auction.fullImages : auction.images);
+
+        setExistingThumbPaths(oldThumbPaths);
+        setExistingMediumPaths(oldMediumPaths);
+        setExistingFullPaths(oldFullPaths);
+
+        const oldImagePaths = oldFullPaths.length ? oldFullPaths : validPaths(auction.images);
         setExistingImagePaths(oldImagePaths);
         setPreviews([]);
 
         const previewUrls = await Promise.all(
-          oldImagePaths.map(async (path: string) => {
+          (oldThumbPaths.length ? oldThumbPaths : oldImagePaths).map(async (path: string) => {
             try {
               if (path.startsWith("http") || path.startsWith("/")) {
                 return path;
@@ -183,29 +192,35 @@ export default function SellAuctionContent() {
       const finalThumbImages =
         thumbUrls.length > 0
           ? thumbUrls
-          : existingImagePaths.length > 0
-            ? existingImagePaths
-            : form.image
-              ? [form.image]
-              : ["/logo.png"];
+          : existingThumbPaths.length > 0
+            ? existingThumbPaths
+            : existingImagePaths.length > 0
+              ? existingImagePaths
+              : form.image
+                ? [form.image]
+                : ["/logo.png"];
 
       const finalMediumImages =
         mediumUrls.length > 0
           ? mediumUrls
-          : existingImagePaths.length > 0
-            ? existingImagePaths
-            : form.image
-              ? [form.image]
-              : ["/logo.png"];
+          : existingMediumPaths.length > 0
+            ? existingMediumPaths
+            : existingImagePaths.length > 0
+              ? existingImagePaths
+              : form.image
+                ? [form.image]
+                : ["/logo.png"];
 
       const finalFullImages =
         fullUrls.length > 0
           ? fullUrls
-          : existingImagePaths.length > 0
-            ? existingImagePaths
-            : form.image
-              ? [form.image]
-              : ["/logo.png"];
+          : existingFullPaths.length > 0
+            ? existingFullPaths
+            : existingImagePaths.length > 0
+              ? existingImagePaths
+              : form.image
+                ? [form.image]
+                : ["/logo.png"];
 
       const finalImages = finalFullImages;
 
