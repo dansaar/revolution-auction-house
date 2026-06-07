@@ -4,6 +4,7 @@ import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
 import { env } from "$amplify/env/autoVerifyBuyer";
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const { resourceConfig, libraryOptions } =
   await getAmplifyDataClientConfig(env);
@@ -11,6 +12,7 @@ const { resourceConfig, libraryOptions } =
 Amplify.configure(resourceConfig, libraryOptions);
 
 const client = generateClient<Schema>();
+const snsClient = new SNSClient({});
 
 const TIER_LIMITS: Record<string, number> = {
   BASIC: 1_000,
@@ -71,6 +73,14 @@ export const handler: Schema["autoVerifyBuyer"]["functionHandler"] = async (
   );
 
   console.log("autoVerifyBuyer: upgraded to VERIFIED", { email, stripeSessionId });
+
+  // SMS notification (fire-and-forget)
+  if (profile.smsOptIn && profile.phoneNumber) {
+    snsClient.send(new PublishCommand({
+      PhoneNumber: profile.phoneNumber,
+      Message: `Revolution: Your identity has been verified! Your bid limit is now $${TIER_LIMITS["VERIFIED"].toLocaleString()} (Verified Buyer). revolutionauctionhouse.com`,
+    })).catch((err) => console.warn("UPGRADE_SMS_FAILED", err));
+  }
 
   return { success: true };
 };

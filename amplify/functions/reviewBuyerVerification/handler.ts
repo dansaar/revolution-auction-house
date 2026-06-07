@@ -4,6 +4,7 @@ import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
 import { env } from "$amplify/env/reviewBuyerVerification";
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const { resourceConfig, libraryOptions } =
   await getAmplifyDataClientConfig(env);
@@ -11,6 +12,7 @@ const { resourceConfig, libraryOptions } =
 Amplify.configure(resourceConfig, libraryOptions);
 
 const client = generateClient<Schema>();
+const snsClient = new SNSClient({});
 
 const TIER_LIMITS: Record<string, number> = {
   BASIC: 1_000,
@@ -70,6 +72,15 @@ export const handler: Schema["reviewBuyerVerification"]["functionHandler"] =
         status: "APPROVED",
         reviewedAt: new Date().toISOString(),
       });
+
+      // SMS notification (fire-and-forget)
+      if (profile.smsOptIn && profile.phoneNumber) {
+        const tierName = approvedTier.charAt(0) + approvedTier.slice(1).toLowerCase();
+        snsClient.send(new PublishCommand({
+          PhoneNumber: profile.phoneNumber,
+          Message: `Revolution: Your bid limit has been raised to $${approvedLimit.toLocaleString()} (${tierName} Buyer). revolutionauctionhouse.com`,
+        })).catch((err) => console.warn("UPGRADE_SMS_FAILED", err));
+      }
     } else {
       await client.models.BuyerProfile.update({
         userId,

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { Suspense } from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -23,6 +23,14 @@ const client = generateClient<Schema>();
 const TIER_ICONS = [BadgeCheck, BadgeCheck, LockKeyhole, LockKeyhole, Crown];
 
 export default function VerifyPage() {
+  return (
+    <Suspense>
+      <VerifyPageInner />
+    </Suspense>
+  );
+}
+
+function VerifyPageInner() {
   const [buyerProfile, setBuyerProfile] = useState<any>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 

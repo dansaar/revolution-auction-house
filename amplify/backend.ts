@@ -64,6 +64,8 @@ backend.placeBid.resources.lambda.addToRolePolicy(snsPolicy);
 backend.finalizeAuction.resources.lambda.addToRolePolicy(sesPolicy);
 backend.finalizeAuction.resources.lambda.addToRolePolicy(snsPolicy);
 backend.notifyOfferSms.resources.lambda.addToRolePolicy(snsPolicy);
+backend.autoVerifyBuyer.resources.lambda.addToRolePolicy(snsPolicy);
+backend.reviewBuyerVerification.resources.lambda.addToRolePolicy(snsPolicy);
 
 const FROM_EMAIL = "noreply@revolutionauctionhouse.com";
 const SITE_URL = "https://www.revolutionauctionhouse.com";
