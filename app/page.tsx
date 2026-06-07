@@ -89,6 +89,7 @@ function matchesCategory(auction: any, category: string): boolean {
 export default function RevolutionAuctionHouseHomepage() {
   const [auctions, setAuctions] = useState<any[]>([]);
   const [recentSales, setRecentSales] = useState<any[]>([]);
+  const [liveBids, setLiveBids] = useState<{ id: string; title: string; price: string; ts: number }[]>([]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [now, setNow] = useState(Date.now());
 
@@ -156,7 +157,20 @@ export default function RevolutionAuctionHouseHomepage() {
 
     const auctionSub = client.models.Auction.onUpdate({
       authMode: "apiKey",
-    }).subscribe({ next: scheduleRefresh });
+    }).subscribe({
+      next: (updated: any) => {
+        scheduleRefresh();
+        // Capture live bid events — only for live auctions with a new price
+        if (updated && !updated.ended && updated.price && updated.title) {
+          setLiveBids((prev) => {
+            const entry = { id: updated.id, title: updated.title, price: updated.price, ts: Date.now() };
+            // Dedupe by id, keep newest at front, cap at 20
+            const filtered = prev.filter((b) => b.id !== updated.id);
+            return [entry, ...filtered].slice(0, 20);
+          });
+        }
+      },
+    });
 
     const stateSub = client.models.AuctionState.onUpdate({
       authMode: "apiKey",
@@ -269,9 +283,36 @@ export default function RevolutionAuctionHouseHomepage() {
           </div>
         </section>
 
+        {/* Live Bid Ticker */}
+        {liveBids.length > 0 && (
+          <section className="mb-2 overflow-hidden rounded-t-xl border border-emerald-500/20 bg-emerald-500/[0.03]">
+            <div className="flex items-center">
+              <div className="shrink-0 border-r border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-2.5 text-[10px] uppercase tracking-[0.22em] text-emerald-400">
+                <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                Live Bids
+              </div>
+              <div className="relative flex-1 overflow-hidden">
+                <div className="animate-marquee flex gap-0 whitespace-nowrap py-2.5">
+                  {[...liveBids, ...liveBids].map((b, i) => (
+                    <Link
+                      key={i}
+                      href={`/auctions/${b.id}`}
+                      className="mx-6 inline-flex shrink-0 items-center gap-2 text-sm hover:text-white"
+                    >
+                      <span className="text-gray-400">{b.title}</span>
+                      <span className="font-semibold text-emerald-300">{b.price}</span>
+                      <span className="text-white/20">·</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Recent Sales Ticker */}
         {recentSales.length > 0 && (
-          <section className="mb-8 overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
+          <section className={`mb-8 overflow-hidden border border-white/10 bg-white/[0.02] ${liveBids.length > 0 ? "rounded-b-xl border-t-0" : "rounded-xl"}`}>
             <div className="flex items-center">
               <div className="shrink-0 border-r border-white/10 bg-white/[0.04] px-4 py-3 text-[10px] uppercase tracking-[0.22em] text-[#d6aa55]">
                 Recent Sales
