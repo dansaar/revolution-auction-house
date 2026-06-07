@@ -8,7 +8,7 @@ const client = generateClient<Schema>();
 
 export async function isAdminUser(): Promise<boolean> {
   try {
-    const session = await fetchAuthSession();
+    const session = await fetchAuthSession({ forceRefresh: false });
     const groups =
       (session.tokens?.idToken?.payload["cognito:groups"] as string[]) || [];
     return groups.includes("Admin");

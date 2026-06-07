@@ -60,56 +60,48 @@ export default function AuctionAuditPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    async function checkAccess() {
+    async function init() {
       try {
-        setIsAdmin(await isAdminUser());
-      } catch {
-        setIsAdmin(false);
-      } finally {
+        const admin = await isAdminUser();
+        setIsAdmin(admin);
         setCheckingAccess(false);
-      }
-    }
 
-    checkAccess();
-  }, []);
+        if (!admin || !auctionId) {
+          setLoading(false);
+          return;
+        }
 
-  useEffect(() => {
-    async function loadAudit() {
-      try {
-        const auctionResult = await client.models.Auction.get(
-          { id: auctionId },
-          { authMode: "apiKey" } as any,
-        );
-
-        const auditResult = await client.models.BidAuditLog.bidAuditByAuction(
-          { auctionId },
-          {
-            authMode: "userPool",
-            limit: 1000,
-          } as any,
-        );
+        const [auctionResult, auditResult] = await Promise.all([
+          client.models.Auction.get(
+            { id: auctionId },
+            { authMode: "apiKey" } as any,
+          ),
+          client.models.BidAuditLog.bidAuditByAuction(
+            { auctionId },
+            { authMode: "userPool", limit: 1000 } as any,
+          ),
+        ]);
 
         setAuction(auctionResult.data);
-        const sortedAuditLogs = [...(auditResult.data || [])]
-          .filter(Boolean)
-          .sort(
-            (a: any, b: any) =>
-              new Date(b.createdAt || 0).getTime() -
-              new Date(a.createdAt || 0).getTime(),
-          );
-
-        setAuditLogs(sortedAuditLogs);
+        setAuditLogs(
+          [...(auditResult.data || [])]
+            .filter(Boolean)
+            .sort(
+              (a: any, b: any) =>
+                new Date(b.createdAt || 0).getTime() -
+                new Date(a.createdAt || 0).getTime(),
+            ),
+        );
       } catch (err: any) {
         console.error("LOAD AUCTION AUDIT ERROR", err);
-        setError(
-          err?.message || JSON.stringify(err) || "Failed to load audit log",
-        );
+        setError(err?.message || "Failed to load audit log");
       } finally {
+        setCheckingAccess(false);
         setLoading(false);
       }
     }
 
-    if (auctionId) loadAudit();
+    init();
   }, [auctionId]);
 
   const cleanAuditLogs = auditLogs.filter(Boolean);
