@@ -11,6 +11,7 @@ import {
   PutCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const { resourceConfig, libraryOptions } =
   await getAmplifyDataClientConfig(env);
@@ -19,6 +20,30 @@ Amplify.configure(resourceConfig, libraryOptions);
 
 const client = generateClient<Schema>();
 const dynamoClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const snsClient = new SNSClient({});
+
+const SITE_URL = (env as any).SITE_URL || "https://www.revolutionauctionhouse.com";
+
+async function sendOutbidSms({
+  to,
+  auctionTitle,
+  auctionId,
+  newPrice,
+}: {
+  to: string;
+  auctionTitle: string;
+  auctionId: string;
+  newPrice: string;
+}) {
+  if (!to) return;
+  const link = `${SITE_URL}/auctions/${auctionId}`;
+  await snsClient.send(
+    new PublishCommand({
+      PhoneNumber: to,
+      Message: `Revolution: You've been outbid on "${auctionTitle}". New price: ${newPrice}. Bid now: ${link}`,
+    }),
+  );
+}
 
 const AUCTION_TABLE_NAME = (env as any).AUCTION_TABLE_NAME;
 const AUCTION_STATE_TABLE_NAME = (env as any).AUCTION_STATE_TABLE_NAME;
@@ -776,6 +801,20 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         attemptCount: attempt + 1,
         resultMessage: "Bid placed",
       });
+
+      // Notify displaced leader via SMS if they opted in (fire-and-forget)
+      if (leaderUserId && leaderUserId !== bidderUserId && newLeaderUserId === bidderUserId) {
+        getBuyerProfileDirect(leaderUserId).then((profile) => {
+          if (profile?.smsOptIn && profile?.phoneNumber) {
+            return sendOutbidSms({
+              to: profile.phoneNumber,
+              auctionTitle: auctionOwnerCheck?.title || "this auction",
+              auctionId,
+              newPrice: formatMoney(visiblePrice),
+            });
+          }
+        }).catch((err: unknown) => console.warn("OUTBID_SMS_FAILED", err));
+      }
 
       return {
         success: true,

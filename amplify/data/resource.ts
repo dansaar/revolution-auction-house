@@ -4,6 +4,7 @@ import { finalizeAuction } from "../functions/finalizeAuction/resource";
 import { scheduledFinalize } from "../functions/scheduledFinalize/resource";
 import { verifyPayment } from "../functions/verifyPayment/resource";
 import { reviewBuyerVerification } from "../functions/reviewBuyerVerification/resource";
+import { notifyOfferSms } from "../functions/notifyOfferSms/resource";
 import { manageSellerGroup } from "../functions/manageSellerGroup/resource";
 
 const schema = a
@@ -242,6 +243,9 @@ const schema = a
         lastSeenAt: a.datetime(),
         lastSeenPage: a.string(),
 
+        phoneNumber: a.string(),
+        smsOptIn: a.boolean().default(false),
+
         requestedTier: a.string(),
         requestedLimit: a.integer(),
         verificationNotes: a.string(),
@@ -395,6 +399,18 @@ const schema = a
       )
       .authorization((allow) => [allow.group("Admin")])
       .handler(a.handler.function(manageSellerGroup)),
+
+    notifySellerOfferSms: a
+      .mutation()
+      .arguments({
+        sellerEmail: a.string().required(),
+        listingId: a.string().required(),
+        listingTitle: a.string().required(),
+        offerAmount: a.string().required(),
+      })
+      .returns(a.customType({ sent: a.boolean() }))
+      .authorization((allow) => [allow.authenticated()])
+      .handler(a.handler.function(notifyOfferSms)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -403,6 +419,7 @@ const schema = a
     allow.resource(verifyPayment),
     allow.resource(reviewBuyerVerification),
     allow.resource(manageSellerGroup),
+    allow.resource(notifyOfferSms),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

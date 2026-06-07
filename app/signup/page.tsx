@@ -9,6 +9,8 @@ import BidderAgreementContent from "../components/BidderAgreementContent";
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [smsOptIn, setSmsOptIn] = useState(false);
   const [acceptedBidderAgreement, setAcceptedBidderAgreement] = useState(false);
   const [showAgreement, setShowAgreement] = useState(false);
 
@@ -38,6 +40,11 @@ export default function SignupPage() {
           },
         },
       });
+
+      if (phone) {
+        localStorage.setItem("pendingPhone", phone);
+        localStorage.setItem("pendingSmsOptIn", smsOptIn ? "true" : "false");
+      }
 
       setMessage(
         "Account created. Check your email for the verification code.",
@@ -80,6 +87,37 @@ export default function SignupPage() {
             className="rounded border border-white/10 bg-black px-4 py-3"
             required
           />
+
+          <div>
+            <input
+              type="tel"
+              placeholder="Mobile phone (optional)"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full rounded border border-white/10 bg-black px-4 py-3"
+            />
+            <p className="mt-1 px-1 text-xs text-gray-600">
+              For outbid text alerts — optional
+            </p>
+          </div>
+
+          {phone && (
+            <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-300">
+              <input
+                type="checkbox"
+                checked={smsOptIn}
+                onChange={(e) => setSmsOptIn(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-[#d6aa55]"
+              />
+              <span>
+                Text me when I'm outbid.{" "}
+                <span className="text-gray-500">
+                  Standard message & data rates apply. You can opt out anytime
+                  in your notification preferences.
+                </span>
+              </span>
+            </label>
+          )}
 
           <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-300">
             <input

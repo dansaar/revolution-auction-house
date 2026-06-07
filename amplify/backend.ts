@@ -8,6 +8,7 @@ import { scheduledFinalize } from "./functions/scheduledFinalize/resource";
 import { verifyPayment } from "./functions/verifyPayment/resource";
 import { reviewBuyerVerification } from "./functions/reviewBuyerVerification/resource";
 import { manageSellerGroup } from "./functions/manageSellerGroup/resource";
+import { notifyOfferSms } from "./functions/notifyOfferSms/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
@@ -21,6 +22,7 @@ const backend = defineBackend({
   verifyPayment,
   reviewBuyerVerification,
   manageSellerGroup,
+  notifyOfferSms,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];
@@ -38,30 +40,45 @@ bidAuditLogTable.grantReadWriteData(backend.placeBid.resources.lambda);
 const placeBidCfn = backend.placeBid.resources.lambda.node
   .defaultChild as CfnFunction;
 
-placeBidCfn.addPropertyOverride(
-  "Environment.Variables.AUCTION_TABLE_NAME",
-  auctionTable.tableName,
-);
+placeBidCfn.addPropertyOverride("Environment.Variables.AUCTION_TABLE_NAME", auctionTable.tableName);
+placeBidCfn.addPropertyOverride("Environment.Variables.AUCTION_STATE_TABLE_NAME", auctionStateTable.tableName);
+placeBidCfn.addPropertyOverride("Environment.Variables.BID_TABLE_NAME", bidTable.tableName);
+placeBidCfn.addPropertyOverride("Environment.Variables.BUYER_PROFILE_TABLE_NAME", buyerProfileTable.tableName);
+placeBidCfn.addPropertyOverride("Environment.Variables.BID_AUDIT_LOG_TABLE_NAME", bidAuditLogTable.tableName);
 
-placeBidCfn.addPropertyOverride(
-  "Environment.Variables.AUCTION_STATE_TABLE_NAME",
-  auctionStateTable.tableName,
-);
+// SES for winner emails — FROM_EMAIL must be SES-verified in console
+const sesPolicy = new PolicyStatement({
+  actions: ["ses:SendEmail", "ses:SendRawEmail"],
+  resources: ["*"],
+});
 
-placeBidCfn.addPropertyOverride(
-  "Environment.Variables.BID_TABLE_NAME",
-  bidTable.tableName,
-);
+// SNS for SMS notifications
+const snsPolicy = new PolicyStatement({
+  actions: ["sns:Publish"],
+  resources: ["*"],
+});
 
-placeBidCfn.addPropertyOverride(
-  "Environment.Variables.BUYER_PROFILE_TABLE_NAME",
-  buyerProfileTable.tableName,
-);
+backend.placeBid.resources.lambda.addToRolePolicy(snsPolicy);
+backend.finalizeAuction.resources.lambda.addToRolePolicy(sesPolicy);
+backend.finalizeAuction.resources.lambda.addToRolePolicy(snsPolicy);
+backend.notifyOfferSms.resources.lambda.addToRolePolicy(snsPolicy);
 
-placeBidCfn.addPropertyOverride(
-  "Environment.Variables.BID_AUDIT_LOG_TABLE_NAME",
-  bidAuditLogTable.tableName,
-);
+const FROM_EMAIL = "noreply@revolutionauctionhouse.com";
+const SITE_URL = "https://www.revolutionauctionhouse.com";
+
+placeBidCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
+placeBidCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
+
+const finalizeAuctionCfn = backend.finalizeAuction.resources.lambda.node
+  .defaultChild as CfnFunction;
+
+finalizeAuctionCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
+finalizeAuctionCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
+
+const notifyOfferSmsCfn = backend.notifyOfferSms.resources.lambda.node
+  .defaultChild as CfnFunction;
+
+notifyOfferSmsCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
 
 const userPool = backend.auth.resources.userPool;
 
@@ -79,7 +96,4 @@ backend.manageSellerGroup.resources.lambda.addToRolePolicy(
 const manageSellerGroupCfn = backend.manageSellerGroup.resources.lambda.node
   .defaultChild as CfnFunction;
 
-manageSellerGroupCfn.addPropertyOverride(
-  "Environment.Variables.USER_POOL_ID",
-  userPool.userPoolId,
-);
+manageSellerGroupCfn.addPropertyOverride("Environment.Variables.USER_POOL_ID", userPool.userPoolId);

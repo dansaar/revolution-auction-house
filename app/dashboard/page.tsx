@@ -15,6 +15,7 @@ import {
   Tag,
   Archive,
   ShoppingCart,
+  Bell,
 } from "lucide-react";
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
@@ -820,6 +821,16 @@ export default function DashboardPage() {
             <Archive className="mb-4 h-8 w-8 text-[#e7c77f]" />
             <div className="text-base font-bold text-white">
               Results Archive
+            </div>
+          </Link>
+
+          <Link
+            href="/dashboard/notifications"
+            className="group flex min-h-36 flex-col items-center justify-center rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-5 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+          >
+            <Bell className="mb-4 h-8 w-8 text-[#e7c77f]" />
+            <div className="text-base font-bold text-white">
+              Notifications
             </div>
           </Link>
 

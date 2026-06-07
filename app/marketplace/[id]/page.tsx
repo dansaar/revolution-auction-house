@@ -205,6 +205,19 @@ export default function MarketplaceListingPage() {
         } as any,
       );
 
+      // Notify seller via SMS if they opted in (fire-and-forget)
+      if (listing.sellerEmail) {
+        client.mutations.notifySellerOfferSms(
+          {
+            sellerEmail: listing.sellerEmail,
+            listingId: listing.id,
+            listingTitle: listing.title || "your listing",
+            offerAmount: `$${Number(offerAmount).toLocaleString()}`,
+          },
+          { authMode: "userPool" } as any,
+        ).catch(() => {});
+      }
+
       alert("Offer submitted");
       setOfferAmount("");
     } catch (err) {
