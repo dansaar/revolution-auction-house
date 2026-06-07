@@ -451,16 +451,22 @@ export default function AuctionsPage() {
   return (
     <div className="min-h-screen bg-[#050607] px-6 py-12 text-white">
       <div className="mx-auto mb-10 max-w-7xl">
-        <h1 className="mb-3 font-serif text-5xl">Auctions</h1>
-        <p className="max-w-xl text-gray-400">
-          Bid on curated, high-end Pokémon cards from verified sellers.
-        </p>
-        <Link
-          href="/auctions/results"
-          className="mt-5 inline-flex rounded border border-white/10 px-5 py-3 text-sm uppercase tracking-[0.18em] text-[#c0c0c0] transition hover:border-[#c0c0c0]/40 hover:bg-white/[0.04]"
-        >
-          View Auction Results Archive →
-        </Link>
+        <div className="mb-8 flex flex-col items-start gap-3 border-b border-white/10 pb-6 sm:flex-row sm:items-center sm:gap-6 md:mb-10 md:pb-8">
+          <img
+            src="/logo.png"
+            alt="Revolution"
+            className="h-20 w-auto object-contain sm:h-28 md:h-40"
+          />
+          <div className="flex flex-1 items-center justify-between">
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl">Auctions</h1>
+            <Link
+              href="/auctions/results"
+              className="text-sm text-gray-500 hover:text-white"
+            >
+              Results →
+            </Link>
+          </div>
+        </div>
       </div>
 
       <div className="mx-auto mb-6 max-w-7xl">
