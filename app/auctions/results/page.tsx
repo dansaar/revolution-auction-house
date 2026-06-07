@@ -25,13 +25,12 @@ export default function AuctionResultsArchivePage() {
         const ended = (result.data || [])
           .filter(
             (auction: any) =>
-              auction.endsAt &&
-              new Date(auction.endsAt).getTime() <= Date.now(),
+              auction.ended === true && auction.status !== "CANCELLED",
           )
           .sort(
             (a: any, b: any) =>
-              new Date(b.endsAt || 0).getTime() -
-              new Date(a.endsAt || 0).getTime(),
+              new Date(b.endsAt || b.updatedAt || 0).getTime() -
+              new Date(a.endsAt || a.updatedAt || 0).getTime(),
           )
           .map((auction: any) => {
             const rawImage =

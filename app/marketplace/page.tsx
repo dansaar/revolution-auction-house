@@ -112,7 +112,15 @@ export default function MarketplacePage() {
             alt="Revolution"
             className="h-20 w-auto object-contain sm:h-28 md:h-40"
           />
-          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl">Marketplace</h1>
+          <div className="flex flex-1 items-center justify-between">
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl">Marketplace</h1>
+            <Link
+              href="/marketplace/results"
+              className="text-sm text-gray-500 hover:text-white"
+            >
+              Sold Results →
+            </Link>
+          </div>
         </div>
 
         {listings.length === 0 ? (
