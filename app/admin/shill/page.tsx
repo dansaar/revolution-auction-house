@@ -78,7 +78,7 @@ export default function ShillDetectionPage() {
     const sellerUserIdSet = new Set(auctions.map((a: any) => a.sellerUserId).filter(Boolean));
 
     // group accepted bids by bidder
-    const accepted = bidLogs.filter((b: any) => b.accepted);
+    const accepted = bidLogs.filter((b: any) => b && b.accepted);
 
     type SellerEntry = {
       sellerEmail: string;
@@ -96,6 +96,7 @@ export default function ShillDetectionPage() {
     const byBidder: Record<string, BidderEntry> = {};
 
     for (const bid of accepted) {
+      if (!bid) continue;
       const info = auctionSellers[bid.auctionId];
       if (!info) continue;
 
