@@ -86,7 +86,6 @@ export default function AuctionAuditPage() {
           {
             authMode: "userPool",
             limit: 1000,
-            sortDirection: "DESC",
           } as any,
         );
 
@@ -174,22 +173,14 @@ export default function AuctionAuditPage() {
     );
   }
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-[#050607] p-10 text-white">
-        Loading audit log...
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-[#050607] px-6 py-12 text-white">
       <div className="mx-auto max-w-7xl">
         <Link
-          href={`/auctions/${auctionId}/results`}
+          href="/admin/audits"
           className="text-sm text-gray-500 hover:text-white"
         >
-          ← Back to Results
+          ← Back to Audit
         </Link>
 
         <div className="mt-6">
