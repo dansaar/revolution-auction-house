@@ -167,13 +167,16 @@ export default function MarketplaceListingPage() {
   const listingPrice = moneyToNumber(displayPrice || 0);
   const taxRate = Number(listing?.taxRate || 6.625);
 
+  const offerAmountNum = offerAmount ? moneyToNumber(offerAmount) : 0;
+  const basePrice = offerAmountNum > 0 ? offerAmountNum : listingPrice;
+
   const taxAmount = calculateMarketplaceTax(
-    listingPrice,
+    basePrice,
     Boolean(listing?.chargeTax),
     taxRate,
   );
 
-  const estimatedTotal = listingPrice + taxAmount;
+  const estimatedTotal = basePrice + taxAmount;
 
   const sellerPublicId =
     listing.sellerPublicId ||
@@ -434,10 +437,10 @@ export default function MarketplaceListingPage() {
               <div className="mt-3 space-y-2 text-sm text-gray-400">
                 <div className="flex justify-between gap-4">
                   <span>
-                    {showAcceptedOfferPrice ? "Accepted Offer" : "Item Price"}
+                    {offerAmountNum > 0 ? "Offer Amount" : showAcceptedOfferPrice ? "Accepted Offer" : "Item Price"}
                   </span>
                   <span className="text-white">
-                    {formatCurrency(listingPrice)}
+                    {formatCurrency(basePrice)}
                   </span>
                 </div>
 
