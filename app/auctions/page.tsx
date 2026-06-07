@@ -308,6 +308,8 @@ export default function AuctionsPage() {
             bids: state?.bidCount ?? auction.bids,
 
             winnerEmail: state?.leaderUserId || auction.winnerEmail,
+
+            ended: auction.ended || state?.ended || false,
           };
         });
 
@@ -383,11 +385,13 @@ export default function AuctionsPage() {
   }, []);
 
   const liveAuctions = auctions.filter((a) => {
+    if (a.ended === true) return false;
     if (!a.endsAt) return true;
     return new Date(a.endsAt).getTime() > now;
   });
 
   const endedAuctions = auctions.filter((a) => {
+    if (a.ended === true) return true;
     if (!a.endsAt) return false;
     return new Date(a.endsAt).getTime() <= now;
   });
