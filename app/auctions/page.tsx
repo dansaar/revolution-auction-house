@@ -390,12 +390,6 @@ export default function AuctionsPage() {
     return new Date(a.endsAt).getTime() > now;
   });
 
-  const endedAuctions = auctions.filter((a) => {
-    if (a.ended === true) return true;
-    if (!a.endsAt) return false;
-    return new Date(a.endsAt).getTime() <= now;
-  });
-
   function applySearch(items: any[]) {
     const q = search.trim().toLowerCase();
     if (!q) return items;
@@ -431,7 +425,6 @@ export default function AuctionsPage() {
   }
 
   const visibleLiveAuctions = applyFilter(applySearch(liveAuctions));
-  const visibleEndedAuctions = applyFilter(applySearch(endedAuctions));
 
   if (loading) {
     return (
@@ -556,23 +549,6 @@ export default function AuctionsPage() {
         )}
       </section>
 
-      {visibleEndedAuctions.length > 0 && (
-        <section className="mx-auto mt-16 max-w-7xl">
-          <h2 className="mb-4 font-serif text-2xl text-gray-500">Ended Auctions</h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {visibleEndedAuctions.map((item) => (
-              <Link key={item.id} href={`/auctions/${item.id}/results`}>
-                <AuctionCard
-                  item={item}
-                  ended={true}
-                  isWatching={isWatching}
-                  toggleWatchlist={toggleWatchlist}
-                />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
 
       <div className="mx-auto mt-16 max-w-7xl text-center">
         <h2 className="mb-4 font-serif text-3xl">
