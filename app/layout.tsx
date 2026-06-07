@@ -21,13 +21,13 @@ export default function RootLayout({
       <body>
         <AmplifyProvider />
         <Providers>
-          <header className="w-full border-b border-white/10 bg-[#050607] px-6 py-4">
+          <header className="w-full border-b border-white/10 bg-[#050607] px-6 py-5">
             <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <Link href="/" className="flex items-center gap-4">
                 <img
                   src="/logo.png"
                   alt="Revolution Auction House"
-                  className="h-14 w-auto object-contain"
+                  className="h-16 w-auto object-contain"
                 />
 
                 <div className="leading-tight">
