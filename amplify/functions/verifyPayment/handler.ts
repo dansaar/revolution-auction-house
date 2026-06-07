@@ -19,6 +19,14 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
   try {
     const { sessionId } = event.arguments;
 
+    const identity = event.identity as any;
+    const claims = identity?.claims ?? {};
+    const callerEmail = (claims["email"] as string | undefined)?.toLowerCase();
+
+    if (!callerEmail) {
+      return { paid: false, error: "Unauthorized" };
+    }
+
     const stripeKey = (env as any).STRIPE_SECRET_KEY;
 
     if (!stripeKey) {
@@ -30,6 +38,17 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
 
     if (session.payment_status !== "paid") {
       return { paid: false };
+    }
+
+    const sessionBuyerEmail = (
+      session.metadata?.buyerEmail ||
+      session.customer_details?.email ||
+      session.customer_email ||
+      ""
+    ).toLowerCase();
+
+    if (!sessionBuyerEmail || sessionBuyerEmail !== callerEmail) {
+      return { paid: false, error: "Unauthorized" };
     }
 
     const auctionId = session.metadata?.auctionId || "";

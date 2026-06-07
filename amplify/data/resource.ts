@@ -373,7 +373,7 @@ const schema = a
           error: a.string(),
         }),
       )
-      .authorization((allow) => [allow.authenticated(), allow.publicApiKey()])
+      .authorization((allow) => [allow.authenticated()])
       .handler(a.handler.function(verifyPayment)),
 
     reviewBuyerVerification: a

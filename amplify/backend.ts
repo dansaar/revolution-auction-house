@@ -111,5 +111,5 @@ const autoVerifyBuyerCfn = backend.autoVerifyBuyer.resources.lambda.node
 
 autoVerifyBuyerCfn.addPropertyOverride(
   "Environment.Variables.AUTO_VERIFY_TOKEN",
-  process.env.AUTO_VERIFY_TOKEN || "CHANGE_ME_IN_AMPLIFY_CONSOLE",
+  process.env.AUTO_VERIFY_TOKEN || "",
 );
