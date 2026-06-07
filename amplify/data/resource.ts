@@ -132,6 +132,7 @@ const schema = a
         carrier: a.string(),
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
+        lastOfferSmsAt: a.datetime(),
       })
       .authorization((allow) => [
         allow.publicApiKey().to(['read']),

@@ -19,7 +19,8 @@ export const handler = async (event: any) => {
   const email: string = (event.arguments?.email ?? "").trim().toLowerCase();
   const action: string = event.arguments?.action ?? "";
 
-  if (!email || (action !== "add" && action !== "remove")) {
+  const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  if (!email || !emailRegex.test(email) || (action !== "add" && action !== "remove")) {
     return { success: false, message: "Invalid arguments." };
   }
 

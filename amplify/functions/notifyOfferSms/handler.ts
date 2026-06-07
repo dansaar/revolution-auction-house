@@ -31,6 +31,14 @@ export const handler: Schema["notifySellerOfferSms"]["functionHandler"] = async 
       return { sent: false };
     }
 
+    // 5-minute per-listing SMS cooldown to prevent spam
+    if (listing.lastOfferSmsAt) {
+      const msSinceLast = Date.now() - new Date(listing.lastOfferSmsAt).getTime();
+      if (msSinceLast < 5 * 60 * 1000) {
+        return { sent: false };
+      }
+    }
+
     const result = await client.models.BuyerProfile.buyerProfileByEmail(
       { email: sellerEmail },
       { authMode: "iam" } as any,
@@ -44,12 +52,18 @@ export const handler: Schema["notifySellerOfferSms"]["functionHandler"] = async 
 
     const link = `${SITE_URL}/seller/listings/${listingId}`;
 
-    await snsClient.send(
-      new PublishCommand({
-        PhoneNumber: profile.phoneNumber,
-        Message: `Revolution: New offer on "${listingTitle}" — ${offerAmount}. View: ${link}`,
-      }),
-    );
+    await Promise.all([
+      snsClient.send(
+        new PublishCommand({
+          PhoneNumber: profile.phoneNumber,
+          Message: `Revolution: New offer on "${listingTitle}" — ${offerAmount}. View: ${link}`,
+        }),
+      ),
+      client.models.MarketplaceListing.update(
+        { id: listingId, lastOfferSmsAt: new Date().toISOString() },
+        { authMode: "iam" } as any,
+      ),
+    ]);
 
     return { sent: true };
   } catch (err) {
