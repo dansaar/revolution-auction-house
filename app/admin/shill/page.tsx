@@ -27,14 +27,27 @@ export default function ShillDetectionPage() {
         setIsAdmin(admin);
         if (!admin) return;
 
-        const [auctionResult, bidResult, sellerResult] = await Promise.all([
+        const [auctionResult, sellerResult] = await Promise.all([
           client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any),
-          client.models.BidAuditLog.list({ authMode: "userPool", limit: 5000 } as any),
           client.models.SellerProfile.list({ authMode: "userPool", limit: 1000 } as any),
         ]);
 
+        // BidAuditLog is Admin-group only; paginate up to 3000 records
+        const allBids: any[] = [];
+        let nextToken: string | null = null;
+        for (let page = 0; page < 3; page++) {
+          const bidResult: any = await client.models.BidAuditLog.list({
+            authMode: "userPool",
+            limit: 1000,
+            ...(nextToken ? { nextToken } : {}),
+          } as any);
+          allBids.push(...(bidResult.data || []));
+          nextToken = bidResult.nextToken ?? null;
+          if (!nextToken) break;
+        }
+
         setAuctions(auctionResult.data || []);
-        setBidLogs(bidResult.data || []);
+        setBidLogs(allBids);
         setSellers(sellerResult.data || []);
       } catch (err) {
         console.error("SHILL DETECTION LOAD ERROR", err);
