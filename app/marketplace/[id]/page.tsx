@@ -46,9 +46,27 @@ export default function MarketplaceListingPage() {
   const [selectedImage, setSelectedImage] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
 
+  const [isSeller, setIsSeller] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState("");
+
   useEffect(() => {
     updateBuyerPresence(`/marketplace/${id}`);
   }, [id]);
+
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const currentUser = await getCurrentUser();
+        setCurrentUserId(currentUser.userId || currentUser.username || "");
+        const session = await fetchAuthSession({ forceRefresh: false });
+        const groups = (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) || [];
+        setIsSeller(groups.includes("Seller"));
+      } catch {
+        // not signed in
+      }
+    }
+    loadUser();
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -167,6 +185,11 @@ export default function MarketplaceListingPage() {
       : "");
 
   async function handleMakeOffer() {
+    if (isSeller) {
+      alert("Sellers cannot make offers on marketplace listings.");
+      return;
+    }
+
     try {
       const currentUser = await getCurrentUser();
 
@@ -229,6 +252,11 @@ export default function MarketplaceListingPage() {
   }
 
   async function handleBuyNow() {
+    if (isSeller) {
+      alert("Sellers cannot purchase marketplace listings.");
+      return;
+    }
+
     let token = "";
 
     try {
@@ -379,6 +407,7 @@ export default function MarketplaceListingPage() {
             <button
               onClick={handleBuyNow}
               disabled={
+                isSeller ||
                 listing.sold ||
                 listing.status === "SOLD" ||
                 listing.status === "OFFER_PENDING" ||
@@ -386,13 +415,15 @@ export default function MarketplaceListingPage() {
               }
               className="mt-8 w-full rounded bg-[#c0c0c0] py-4 font-semibold text-black transition hover:bg-white disabled:opacity-50 md:mt-10"
             >
-              {listing.sold || listing.status === "SOLD"
-                ? "Sold"
-                : listing.status === "OFFER_PENDING"
-                  ? "Offer Pending"
-                  : listing.status === "OFFER_ACCEPTED"
-                    ? "Offer Accepted"
-                    : "Buy Now"}
+              {isSeller
+                ? "Sellers Cannot Purchase"
+                : listing.sold || listing.status === "SOLD"
+                  ? "Sold"
+                  : listing.status === "OFFER_PENDING"
+                    ? "Offer Pending"
+                    : listing.status === "OFFER_ACCEPTED"
+                      ? "Offer Accepted"
+                      : "Buy Now"}
             </button>
 
             <div className="mt-4 rounded-xl border border-[#d6aa55]/20 bg-[#1a1408]/60 p-4">
@@ -430,34 +461,36 @@ export default function MarketplaceListingPage() {
               </div>
             </div>
 
-            {listing.acceptsOffers && (
+            {!listing.sold && listing.status !== "SOLD" && (
               <div className="mt-4 rounded border border-white/10 bg-white/[0.03] p-4">
                 <div className="mb-3 text-xs uppercase tracking-[0.18em] text-gray-500">
                   Make Offer
                 </div>
 
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input
-                    value={offerAmount}
-                    onChange={(e) => setOfferAmount(e.target.value)}
-                    placeholder="Offer Amount"
-                    className="flex-1 rounded border border-white/10 bg-black px-4 py-3 text-white"
-                  />
+                {isSeller ? (
+                  <p className="text-sm text-gray-500">Sellers cannot make offers on marketplace listings.</p>
+                ) : (
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <input
+                      value={offerAmount}
+                      onChange={(e) => setOfferAmount(e.target.value)}
+                      placeholder="Offer Amount"
+                      className="flex-1 rounded border border-white/10 bg-black px-4 py-3 text-white"
+                    />
 
-                  <button
-                    onClick={handleMakeOffer}
-                    disabled={
-                      submittingOffer ||
-                      listing.sold ||
-                      listing.status === "SOLD" ||
-                      listing.status === "OFFER_PENDING" ||
-                      listing.status === "OFFER_ACCEPTED"
-                    }
-                    className="rounded border border-white/10 bg-white/[0.05] px-6 py-3 font-semibold text-white transition hover:bg-white/[0.08] disabled:opacity-50"
-                  >
-                    {submittingOffer ? "Sending..." : "Submit"}
-                  </button>
-                </div>
+                    <button
+                      onClick={handleMakeOffer}
+                      disabled={
+                        submittingOffer ||
+                        listing.status === "OFFER_PENDING" ||
+                        listing.status === "OFFER_ACCEPTED"
+                      }
+                      className="rounded border border-white/10 bg-white/[0.05] px-6 py-3 font-semibold text-white transition hover:bg-white/[0.08] disabled:opacity-50"
+                    >
+                      {submittingOffer ? "Sending..." : "Submit"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
