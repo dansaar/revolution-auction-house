@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import { getCurrentUser, type AuthUser } from "aws-amplify/auth";
+import { getCurrentUser, fetchAuthSession, type AuthUser } from "aws-amplify/auth";
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
@@ -147,6 +147,7 @@ export default function LiveAuctionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false); // FIX #10
   const [auctionEnded, setAuctionEnded] = useState(false); // FIX #3  reactive state
   const [resolvedImages, setResolvedImages] = useState<string[]>([]);
+  const [isSeller, setIsSeller] = useState(false);
 
   const enteredBidAmount = moneyToNumber(input || 0);
   const estimateBaseAmount =
@@ -308,6 +309,9 @@ export default function LiveAuctionPage() {
     async function loadUser() {
       try {
         setUser(await getCurrentUser());
+        const session = await fetchAuthSession({ forceRefresh: false });
+        const groups = (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) || [];
+        setIsSeller(groups.includes("Seller"));
       } catch {
         setUser(null);
       } finally {
@@ -718,6 +722,11 @@ export default function LiveAuctionPage() {
       return;
     }
 
+    if (isSeller) {
+      alert("Sellers cannot place bids on auctions.");
+      return;
+    }
+
     if (isSubmitting) return;
 
     const enteredMaxBid = moneyToNumber(input);
@@ -969,6 +978,12 @@ export default function LiveAuctionPage() {
                 </div>
               )}
 
+              {isSeller && !auctionEnded && (
+                <div className="mt-5 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-center text-sm text-yellow-300">
+                  Sellers cannot place bids on auctions.
+                </div>
+              )}
+
               <div className="mt-6">
                 <label className="mb-3 block text-xs uppercase tracking-[0.22em] text-gray-500">
                   Your Maximum Bid
@@ -977,13 +992,14 @@ export default function LiveAuctionPage() {
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <input
-                      disabled={auctionEnded || isSubmitting}
+                      disabled={auctionEnded || isSeller || isSubmitting}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (
                           e.key === "Enter" &&
                           !auctionEnded &&
+                          !isSeller &&
                           !isSubmitting
                         ) {
                           placeBid();
@@ -1003,7 +1019,7 @@ export default function LiveAuctionPage() {
                     ) : (
                       <button
                         onClick={placeBid}
-                        disabled={isSubmitting}
+                        disabled={isSeller || isSubmitting}
                         className="rounded-xl bg-[#c0c0c0] px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isSubmitting ? "Placing..." : "Place Bid"}
