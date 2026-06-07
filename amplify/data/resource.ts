@@ -7,6 +7,7 @@ import { reviewBuyerVerification } from "../functions/reviewBuyerVerification/re
 import { notifyOfferSms } from "../functions/notifyOfferSms/resource";
 import { manageSellerGroup } from "../functions/manageSellerGroup/resource";
 import { autoVerifyBuyer } from "../functions/autoVerifyBuyer/resource";
+import { submitVerificationRequest } from "../functions/submitVerificationRequest/resource";
 
 const schema = a
   .schema({
@@ -239,7 +240,11 @@ const schema = a
         verificationTier: a.string().default("BASIC").authorization((allow) => [allow.group("Admin")]),
         bidLimit: a.integer().default(1000).authorization((allow) => [allow.group("Admin")]),
 
-        status: a.string().default("APPROVED"),
+        status: a.string().default("APPROVED").authorization((allow) => [
+          allow.group("Admin"),
+          allow.ownerDefinedIn("userId").to(["read"]),
+          allow.authenticated().to(["read"]),
+        ]),
 
         lastSeenAt: a.datetime(),
         lastSeenPage: a.string(),
@@ -424,6 +429,16 @@ const schema = a
       .returns(a.customType({ success: a.boolean() }))
       .authorization((allow) => [allow.publicApiKey()])
       .handler(a.handler.function(autoVerifyBuyer)),
+
+    submitVerificationRequest: a
+      .mutation()
+      .arguments({
+        requestedTier: a.string().required(),
+        verificationNotes: a.string(),
+      })
+      .returns(a.customType({ success: a.boolean(), message: a.string() }))
+      .authorization((allow) => [allow.authenticated()])
+      .handler(a.handler.function(submitVerificationRequest)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -434,6 +449,7 @@ const schema = a
     allow.resource(manageSellerGroup),
     allow.resource(notifyOfferSms),
     allow.resource(autoVerifyBuyer),
+    allow.resource(submitVerificationRequest),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

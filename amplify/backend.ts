@@ -10,6 +10,7 @@ import { reviewBuyerVerification } from "./functions/reviewBuyerVerification/res
 import { manageSellerGroup } from "./functions/manageSellerGroup/resource";
 import { notifyOfferSms } from "./functions/notifyOfferSms/resource";
 import { autoVerifyBuyer } from "./functions/autoVerifyBuyer/resource";
+import { submitVerificationRequest } from "./functions/submitVerificationRequest/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
@@ -25,6 +26,7 @@ const backend = defineBackend({
   manageSellerGroup,
   notifyOfferSms,
   autoVerifyBuyer,
+  submitVerificationRequest,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];

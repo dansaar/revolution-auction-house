@@ -116,53 +116,17 @@ function VerifyPageInner() {
     try {
       setSubmittingRequest(true);
 
-      const user = await getCurrentUser();
-      const userId = user.userId || user.username || "";
-      const email = user.signInDetails?.loginId || user.username || "";
+      const result = await client.mutations.submitVerificationRequest(
+        { requestedTier, verificationNotes },
+        { authMode: "userPool" } as any,
+      );
 
-      if (!userId || !email) {
-        alert("Please sign in before requesting verification.");
+      if (!result.data?.success) {
+        alert(result.data?.message || "Failed to submit verification request.");
         return;
       }
 
-      const existing = await client.models.BuyerProfile.get({ userId }, {
-        authMode: "userPool",
-      } as any);
-
-      const requestedLimitValue = getTier(requestedTier).limit;
-
-      if (existing.data) {
-        await client.models.BuyerProfile.update(
-          {
-            userId,
-            email,
-            requestedTier,
-            requestedLimit: requestedLimitValue,
-            verificationNotes,
-            status: "PENDING_REVIEW",
-          },
-          { authMode: "userPool" } as any,
-        );
-      } else {
-        await client.models.BuyerProfile.create(
-          {
-            userId,
-            email,
-            displayName: email,
-            requestedTier,
-            requestedLimit: requestedLimitValue,
-            verificationNotes,
-            status: "PENDING_REVIEW",
-          },
-          { authMode: "userPool" } as any,
-        );
-      }
-
-      const refreshed = await client.models.BuyerProfile.get({ userId }, {
-        authMode: "userPool",
-      } as any);
-
-      setBuyerProfile(refreshed.data || null);
+      await loadBuyerProfile();
       alert("Verification request submitted.");
     } catch (err) {
       console.error(err);
