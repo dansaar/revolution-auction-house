@@ -83,6 +83,36 @@ export async function POST(request: Request) {
         break;
       }
 
+      case "identity.verification_session.verified": {
+        const session = event.data.object as any;
+        const buyerEmail = session.metadata?.buyerEmail;
+
+        if (!buyerEmail) {
+          console.warn("WEBHOOK identity.verified: missing buyerEmail in metadata", session.id);
+          break;
+        }
+
+        const token = process.env.AUTO_VERIFY_TOKEN || "";
+
+        if (!token) {
+          console.error("WEBHOOK identity.verified: AUTO_VERIFY_TOKEN not set");
+          break;
+        }
+
+        const result = await client.mutations.autoVerifyBuyer(
+          { email: buyerEmail, stripeSessionId: session.id, webhookToken: token },
+          { authMode: "apiKey" } as any,
+        );
+
+        if (result.data?.success) {
+          console.log("WEBHOOK identity.verified: buyer upgraded to VERIFIED", buyerEmail);
+        } else {
+          console.error("WEBHOOK identity.verified: autoVerifyBuyer failed", buyerEmail);
+        }
+
+        break;
+      }
+
       default:
         console.log(`Unhandled Stripe event type: ${event.type}`);
     }

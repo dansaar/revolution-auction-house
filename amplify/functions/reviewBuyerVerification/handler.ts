@@ -12,9 +12,17 @@ Amplify.configure(resourceConfig, libraryOptions);
 
 const client = generateClient<Schema>();
 
+const TIER_LIMITS: Record<string, number> = {
+  BASIC: 1_000,
+  VERIFIED: 10_000,
+  PREMIUM: 50_000,
+  PRIVATE: 250_000,
+  TROPHY: 5_000_000,
+};
+
 export const handler: Schema["reviewBuyerVerification"]["functionHandler"] =
   async (event) => {
-    const { userId, approved } = event.arguments;
+    const { userId, approved, tier: tierOverride } = event.arguments;
 
     const identity = event.identity as any;
     const claims = identity?.claims ?? {};
@@ -45,11 +53,20 @@ export const handler: Schema["reviewBuyerVerification"]["functionHandler"] =
     }
 
     if (approved) {
+      // Admin-supplied tier overrides the buyer's request; fall back to requested tier, then current tier
+      const approvedTier =
+        tierOverride ||
+        profile.requestedTier ||
+        profile.verificationTier ||
+        "BASIC";
+
+      const approvedLimit =
+        TIER_LIMITS[approvedTier] ?? TIER_LIMITS["BASIC"];
+
       await client.models.BuyerProfile.update({
         userId,
-        verificationTier:
-          profile.requestedTier || profile.verificationTier || "BASIC",
-        bidLimit: Number(profile.requestedLimit || profile.bidLimit || 1000),
+        verificationTier: approvedTier,
+        bidLimit: approvedLimit,
         status: "APPROVED",
         reviewedAt: new Date().toISOString(),
       });
@@ -63,6 +80,6 @@ export const handler: Schema["reviewBuyerVerification"]["functionHandler"] =
 
     return {
       success: true,
-      message: approved ? "Buyer limit approved" : "Request declined",
+      message: approved ? "Buyer tier approved" : "Request declined",
     };
   };

@@ -7,10 +7,11 @@ import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { isAdminUser } from "@/lib/sellers";
+import { BUYER_TIERS, getTier, formatTierLimit } from "@/lib/tiers";
+
+const client = generateClient<Schema>();
 
 export default function AdminPage() {
-  const client = generateClient<Schema>();
-
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [stats, setStats] = useState({
@@ -19,6 +20,29 @@ export default function AdminPage() {
     bids: 0,
     watchlist: 0,
   });
+  const [pendingVerifications, setPendingVerifications] = useState<any[]>([]);
+  const [approvalTiers, setApprovalTiers] = useState<Record<string, string>>({});
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+
+  async function loadPendingVerifications() {
+    try {
+      const result = await client.models.BuyerProfile.list({
+        filter: { status: { eq: "PENDING_REVIEW" } },
+        authMode: "userPool",
+      } as any);
+
+      const pending = result.data || [];
+      setPendingVerifications(pending);
+
+      const defaults: Record<string, string> = {};
+      for (const p of pending) {
+        defaults[p.userId] = p.requestedTier || "VERIFIED";
+      }
+      setApprovalTiers((prev) => ({ ...defaults, ...prev }));
+    } catch (err) {
+      console.error("Failed to load pending verifications", err);
+    }
+  }
 
   useEffect(() => {
     async function loadAdmin() {
@@ -43,6 +67,8 @@ export default function AdminPage() {
           bids: bids.data.length,
           watchlist: watchlist.data.length,
         });
+
+        await loadPendingVerifications();
       } catch {
         setIsAdmin(false);
       } finally {
@@ -52,6 +78,32 @@ export default function AdminPage() {
 
     loadAdmin();
   }, []);
+
+  async function handleReview(userId: string, approved: boolean) {
+    if (processingIds.has(userId)) return;
+
+    setProcessingIds((prev) => new Set(prev).add(userId));
+
+    try {
+      const tier = approved ? (approvalTiers[userId] || "VERIFIED") : undefined;
+
+      await client.mutations.reviewBuyerVerification(
+        { userId, approved, ...(tier ? { tier } : {}) },
+        { authMode: "userPool" } as any,
+      );
+
+      await loadPendingVerifications();
+    } catch (err) {
+      console.error("Review failed", err);
+      alert("Failed to process request.");
+    } finally {
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    }
+  }
 
   if (checking) {
     return (
@@ -103,6 +155,109 @@ export default function AdminPage() {
           <Stat label="Bids" value={stats.bids} />
           <Stat label="Watchlist Items" value={stats.watchlist} />
         </div>
+
+        {/* Pending Buyer Verification Queue */}
+        <section className="mt-10">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-serif text-3xl text-[#d7d7d7]">
+              Pending Buyer Verifications
+              {pendingVerifications.length > 0 && (
+                <span className="ml-3 inline-flex items-center justify-center rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-sm font-bold text-yellow-300">
+                  {pendingVerifications.length}
+                </span>
+              )}
+            </h2>
+          </div>
+
+          {pendingVerifications.length === 0 ? (
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-6 text-gray-500">
+              No pending verification requests.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingVerifications.map((profile) => {
+                const currentTier = getTier(profile.verificationTier || "BASIC");
+                const requestedTierData = getTier(profile.requestedTier || "VERIFIED");
+                const isProcessing = processingIds.has(profile.userId);
+
+                return (
+                  <div
+                    key={profile.userId}
+                    className="rounded-xl border border-yellow-400/20 bg-yellow-400/5 p-5"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-white">
+                          {profile.email}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-3 text-sm text-gray-400">
+                          <span>
+                            Current:{" "}
+                            <span className="text-[#c0c0c0]">
+                              {currentTier.name} ({formatTierLimit(currentTier.code)})
+                            </span>
+                          </span>
+                          <span>→</span>
+                          <span>
+                            Requested:{" "}
+                            <span className="text-[#e7c77f]">
+                              {requestedTierData.name} ({formatTierLimit(requestedTierData.code)})
+                            </span>
+                          </span>
+                        </div>
+                        {profile.verificationNotes && (
+                          <div className="mt-3 rounded border border-white/10 bg-black/30 p-3 text-sm text-gray-300">
+                            {profile.verificationNotes}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] uppercase tracking-[0.15em] text-gray-500">
+                            Approve as
+                          </label>
+                          <select
+                            value={approvalTiers[profile.userId] || "VERIFIED"}
+                            onChange={(e) =>
+                              setApprovalTiers((prev) => ({
+                                ...prev,
+                                [profile.userId]: e.target.value,
+                              }))
+                            }
+                            className="rounded border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6aa55]/50"
+                          >
+                            {BUYER_TIERS.filter((t) => t.code !== "BASIC").map((tier) => (
+                              <option key={tier.code} value={tier.code}>
+                                {tier.name} — {formatTierLimit(tier.code)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <button
+                          disabled={isProcessing}
+                          onClick={() => handleReview(profile.userId, true)}
+                          className="rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                        >
+                          {isProcessing ? "..." : "Approve"}
+                        </button>
+
+                        <button
+                          disabled={isProcessing}
+                          onClick={() => handleReview(profile.userId, false)}
+                          className="rounded border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                        >
+                          {isProcessing ? "..." : "Decline"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
         <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           <AdminCard

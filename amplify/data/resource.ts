@@ -6,6 +6,7 @@ import { verifyPayment } from "../functions/verifyPayment/resource";
 import { reviewBuyerVerification } from "../functions/reviewBuyerVerification/resource";
 import { notifyOfferSms } from "../functions/notifyOfferSms/resource";
 import { manageSellerGroup } from "../functions/manageSellerGroup/resource";
+import { autoVerifyBuyer } from "../functions/autoVerifyBuyer/resource";
 
 const schema = a
   .schema({
@@ -375,6 +376,7 @@ const schema = a
       .arguments({
         userId: a.string().required(),
         approved: a.boolean().required(),
+        tier: a.string(),
       })
       .returns(
         a.customType({
@@ -411,6 +413,17 @@ const schema = a
       .returns(a.customType({ sent: a.boolean() }))
       .authorization((allow) => [allow.authenticated()])
       .handler(a.handler.function(notifyOfferSms)),
+
+    autoVerifyBuyer: a
+      .mutation()
+      .arguments({
+        email: a.string().required(),
+        stripeSessionId: a.string().required(),
+        webhookToken: a.string().required(),
+      })
+      .returns(a.customType({ success: a.boolean() }))
+      .authorization((allow) => [allow.publicApiKey()])
+      .handler(a.handler.function(autoVerifyBuyer)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -420,6 +433,7 @@ const schema = a
     allow.resource(reviewBuyerVerification),
     allow.resource(manageSellerGroup),
     allow.resource(notifyOfferSms),
+    allow.resource(autoVerifyBuyer),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

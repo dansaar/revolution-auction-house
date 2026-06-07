@@ -21,6 +21,7 @@ import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 import { isAdminUser } from "@/lib/sellers";
+import { getTier } from "@/lib/tiers";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
   const c = carrier.toLowerCase();
@@ -599,8 +600,9 @@ export default function DashboardPage() {
     };
   }, [bids, auctions, user, userKey, now]);
 
-  const buyerTier = buyerProfile?.verificationTier || "BASIC";
-  const buyerBidLimit = Number(buyerProfile?.bidLimit || 1000);
+  const buyerTierCode = buyerProfile?.verificationTier || "BASIC";
+  const buyerTier = getTier(buyerTierCode);
+  const buyerBidLimit = Number(buyerProfile?.bidLimit || buyerTier.limit);
 
   const activeWatchlist = watchlist.filter((item: any) => {
     if (!item.auctionId) return false;
@@ -859,11 +861,26 @@ export default function DashboardPage() {
             label="Unpaid Wins"
             value={String(unpaidWins.length)}
           />
-          <Stat
-            icon={BadgeCheck}
-            label={`${buyerTier} Buyer`}
-            value={`$${buyerBidLimit.toLocaleString()}`}
-          />
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
+            <BadgeCheck className="text-[#c0c0c0]" size={22} />
+            <div className="mt-4 text-xs uppercase tracking-widest text-gray-500">
+              Bid Limit
+            </div>
+            <div className="mt-1 font-serif text-3xl text-[#c0c0c0]">
+              ${buyerBidLimit.toLocaleString()}
+            </div>
+            <div className="mt-1 text-xs uppercase tracking-[0.14em] text-gray-500">
+              {buyerTier.name} Tier
+            </div>
+            {buyerTierCode === "BASIC" && (
+              <Link
+                href="/verify"
+                className="mt-3 inline-block text-xs font-semibold text-[#e7c77f] hover:text-white"
+              >
+                Request upgrade →
+              </Link>
+            )}
+          </div>
         </section>
 
         <section className="mt-12 grid gap-8 lg:grid-cols-2">

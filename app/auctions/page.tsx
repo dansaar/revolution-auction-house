@@ -512,10 +512,15 @@ export default function AuctionsPage() {
           </button>
         </div>
 
-        <button className="flex items-center gap-2 rounded border border-white/20 px-4 py-2 hover:border-[#c0c0c0]">
-          <SlidersHorizontal size={16} />
-          Filters
-        </button>
+        {filter !== "ALL" && (
+          <button
+            onClick={() => setFilter("ALL")}
+            className="flex items-center gap-2 rounded border border-white/20 px-4 py-2 text-gray-400 hover:border-[#c0c0c0] hover:text-white"
+          >
+            <SlidersHorizontal size={16} />
+            Clear Filters
+          </button>
+        )}
       </div>
 
       <section className="mx-auto max-w-7xl">

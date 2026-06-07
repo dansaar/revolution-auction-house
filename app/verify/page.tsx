@@ -14,73 +14,25 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import "@/lib/amplifyclient";
 import Link from "next/link";
+import { BUYER_TIERS, getTier, formatTierLimit } from "@/lib/tiers";
+import { fetchAuthSession } from "aws-amplify/auth";
+import { useSearchParams } from "next/navigation";
 
 const client = generateClient<Schema>();
 
-const tiers = [
-  {
-    code: "BASIC",
-    name: "Basic Buyer",
-    limit: "Up to $1,000",
-    requirements: [
-      "Email verification",
-      "Phone verification",
-      "Payment method on file",
-    ],
-  },
-  {
-    code: "VERIFIED",
-    name: "Verified Buyer",
-    limit: "Up to $10,000",
-    requirements: [
-      "Government ID verification",
-      "Verified billing address",
-      "Fraud screening",
-      "Payment method on file",
-    ],
-  },
-  {
-    code: "PREMIUM",
-    name: "Premium Buyer",
-    limit: "Up to $50,000",
-    requirements: [
-      "ID verification",
-      "Bank/payment verification",
-      "Manual account review",
-      "Payment method on file",
-    ],
-  },
-  {
-    code: "PRIVATE",
-    name: "Private Client",
-    limit: "$50,000+",
-    requirements: [
-      "Proof of funds",
-      "Private client approval",
-      "Concierge contact",
-      "Payment method on file",
-    ],
-  },
-  {
-    code: "TROPHY",
-    name: "Trophy Bidder",
-    limit: "$250,000+",
-    requirements: [
-      "Proof of funds",
-      "Signed bidder agreement",
-      "Direct approval",
-    ],
-  },
-];
+const TIER_ICONS = [BadgeCheck, BadgeCheck, LockKeyhole, LockKeyhole, Crown];
 
 export default function VerifyPage() {
   const [buyerProfile, setBuyerProfile] = useState<any>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
+  const searchParams = useSearchParams();
+  const identityComplete = searchParams.get("identity") === "complete";
+
   const [requestedTier, setRequestedTier] = useState("VERIFIED");
-  const [requestedLimit, setRequestedLimit] = useState("10000");
   const [verificationNotes, setVerificationNotes] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [startingIdentity, setStartingIdentity] = useState(false);
 
   async function loadBuyerProfile() {
     try {
@@ -113,8 +65,42 @@ export default function VerifyPage() {
     };
   }, []);
 
-  const currentTier = buyerProfile?.verificationTier || "BASIC";
-  const currentLimit = Number(buyerProfile?.bidLimit || 1000);
+  const currentTierCode = buyerProfile?.verificationTier || "BASIC";
+  const currentTier = getTier(currentTierCode);
+
+  async function startIdentityVerification() {
+    if (startingIdentity) return;
+
+    try {
+      setStartingIdentity(true);
+
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString();
+
+      if (!token) {
+        alert("Please sign in to verify your identity.");
+        return;
+      }
+
+      const res = await fetch("/api/identity/start", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Could not start identity verification.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to start identity verification.");
+    } finally {
+      setStartingIdentity(false);
+    }
+  }
 
   async function submitVerificationRequest() {
     if (submittingRequest) return;
@@ -135,13 +121,15 @@ export default function VerifyPage() {
         authMode: "userPool",
       } as any);
 
+      const requestedLimitValue = getTier(requestedTier).limit;
+
       if (existing.data) {
         await client.models.BuyerProfile.update(
           {
             userId,
             email,
             requestedTier,
-            requestedLimit: Number(requestedLimit),
+            requestedLimit: requestedLimitValue,
             verificationNotes,
             status: "PENDING_REVIEW",
           },
@@ -154,7 +142,7 @@ export default function VerifyPage() {
             email,
             displayName: email,
             requestedTier,
-            requestedLimit: Number(requestedLimit),
+            requestedLimit: requestedLimitValue,
             verificationNotes,
             status: "PENDING_REVIEW",
           },
@@ -179,6 +167,15 @@ export default function VerifyPage() {
   return (
     <div className="min-h-screen bg-[#050607] text-white">
       <main className="mx-auto max-w-7xl px-6 py-16">
+        {identityComplete && (
+          <div className="mb-10 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center text-emerald-200">
+            <div className="font-semibold">Identity submitted — thank you!</div>
+            <p className="mt-1 text-sm text-emerald-300/80">
+              Stripe is processing your verification. Your bid limit will update automatically once complete, usually within a few minutes.
+            </p>
+          </div>
+        )}
+
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#c0c0c0]/30 bg-[#c0c0c0]/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-[#c0c0c0]">
             <ShieldCheck size={16} />
@@ -210,54 +207,75 @@ export default function VerifyPage() {
           </div>
 
           <div className="mt-3 font-serif text-4xl text-[#f0d28c]">
-            {loadingProfile
-              ? "Loading..."
-              : `$${currentLimit.toLocaleString()}`}
+            {loadingProfile ? "Loading..." : formatTierLimit(currentTierCode)}
           </div>
 
           <div className="mt-2 text-sm uppercase tracking-[0.2em] text-gray-400">
-            {currentTier} Buyer
+            {currentTier.name} Buyer
           </div>
+
+          {currentTierCode === "BASIC" && (
+            <div className="mt-5 border-t border-white/10 pt-5">
+              <p className="text-sm text-gray-400">
+                Verify your government ID instantly with Stripe to unlock a{" "}
+                <span className="font-semibold text-[#e7c77f]">$10,000</span> bid
+                limit — no manual review needed.
+              </p>
+              <button
+                type="button"
+                disabled={startingIdentity}
+                onClick={startIdentityVerification}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-[#c0c0c0] px-5 py-3 font-semibold text-black transition hover:bg-white disabled:opacity-50"
+              >
+                {startingIdentity ? "Starting…" : "Verify Identity Now →"}
+              </button>
+            </div>
+          )}
         </div>
 
         <section className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-5">
-          {tiers.map((tier, index) => (
-            <div
-              key={tier.name}
-              className={`rounded-xl border p-5 transition ${
-                tier.code === currentTier
-                  ? "border-[#d6aa55]/60 bg-[#1a1408]/80 shadow-[0_0_50px_rgba(214,170,85,0.12)]"
-                  : "border-white/10 bg-white/[0.035] hover:border-[#c0c0c0]/40"
-              }`}
-            >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-[#c0c0c0]/30 bg-[#c0c0c0]/10">
-                {index < 2 ? (
-                  <BadgeCheck className="text-[#c0c0c0]" />
-                ) : index < 4 ? (
-                  <LockKeyhole className="text-[#c0c0c0]" />
-                ) : (
-                  <Crown className="text-[#c0c0c0]" />
-                )}
-              </div>
+          {BUYER_TIERS.map((tier, index) => {
+            const Icon = TIER_ICONS[index];
+            const isCurrent = tier.code === currentTierCode;
 
-              <h2 className="font-serif text-2xl">{tier.name}</h2>
-              {tier.code === currentTier && (
-                <div className="mt-2 inline-flex rounded-full border border-[#d6aa55]/40 bg-[#d6aa55]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#e7c77f]">
-                  Current Tier
+            return (
+              <div
+                key={tier.code}
+                className={`rounded-xl border p-5 transition ${
+                  isCurrent
+                    ? "border-[#d6aa55]/60 bg-[#1a1408]/80 shadow-[0_0_50px_rgba(214,170,85,0.12)]"
+                    : "border-white/10 bg-white/[0.035] hover:border-[#c0c0c0]/40"
+                }`}
+              >
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-[#c0c0c0]/30 bg-[#c0c0c0]/10">
+                  <Icon className="text-[#c0c0c0]" />
                 </div>
-              )}
-              <div className="mt-2 text-[#c0c0c0]">{tier.limit}</div>
 
-              <ul className="mt-5 space-y-3 text-sm text-gray-400">
-                {tier.requirements.map((req) => (
-                  <li key={req} className="flex gap-2">
-                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#c0c0c0]" />
-                    {req}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+                <h2 className="font-serif text-2xl">{tier.name}</h2>
+
+                {isCurrent && (
+                  <div className="mt-2 inline-flex rounded-full border border-[#d6aa55]/40 bg-[#d6aa55]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#e7c77f]">
+                    Current Tier
+                  </div>
+                )}
+
+                <div className="mt-2 font-semibold text-[#c0c0c0]">
+                  {formatTierLimit(tier.code)} limit
+                </div>
+
+                <p className="mt-1 text-xs text-gray-500">{tier.description}</p>
+
+                <ul className="mt-5 space-y-3 text-sm text-gray-400">
+                  {tier.requirements.map((req) => (
+                    <li key={req} className="flex gap-2">
+                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c0c0c0]" />
+                      {req}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </section>
 
         <section className="mt-16 rounded-xl border border-[#c0c0c0]/25 bg-[#c0c0c0]/10 p-8">
@@ -276,43 +294,28 @@ export default function VerifyPage() {
             </div>
           )}
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-gray-500">
-                Requested Tier
-              </label>
-
-              <select
-                value={requestedTier}
-                onChange={(e) => {
-                  const tier = e.target.value;
-                  setRequestedTier(tier);
-
-                  if (tier === "VERIFIED") setRequestedLimit("10000");
-                  if (tier === "PREMIUM") setRequestedLimit("50000");
-                  if (tier === "PRIVATE") setRequestedLimit("250000");
-                  if (tier === "TROPHY") setRequestedLimit("5000000");
-                }}
-                className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#d6aa55]/50"
-              >
-                <option value="VERIFIED">Verified Buyer — $10,000</option>
-                <option value="PREMIUM">Premium Buyer — $50,000</option>
-                <option value="PRIVATE">Private Client — $250,000</option>
-                <option value="TROPHY">Trophy Bidder — $5,000,000</option>
-              </select>
+          {buyerProfile?.status === "DECLINED" && (
+            <div className="mt-6 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">
+              Your last request was declined. You may submit a new request with additional information.
             </div>
+          )}
 
-            <div>
-              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-gray-500">
-                Requested Limit
-              </label>
+          <div className="mt-8">
+            <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-gray-500">
+              Requested Tier
+            </label>
 
-              <input
-                value={requestedLimit}
-                onChange={(e) => setRequestedLimit(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#d6aa55]/50"
-              />
-            </div>
+            <select
+              value={requestedTier}
+              onChange={(e) => setRequestedTier(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#d6aa55]/50 md:max-w-sm"
+            >
+              {BUYER_TIERS.filter((t) => t.code !== "BASIC").map((tier) => (
+                <option key={tier.code} value={tier.code}>
+                  {tier.name} — {formatTierLimit(tier.code)} limit
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="mt-5">
