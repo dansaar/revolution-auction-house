@@ -238,8 +238,8 @@ const schema = a
 
         displayName: a.string(),
 
-        verificationTier: a.string().default("BASIC").authorization((allow) => [allow.group("Admin")]),
-        bidLimit: a.integer().default(1000).authorization((allow) => [allow.group("Admin")]),
+        verificationTier: a.string().default("BASIC").authorization((allow) => [allow.group("Admin"), allow.group("Seller").to(["read"])]),
+        bidLimit: a.integer().default(1000).authorization((allow) => [allow.group("Admin"), allow.group("Seller").to(["read"])]),
 
         status: a.string().default("APPROVED").authorization((allow) => [
           allow.group("Admin"),
