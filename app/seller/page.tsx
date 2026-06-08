@@ -75,9 +75,12 @@ export default function SellerPage() {
         setSellerEmail(email);
         setSellerUserId(userId);
 
+        const session = await fetchAuthSession({ forceRefresh: false });
+        const sellerSub = (session.tokens?.idToken?.payload?.sub as string) || userId;
+
         const offerResult = await client.models.Offer.list({
           filter: {
-            sellerEmail: { eq: email },
+            sellerUserId: { eq: sellerSub },
           },
           authMode: "userPool",
         } as any);

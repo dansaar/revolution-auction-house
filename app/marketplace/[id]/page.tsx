@@ -47,7 +47,6 @@ export default function MarketplaceListingPage() {
   const [fullscreen, setFullscreen] = useState(false);
 
   const [isSeller, setIsSeller] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState("");
 
   useEffect(() => {
     updateBuyerPresence(`/marketplace/${id}`);
@@ -56,8 +55,7 @@ export default function MarketplaceListingPage() {
   useEffect(() => {
     async function loadUser() {
       try {
-        const currentUser = await getCurrentUser();
-        setCurrentUserId(currentUser.userId || currentUser.username || "");
+        await getCurrentUser();
         const session = await fetchAuthSession({ forceRefresh: false });
         const groups = (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) || [];
         setIsSeller(groups.includes("Seller"));
@@ -209,9 +207,22 @@ export default function MarketplaceListingPage() {
         return;
       }
 
+      const parsedAmount = moneyToNumber(offerAmount);
+      if (!parsedAmount || parsedAmount <= 0) {
+        alert("Enter a valid offer amount");
+        return;
+      }
+
+      if (!listing.sellerUserId) {
+        alert("This listing cannot accept offers at this time. Please contact support.");
+        return;
+      }
+
       setSubmittingOffer(true);
 
-      await client.models.Offer.create(
+      const amountFormatted = `$${parsedAmount.toLocaleString()}`;
+
+      const offerResult = await client.models.Offer.create(
         {
           listingId: listing.id,
 
@@ -219,10 +230,10 @@ export default function MarketplaceListingPage() {
           buyerEmail,
           buyerDisplayName: buyerEmail,
 
-          sellerUserId: listing.sellerUserId || "",
+          sellerUserId: listing.sellerUserId,
           sellerEmail: listing.sellerEmail || "",
 
-          amount: `$${Number(offerAmount).toLocaleString()}`,
+          amount: amountFormatted,
 
           status: "PENDING",
         },
@@ -231,6 +242,11 @@ export default function MarketplaceListingPage() {
         } as any,
       );
 
+      if (!offerResult.data || (offerResult.errors && offerResult.errors.length > 0)) {
+        const msg = offerResult.errors?.[0]?.message || "Failed to submit offer";
+        throw new Error(msg);
+      }
+
       // Notify seller via SMS if they opted in (fire-and-forget)
       if (listing.sellerEmail) {
         client.mutations.notifySellerOfferSms(
@@ -238,13 +254,13 @@ export default function MarketplaceListingPage() {
             sellerEmail: listing.sellerEmail,
             listingId: listing.id,
             listingTitle: listing.title || "your listing",
-            offerAmount: `$${Number(offerAmount).toLocaleString()}`,
+            offerAmount: amountFormatted,
           },
           { authMode: "userPool" } as any,
         ).catch(() => {});
       }
 
-      alert("Offer submitted");
+      alert("Offer submitted successfully!");
       setOfferAmount("");
     } catch (err) {
       console.error(err);

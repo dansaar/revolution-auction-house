@@ -160,7 +160,7 @@ const schema = a
       })
       .authorization((allow) => [
         allow.ownerDefinedIn("buyerUserId"),
-        allow.ownerDefinedIn("sellerEmail").identityClaim("email"),
+        allow.ownerDefinedIn("sellerUserId").to(["read", "update", "delete"]),
         allow.group("Admin"),
       ]),
 
