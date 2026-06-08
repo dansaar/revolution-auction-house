@@ -23,11 +23,15 @@ export default function AdminCleanupPage() {
 
   if (!authorized) return null;
 
-  async function deleteAll(modelName: string, model: any) {
+  async function deleteAll(
+    modelName: string,
+    model: any,
+    getKey: (item: any) => object = (item) => ({ id: item.id }),
+  ) {
     setStatus(`Loading ${modelName}...`);
 
     const result = await model.list({
-      authMode: "apiKey",
+      authMode: "userPool",
       limit: 1000,
     } as any);
 
@@ -36,7 +40,7 @@ export default function AdminCleanupPage() {
     setStatus(`Deleting ${items.length} ${modelName} records...`);
 
     for (const item of items) {
-      await model.delete({ id: item.id }, { authMode: "apiKey" } as any);
+      await model.delete(getKey(item), { authMode: "userPool" } as any);
     }
   }
 
@@ -97,10 +101,10 @@ export default function AdminCleanupPage() {
 
       await deleteAll("Offer", client.models.Offer);
       await deleteAll("Invoice", client.models.Invoice);
-      await deleteAll("BidAuditLog", client.models.BidAuditLog);
+      await deleteAll("BidAuditLog", client.models.BidAuditLog, (item) => ({ bidRequestId: item.bidRequestId }));
       await deleteAll("Bid", client.models.Bid);
       await deleteAll("WatchlistItem", client.models.WatchlistItem);
-      await deleteAll("AuctionState", client.models.AuctionState);
+      await deleteAll("AuctionState", client.models.AuctionState, (item) => ({ auctionId: item.auctionId }));
       await deleteAll("MarketplaceListing", client.models.MarketplaceListing);
       await deleteAll("Auction", client.models.Auction);
 
