@@ -35,7 +35,7 @@ export default function AdminCleanupPage() {
       limit: 1000,
     } as any);
 
-    const items = result.data || [];
+    const items = (result.data || []).filter(Boolean);
 
     setStatus(`Deleting ${items.length} ${modelName} records...`);
 
