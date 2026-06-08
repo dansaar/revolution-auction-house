@@ -26,10 +26,16 @@ export const handler: Schema["notifySellerOfferSms"]["functionHandler"] = async 
       { authMode: "iam" } as any,
     );
     const listing = listingResult.data;
-    if (!listing || listing.sellerEmail?.toLowerCase() !== sellerEmail?.toLowerCase()) {
+    if (!listing || (sellerEmail && listing.sellerEmail?.toLowerCase() !== sellerEmail?.toLowerCase())) {
       console.warn("NOTIFY_OFFER_SMS: listing/seller mismatch", { listingId, sellerEmail });
       return { sent: false };
     }
+
+    // Always mark listing as OFFER_PENDING so the UI updates for all viewers
+    await client.models.MarketplaceListing.update(
+      { id: listingId, status: "OFFER_PENDING" },
+      { authMode: "iam" } as any,
+    );
 
     // 5-minute per-listing SMS cooldown to prevent spam
     if (listing.lastOfferSmsAt) {

@@ -247,18 +247,19 @@ export default function MarketplaceListingPage() {
         throw new Error(msg);
       }
 
-      // Notify seller via SMS if they opted in (fire-and-forget)
-      if (listing.sellerEmail) {
-        client.mutations.notifySellerOfferSms(
-          {
-            sellerEmail: listing.sellerEmail,
-            listingId: listing.id,
-            listingTitle: listing.title || "your listing",
-            offerAmount: amountFormatted,
-          },
-          { authMode: "userPool" } as any,
-        ).catch(() => {});
-      }
+      // Optimistically update local state so the page reflects OFFER_PENDING immediately
+      setListing((prev: any) => ({ ...prev, status: "OFFER_PENDING" }));
+
+      // Notify seller + update listing status in DynamoDB (fire-and-forget via Lambda with IAM)
+      client.mutations.notifySellerOfferSms(
+        {
+          sellerEmail: listing.sellerEmail || "",
+          listingId: listing.id,
+          listingTitle: listing.title || "your listing",
+          offerAmount: amountFormatted,
+        },
+        { authMode: "userPool" } as any,
+      ).catch(() => {});
 
       alert("Offer submitted successfully!");
       setOfferAmount("");
