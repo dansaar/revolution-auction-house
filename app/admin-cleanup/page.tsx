@@ -87,7 +87,7 @@ export default function AdminCleanupPage() {
 
   async function cleanup() {
     const confirmed = confirm(
-      "This will permanently delete all auctions, bids, watchlist items, auction states, and marketplace listings. Continue?",
+      "This will permanently delete all auctions, bids, offers, invoices, watchlist items, auction states, and marketplace listings. Continue?",
     );
 
     if (!confirmed) return;
@@ -95,6 +95,9 @@ export default function AdminCleanupPage() {
     try {
       setStatus("Starting cleanup...");
 
+      await deleteAll("Offer", client.models.Offer);
+      await deleteAll("Invoice", client.models.Invoice);
+      await deleteAll("BidAuditLog", client.models.BidAuditLog);
       await deleteAll("Bid", client.models.Bid);
       await deleteAll("WatchlistItem", client.models.WatchlistItem);
       await deleteAll("AuctionState", client.models.AuctionState);
@@ -114,7 +117,7 @@ export default function AdminCleanupPage() {
         <h1 className="font-serif text-4xl text-red-300">Admin Cleanup</h1>
 
         <p className="mt-4 text-gray-300">
-          This will delete all auction and marketplace test data.
+          This will delete all auctions, bids, offers, invoices, watchlist items, auction states, and marketplace listings. Buyer profiles are preserved.
         </p>
 
         <button
