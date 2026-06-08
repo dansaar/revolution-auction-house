@@ -40,7 +40,9 @@ export default function AdminCleanupPage() {
     setStatus(`Deleting ${items.length} ${modelName} records...`);
 
     for (const item of items) {
-      await model.delete(getKey(item), { authMode: "userPool" } as any);
+      const key = getKey(item);
+      if (Object.values(key).some((v) => v == null)) continue;
+      await model.delete(key, { authMode: "userPool" } as any);
     }
   }
 
