@@ -480,13 +480,16 @@ export default function DashboardPage() {
     reserveNotMet,
     lostAuctions,
   } = useMemo(() => {
-    const ended = auctions.filter(
-      (a: any) => a.endsAt && new Date(a.endsAt).getTime() <= now,
-    );
+    const isAuctionOver = (a: any) =>
+      a.ended === true ||
+      a.status === "SOLD" ||
+      a.status === "CANCELLED" ||
+      a.status === "PAID" ||
+      (a.endsAt && new Date(a.endsAt).getTime() <= now);
 
-    const live = auctions.filter(
-      (a: any) => !a.endsAt || new Date(a.endsAt).getTime() > now,
-    );
+    const ended = auctions.filter((a: any) => isAuctionOver(a));
+
+    const live = auctions.filter((a: any) => !isAuctionOver(a));
 
     const isMeWinning = (auction: any) => {
       const winners = [
