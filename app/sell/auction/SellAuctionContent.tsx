@@ -248,6 +248,7 @@ export default function SellAuctionContent() {
         .slice(0, 10)
         .toUpperCase()}`;
 
+      console.log("CREATE AUCTION: sellerUserId =", sellerUserId, "sellerEmail =", sellerEmail);
       const auctionResult = await client.models.Auction.create({
         title: form.title,
         subtitle: form.subtitle,
@@ -288,10 +289,12 @@ export default function SellAuctionContent() {
         sellerName: sellerPublicId,
       });
 
+      console.log("CREATE AUCTION RESULT:", auctionResult.data ? "OK id=" + auctionResult.data.id : "FAILED", auctionResult.errors);
       const auction = auctionResult.data;
 
       if (!auction) {
-        throw new Error("Auction was not created");
+        const errMsg = auctionResult.errors?.map((e: any) => e.message).join(", ") || "Unknown error";
+        throw new Error(`Auction creation failed: ${errMsg}`);
       }
 
       await client.models.AuctionState.create({

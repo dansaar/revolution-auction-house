@@ -130,7 +130,8 @@ export default function CreateListingPage() {
         .slice(0, 10)
         .toUpperCase()}`;
 
-      await client.models.MarketplaceListing.create({
+      console.log("CREATE LISTING: sellerUserId =", sellerUserId, "sellerEmail =", sellerEmail);
+      const listingResult = await client.models.MarketplaceListing.create({
         title: form.title,
         subtitle: form.subtitle,
         description: form.description,
@@ -150,6 +151,12 @@ export default function CreateListingPage() {
         sellerDisplayName: sellerPublicId,
         status: "ACTIVE",
       });
+
+      console.log("CREATE LISTING RESULT:", listingResult.data ? "OK id=" + listingResult.data.id : "FAILED", listingResult.errors);
+      if (!listingResult.data) {
+        const errMsg = listingResult.errors?.map((e: any) => e.message).join(", ") || "Unknown error";
+        throw new Error(`Listing creation failed: ${errMsg}`);
+      }
 
       router.push("/marketplace");
     } catch (err) {

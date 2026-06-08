@@ -272,6 +272,10 @@ export default function AuctionsPage() {
           } as any),
         ]);
 
+        if (result.errors?.length) {
+          console.error("AUCTIONS QUERY ERRORS", result.errors);
+        }
+
         const resolved = result.data.map((auction: any) => {
           let resolvedImage = "/logo.png";
 

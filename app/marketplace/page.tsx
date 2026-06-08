@@ -36,6 +36,10 @@ export default function MarketplacePage() {
         limit: 1000,
       } as any);
 
+      if (result.errors?.length) {
+        console.error("MARKETPLACE QUERY ERRORS", result.errors);
+      }
+
       const activeListings = (result.data || []).filter((listing: any) => {
         return (
           listing.sold !== true &&
