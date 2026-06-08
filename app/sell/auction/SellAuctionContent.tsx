@@ -6,7 +6,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import { getCurrentUser } from "aws-amplify/auth";
+import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { moneyToNumber } from "@/lib/money";
@@ -229,6 +229,7 @@ export default function SellAuctionContent() {
       let currentUser;
 
       try {
+        await fetchAuthSession({ forceRefresh: true });
         currentUser = await getCurrentUser();
       } catch {
         window.location.href = "/signin";

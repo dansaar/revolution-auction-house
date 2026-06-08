@@ -6,7 +6,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import { getCurrentUser } from "aws-amplify/auth";
+import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { uploadData } from "aws-amplify/storage";
 import Link from "next/link";
 import imageCompression from "browser-image-compression";
@@ -115,6 +115,7 @@ export default function CreateListingPage() {
         }
       }
 
+      await fetchAuthSession({ forceRefresh: true });
       const currentUser = await getCurrentUser();
 
       const sellerUserId =
