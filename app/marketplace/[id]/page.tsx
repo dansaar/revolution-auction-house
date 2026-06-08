@@ -191,17 +191,23 @@ export default function MarketplaceListingPage() {
       return;
     }
 
+    let currentUser;
     try {
-      const currentUser = await getCurrentUser();
+      currentUser = await getCurrentUser();
+    } catch {
+      window.location.href = "/signin";
+      return;
+    }
 
-      const buyerEmail =
-        currentUser.signInDetails?.loginId || currentUser.username || "";
+    const buyerEmail =
+      currentUser.signInDetails?.loginId || currentUser.username || "";
 
-      if (!buyerEmail) {
-        window.location.href = "/signin";
-        return;
-      }
+    if (!buyerEmail) {
+      window.location.href = "/signin";
+      return;
+    }
 
+    try {
       if (!offerAmount) {
         alert("Enter an offer amount");
         return;
