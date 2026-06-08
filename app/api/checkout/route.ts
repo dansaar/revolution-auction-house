@@ -17,12 +17,15 @@ const JWKS = createRemoteJWKSet(
   ),
 );
 
-async function getBuyerEmailFromRequest(req: Request): Promise<string | null> {
+async function getBuyerFromRequest(req: Request): Promise<{ email: string; sub: string } | null> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
   try {
     const { payload } = await jwtVerify(authHeader.slice(7), JWKS);
-    return (payload.email as string) || null;
+    const email = (payload.email as string) || "";
+    const sub = (payload.sub as string) || "";
+    if (!email || !sub) return null;
+    return { email, sub };
   } catch {
     return null;
   }
@@ -137,14 +140,16 @@ function buildListingLineItems(
 
 export async function POST(req: Request) {
   try {
-    const buyerEmail = await getBuyerEmailFromRequest(req);
+    const buyer = await getBuyerFromRequest(req);
 
-    if (!buyerEmail) {
+    if (!buyer) {
       return NextResponse.json(
         { error: "Authentication required." },
         { status: 401 },
       );
     }
+
+    const { email: buyerEmail, sub: buyerSub } = buyer;
 
     const stripeSecretKey =
       process.env.STRIPE_SECRET_KEY || process.env.AMPLIFY_STRIPE_SECRET_KEY;
@@ -254,6 +259,7 @@ export async function POST(req: Request) {
         line_items: lineItems,
         metadata: {
           buyerEmail: buyerEmail || "",
+          buyerSub: buyerSub || "",
           cartItems: JSON.stringify(cartMeta),
         },
         success_url: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&type=cart`,
@@ -306,6 +312,7 @@ export async function POST(req: Request) {
         metadata: {
           auctionId,
           buyerEmail: buyerEmail || "",
+          buyerSub: buyerSub || "",
           subtotal: fmt(amounts.hammerPrice),
           buyerPremium: fmt(amounts.buyerPremium),
           tax: fmt(amounts.tax),
@@ -360,6 +367,7 @@ export async function POST(req: Request) {
         metadata: {
           listingId,
           buyerEmail: buyerEmail || "",
+          buyerSub: buyerSub || "",
           subtotal: fmt(amounts.price),
           buyerPremium: "$0.00",
           tax: fmt(amounts.tax),

@@ -21,9 +21,9 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
 
     const identity = event.identity as any;
     const claims = identity?.claims ?? {};
-    const callerEmail = (claims["email"] as string | undefined)?.toLowerCase();
+    const callerSub = (claims["sub"] as string | undefined) || "";
 
-    if (!callerEmail) {
+    if (!callerSub) {
       return { paid: false, error: "Unauthorized" };
     }
 
@@ -40,14 +40,20 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
       return { paid: false };
     }
 
+    // Prefer sub-based identity check (more reliable than email comparison)
+    const sessionBuyerSub = session.metadata?.buyerSub || "";
     const sessionBuyerEmail = (
       session.metadata?.buyerEmail ||
       session.customer_details?.email ||
       session.customer_email ||
       ""
     ).toLowerCase();
+    const callerEmail = (claims["email"] as string | undefined)?.toLowerCase() || "";
 
-    if (!sessionBuyerEmail || sessionBuyerEmail !== callerEmail) {
+    const subMatch = sessionBuyerSub && callerSub && sessionBuyerSub === callerSub;
+    const emailMatch = sessionBuyerEmail && callerEmail && sessionBuyerEmail === callerEmail;
+
+    if (!subMatch && !emailMatch) {
       return { paid: false, error: "Unauthorized" };
     }
 
