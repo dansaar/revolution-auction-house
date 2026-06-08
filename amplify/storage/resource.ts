@@ -6,10 +6,14 @@ export const storage = defineStorage({
     "auction-images/*": [
       allow.guest.to(["get", "list"]),
       allow.authenticated.to(["get", "list", "write", "delete"]),
+      allow.groups(["Admin"]).to(["get", "list", "write", "delete"]),
+      allow.groups(["Seller"]).to(["get", "list", "write", "delete"]),
     ],
     "marketplace-images/*": [
       allow.guest.to(["get", "list"]),
       allow.authenticated.to(["get", "list", "write", "delete"]),
+      allow.groups(["Admin"]).to(["get", "list", "write", "delete"]),
+      allow.groups(["Seller"]).to(["get", "list", "write", "delete"]),
     ],
   }),
 });
