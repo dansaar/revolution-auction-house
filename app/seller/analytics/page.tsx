@@ -41,12 +41,10 @@ export default function SellerAnalyticsPage() {
           const all: any[] = [];
           let nextToken: string | undefined;
           do {
-            const res: any = await client.models.Auction.list({
-              authMode: "apiKey",
-              filter: { or: [{ sellerUserId: { eq: userId } }, { sellerEmail: { eq: email } }] },
-              limit: 500,
-              ...(nextToken ? { nextToken } : {}),
-            } as any);
+            const res: any = await (client.models.Auction as any).auctionsBySellerUserId(
+              { sellerUserId: userId },
+              { authMode: "userPool", limit: 500, ...(nextToken ? { nextToken } : {}) },
+            );
             all.push(...(res.data || []));
             nextToken = res.nextToken ?? undefined;
           } while (nextToken);
@@ -57,12 +55,10 @@ export default function SellerAnalyticsPage() {
           const all: any[] = [];
           let nextToken: string | undefined;
           do {
-            const res: any = await client.models.MarketplaceListing.list({
-              authMode: "apiKey",
-              filter: { or: [{ sellerUserId: { eq: userId } }, { sellerEmail: { eq: email } }] },
-              limit: 500,
-              ...(nextToken ? { nextToken } : {}),
-            } as any);
+            const res: any = await (client.models.MarketplaceListing as any).listingsBySellerUserId(
+              { sellerUserId: userId },
+              { authMode: "userPool", limit: 500, ...(nextToken ? { nextToken } : {}) },
+            );
             all.push(...(res.data || []));
             nextToken = res.nextToken ?? undefined;
           } while (nextToken);

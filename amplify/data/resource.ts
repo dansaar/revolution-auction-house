@@ -8,6 +8,7 @@ import { notifyOfferSms } from "../functions/notifyOfferSms/resource";
 import { manageSellerGroup } from "../functions/manageSellerGroup/resource";
 import { autoVerifyBuyer } from "../functions/autoVerifyBuyer/resource";
 import { submitVerificationRequest } from "../functions/submitVerificationRequest/resource";
+import { getRevenueStats } from "../functions/getRevenueStats/resource";
 
 const schema = a
   .schema({
@@ -61,6 +62,9 @@ const schema = a
         deliveredAt: a.datetime(),
         startsAt: a.datetime(),
       })
+      .secondaryIndexes((index) => [
+        index("sellerUserId").queryField("auctionsBySellerUserId"),
+      ])
       .authorization((allow) => [
         allow.publicApiKey().to(['read']),
         allow.group("Seller").to(['create']),
@@ -135,6 +139,9 @@ const schema = a
         deliveredAt: a.datetime(),
         lastOfferSmsAt: a.datetime(),
       })
+      .secondaryIndexes((index) => [
+        index("sellerUserId").queryField("listingsBySellerUserId"),
+      ])
       .authorization((allow) => [
         allow.publicApiKey().to(['read']),
         allow.group("Seller").to(['create']),
@@ -363,6 +370,10 @@ const schema = a
     stripeSessionId: a.string(),
     paidAt: a.datetime(),
   })
+      .secondaryIndexes((index) => [
+        index("sellerEmail").queryField("invoicesBySellerEmail"),
+        index("buyerUserId").queryField("invoicesByBuyer"),
+      ])
       .authorization((allow) => [
         allow.ownerDefinedIn("buyerUserId"),
         allow.ownerDefinedIn("sellerEmail").identityClaim("email"),
@@ -450,6 +461,16 @@ const schema = a
       .returns(a.customType({ success: a.boolean(), message: a.string() }))
       .authorization((allow) => [allow.authenticated()])
       .handler(a.handler.function(submitVerificationRequest)),
+
+    getRevenueStats: a
+      .query()
+      .arguments({})
+      .returns(a.customType({
+        statsJson: a.string(),
+        recentJson: a.string(),
+      }))
+      .authorization((allow) => [allow.group("Admin")])
+      .handler(a.handler.function(getRevenueStats)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -461,6 +482,7 @@ const schema = a
     allow.resource(notifyOfferSms),
     allow.resource(autoVerifyBuyer),
     allow.resource(submitVerificationRequest),
+    allow.resource(getRevenueStats),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

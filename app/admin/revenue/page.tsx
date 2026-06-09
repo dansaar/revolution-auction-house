@@ -7,7 +7,6 @@ import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { isAdminUser } from "@/lib/sellers";
-import { moneyToNumber } from "@/lib/money";
 
 const client = generateClient<Schema>();
 
@@ -21,21 +20,37 @@ function fmtFull(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
 }
 
-function monthKey(dateStr: string) {
-  const d = new Date(dateStr);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
+type ViewStats = {
+  gross: number; hammer: number; premium: number; tax: number;
+  count: number;
+  monthly: { key: string; label: string; gross: number; premium: number }[];
+  topSellers: { email: string; revenue: number; share: number }[];
+};
 
-function monthLabel(key: string) {
-  const [y, m] = key.split("-");
-  return new Date(Number(y), Number(m) - 1).toLocaleString("en-US", { month: "short", year: "2-digit" });
-}
+type Stats = {
+  all: ViewStats;
+  auctions: ViewStats;
+  marketplace: ViewStats;
+  pending: { value: number; count: number };
+};
+
+type Transaction = {
+  id: string; paidAt: string; title: string;
+  buyerEmail: string; sellerEmail: string;
+  subtotal: string; buyerPremium: string; tax: string; amount: string;
+  type: string;
+};
+
+const EMPTY_STATS: ViewStats = {
+  gross: 0, hammer: 0, premium: 0, tax: 0, count: 0, monthly: [], topSellers: [],
+};
 
 export default function AdminRevenuePage() {
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [recent, setRecent] = useState<Transaction[]>([]);
   const [view, setView] = useState<"all" | "auctions" | "marketplace">("all");
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 25;
@@ -45,18 +60,17 @@ export default function AdminRevenuePage() {
       try {
         if (!await isAdminUser()) return;
         setIsAdmin(true);
-        const all: any[] = [];
-        let nextToken: string | undefined;
-        do {
-          const res: any = await client.models.Invoice.list({
-            authMode: "userPool",
-            limit: 1000,
-            ...(nextToken ? { nextToken } : {}),
-          } as any);
-          all.push(...(res.data || []));
-          nextToken = res.nextToken ?? undefined;
-        } while (nextToken);
-        setInvoices(all);
+
+        const result = await (client as any).queries.getRevenueStats(
+          {},
+          { authMode: "userPool" },
+        );
+
+        const data = result?.data;
+        if (data?.statsJson) setStats(JSON.parse(data.statsJson));
+        if (data?.recentJson) setRecent(JSON.parse(data.recentJson));
+      } catch (err) {
+        console.error("REVENUE_STATS_ERROR", err);
       } finally {
         setChecking(false);
         setLoading(false);
@@ -65,55 +79,27 @@ export default function AdminRevenuePage() {
     load();
   }, []);
 
-  const paid = useMemo(() => invoices.filter((inv: any) => inv.status === "PAID" || inv.paidAt), [invoices]);
-  const pending = useMemo(() => invoices.filter((inv: any) => !inv.paidAt && inv.status !== "PAID"), [invoices]);
+  const viewStats: ViewStats = stats?.[view] ?? EMPTY_STATS;
+  const pendingStats = stats?.pending ?? { value: 0, count: 0 };
+  const auctionGross = stats?.auctions?.gross ?? 0;
+  const marketGross  = stats?.marketplace?.gross ?? 0;
+  const auctionCount = stats?.auctions?.count ?? 0;
+  const marketCount  = stats?.marketplace?.count ?? 0;
 
-  const filtered = useMemo(() =>
-    view === "all" ? paid :
-    view === "auctions" ? paid.filter((i: any) => i.type === "AUCTION" || i.auctionId) :
-    paid.filter((i: any) => i.type === "MARKETPLACE" || i.listingId),
-  [paid, view]);
+  const maxMonthly = useMemo(
+    () => Math.max(1, ...viewStats.monthly.map((m) => m.gross)),
+    [viewStats],
+  );
 
-  const totalGross      = useMemo(() => filtered.reduce((s, i) => s + moneyToNumber(i.amount    || 0), 0), [filtered]);
-  const totalHammer     = useMemo(() => filtered.reduce((s, i) => s + moneyToNumber(i.subtotal  || 0), 0), [filtered]);
-  const totalPremium    = useMemo(() => filtered.reduce((s, i) => s + moneyToNumber(i.buyerPremium || 0), 0), [filtered]);
-  const totalTax        = useMemo(() => filtered.reduce((s, i) => s + moneyToNumber(i.tax       || 0), 0), [filtered]);
+  // Filter recent transactions by view
+  const filteredRecent = useMemo(() => {
+    if (view === "all") return recent;
+    if (view === "auctions") return recent.filter((t) => t.type === "AUCTION" || (!t.type && !t.id?.includes("list")));
+    return recent.filter((t) => t.type === "MARKETPLACE" || t.type === "MARKET");
+  }, [recent, view]);
 
-  const auctionGross    = useMemo(() => paid.filter((i: any) => i.type === "AUCTION" || i.auctionId).reduce((s, i) => s + moneyToNumber(i.amount || 0), 0), [paid]);
-  const marketGross     = useMemo(() => paid.filter((i: any) => i.type === "MARKETPLACE" || i.listingId).reduce((s, i) => s + moneyToNumber(i.amount || 0), 0), [paid]);
-
-  const pendingValue    = useMemo(() => pending.reduce((s, i) => s + moneyToNumber(i.amount || 0), 0), [pending]);
-
-  // Monthly revenue (last 12 months)
-  const monthlyData = useMemo(() => {
-    const map: Record<string, { gross: number; premium: number }> = {};
-    for (const inv of filtered) {
-      if (!inv.paidAt) continue;
-      const k = monthKey(inv.paidAt);
-      if (!map[k]) map[k] = { gross: 0, premium: 0 };
-      map[k].gross   += moneyToNumber(inv.amount       || 0);
-      map[k].premium += moneyToNumber(inv.buyerPremium || 0);
-    }
-    const keys = Object.keys(map).sort().slice(-12);
-    return keys.map(k => ({ key: k, label: monthLabel(k), ...map[k] }));
-  }, [filtered]);
-
-  const maxMonthly = useMemo(() => Math.max(1, ...monthlyData.map(m => m.gross)), [monthlyData]);
-
-  // Top sellers
-  const topSellers = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const inv of filtered) {
-      if (!inv.sellerEmail) continue;
-      map[inv.sellerEmail] = (map[inv.sellerEmail] || 0) + moneyToNumber(inv.amount || 0);
-    }
-    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  }, [filtered]);
-
-  // Paginated recent invoices
-  const sorted = useMemo(() => [...filtered].sort((a, b) => new Date(b.paidAt || b.createdAt || 0).getTime() - new Date(a.paidAt || a.createdAt || 0).getTime()), [filtered]);
-  const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const paginated = filteredRecent.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(filteredRecent.length / PAGE_SIZE);
 
   if (checking || loading) return <main className="min-h-screen bg-[#050607] p-10 text-white">Loading…</main>;
   if (!isAdmin) return <main className="min-h-screen bg-[#050607] p-10 text-white">Admin access required.</main>;
@@ -142,42 +128,32 @@ export default function AdminRevenuePage() {
 
         {/* KPI cards */}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KPI label="Gross Revenue" value={fmt(totalGross)} sub={`${filtered.length} paid invoices`} gold />
-          <KPI label="Hammer / Sale Value" value={fmt(totalHammer)} sub="Subtotal before premium + tax" />
-          <KPI label="Buyer Premium" value={fmt(totalPremium)} sub={totalGross > 0 ? `${((totalPremium / totalGross) * 100).toFixed(1)}% of gross` : "—"} />
-          <KPI label="Tax Collected" value={fmt(totalTax)} />
+          <KPI label="Gross Revenue" value={fmt(viewStats.gross)} sub={`${viewStats.count} paid invoices`} gold />
+          <KPI label="Hammer / Sale Value" value={fmt(viewStats.hammer)} sub="Subtotal before premium + tax" />
+          <KPI label="Buyer Premium" value={fmt(viewStats.premium)} sub={viewStats.gross > 0 ? `${((viewStats.premium / viewStats.gross) * 100).toFixed(1)}% of gross` : "—"} />
+          <KPI label="Tax Collected" value={fmt(viewStats.tax)} />
         </div>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <KPI label="Auction Revenue" value={fmt(auctionGross)} sub={`${paid.filter((i: any) => i.type === "AUCTION" || i.auctionId).length} invoices`} />
-          <KPI label="Marketplace Revenue" value={fmt(marketGross)} sub={`${paid.filter((i: any) => i.type === "MARKETPLACE" || i.listingId).length} invoices`} />
-          <KPI label="Pending / Uncollected" value={fmt(pendingValue)} sub={`${pending.length} unpaid invoices`} accent="yellow" />
+          <KPI label="Auction Revenue" value={fmt(auctionGross)} sub={`${auctionCount} invoices`} />
+          <KPI label="Marketplace Revenue" value={fmt(marketGross)} sub={`${marketCount} invoices`} />
+          <KPI label="Pending / Uncollected" value={fmt(pendingStats.value)} sub={`${pendingStats.count} unpaid invoices`} accent="yellow" />
         </div>
 
         {/* Monthly trend */}
-        {monthlyData.length > 0 && (
+        {viewStats.monthly.length > 0 && (
           <section className="mt-10">
             <h2 className="mb-4 font-serif text-2xl text-gray-400">Monthly Revenue</h2>
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
               <div className="flex items-end gap-2 overflow-x-auto pb-2" style={{ minHeight: 160 }}>
-                {monthlyData.map((m) => {
+                {viewStats.monthly.map((m) => {
                   const barH = Math.round((m.gross / maxMonthly) * 120);
                   const premH = Math.round((m.premium / maxMonthly) * 120);
                   return (
                     <div key={m.key} className="group flex flex-1 min-w-[40px] flex-col items-center gap-1">
                       <div className="relative w-full flex flex-col justify-end" style={{ height: 128 }}>
-                        {/* gross bar */}
-                        <div
-                          className="w-full rounded-t bg-[#d6aa55]/30 group-hover:bg-[#d6aa55]/50 transition"
-                          style={{ height: barH }}
-                          title={`${m.label}: ${fmtFull(m.gross)}`}
-                        />
-                        {/* premium overlay */}
-                        <div
-                          className="absolute bottom-0 w-full rounded-t bg-[#d6aa55]/70 group-hover:bg-[#d6aa55]/90 transition"
-                          style={{ height: premH }}
-                          title={`Premium: ${fmtFull(m.premium)}`}
-                        />
+                        <div className="w-full rounded-t bg-[#d6aa55]/30 group-hover:bg-[#d6aa55]/50 transition" style={{ height: barH }} title={`${m.label}: ${fmtFull(m.gross)}`} />
+                        <div className="absolute bottom-0 w-full rounded-t bg-[#d6aa55]/70 group-hover:bg-[#d6aa55]/90 transition" style={{ height: premH }} title={`Premium: ${fmtFull(m.premium)}`} />
                       </div>
                       <div className="text-[10px] text-gray-600 whitespace-nowrap">{m.label}</div>
                       <div className="text-[10px] text-gray-500 opacity-0 group-hover:opacity-100 transition whitespace-nowrap">{fmt(m.gross)}</div>
@@ -194,7 +170,7 @@ export default function AdminRevenuePage() {
         )}
 
         {/* Top sellers */}
-        {topSellers.length > 0 && (
+        {viewStats.topSellers.length > 0 && (
           <section className="mt-10">
             <h2 className="mb-4 font-serif text-2xl text-gray-400">Top Sellers by Revenue</h2>
             <div className="overflow-x-auto rounded-2xl border border-white/10">
@@ -209,18 +185,15 @@ export default function AdminRevenuePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {topSellers.map(([email, rev], i) => (
+                  {viewStats.topSellers.map(({ email, revenue, share }, i) => (
                     <tr key={email} className="border-t border-white/[0.06] hover:bg-white/[0.02]">
                       <td className="p-4 text-gray-600">{i + 1}</td>
                       <td className="p-4 text-white">{email}</td>
-                      <td className="p-4 text-right font-semibold text-[#c0c0c0]">{fmtFull(rev)}</td>
-                      <td className="p-4 text-right text-gray-500">{totalGross > 0 ? `${((rev / totalGross) * 100).toFixed(1)}%` : "—"}</td>
+                      <td className="p-4 text-right font-semibold text-[#c0c0c0]">{fmtFull(revenue)}</td>
+                      <td className="p-4 text-right text-gray-500">{share}%</td>
                       <td className="p-4">
                         <div className="h-2 w-full rounded-full bg-white/[0.06]">
-                          <div
-                            className="h-2 rounded-full bg-[#d6aa55]/60"
-                            style={{ width: `${totalGross > 0 ? (rev / totalGross) * 100 : 0}%` }}
-                          />
+                          <div className="h-2 rounded-full bg-[#d6aa55]/60" style={{ width: `${share}%` }} />
                         </div>
                       </td>
                     </tr>
@@ -234,8 +207,8 @@ export default function AdminRevenuePage() {
         {/* Transaction log */}
         <section className="mt-10">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-serif text-2xl text-gray-400">Transaction Log</h2>
-            <span className="text-sm text-gray-600">{sorted.length} paid invoices</span>
+            <h2 className="font-serif text-2xl text-gray-400">Recent Transactions</h2>
+            <span className="text-sm text-gray-600">{filteredRecent.length} shown (last 100 paid)</span>
           </div>
           <div className="overflow-x-auto rounded-2xl border border-white/10">
             <table className="w-full min-w-[800px] text-sm">
@@ -255,25 +228,23 @@ export default function AdminRevenuePage() {
               <tbody>
                 {paginated.length === 0 ? (
                   <tr><td colSpan={9} className="p-8 text-center text-gray-500">No paid invoices yet.</td></tr>
-                ) : paginated.map((inv: any) => (
-                  <tr key={inv.id} className="border-t border-white/[0.06] hover:bg-white/[0.02]">
+                ) : paginated.map((t) => (
+                  <tr key={t.id} className="border-t border-white/[0.06] hover:bg-white/[0.02]">
                     <td className="p-4 text-xs text-gray-500 whitespace-nowrap">
-                      {inv.paidAt ? new Date(inv.paidAt).toLocaleDateString() : "—"}
+                      {t.paidAt ? new Date(t.paidAt).toLocaleDateString() : "—"}
                     </td>
-                    <td className="p-4 max-w-[160px] truncate text-white">{inv.title || "—"}</td>
-                    <td className="p-4 text-xs text-gray-400 max-w-[140px] truncate">{inv.buyerEmail || "—"}</td>
-                    <td className="p-4 text-xs text-gray-400 max-w-[140px] truncate">{inv.sellerEmail || "—"}</td>
-                    <td className="p-4 text-right text-gray-400">{inv.subtotal || "—"}</td>
-                    <td className="p-4 text-right text-[#e7c77f]/80">{inv.buyerPremium || "—"}</td>
-                    <td className="p-4 text-right text-gray-500">{inv.tax || "—"}</td>
-                    <td className="p-4 text-right font-semibold text-[#c0c0c0]">{inv.amount || "—"}</td>
+                    <td className="p-4 max-w-[160px] truncate text-white">{t.title || "—"}</td>
+                    <td className="p-4 text-xs text-gray-400 max-w-[140px] truncate">{t.buyerEmail || "—"}</td>
+                    <td className="p-4 text-xs text-gray-400 max-w-[140px] truncate">{t.sellerEmail || "—"}</td>
+                    <td className="p-4 text-right text-gray-400">{t.subtotal || "—"}</td>
+                    <td className="p-4 text-right text-[#e7c77f]/80">{t.buyerPremium || "—"}</td>
+                    <td className="p-4 text-right text-gray-500">{t.tax || "—"}</td>
+                    <td className="p-4 text-right font-semibold text-[#c0c0c0]">{t.amount || "—"}</td>
                     <td className="p-4">
                       <span className={`rounded px-2 py-0.5 text-[10px] uppercase font-semibold ${
-                        (inv.type === "AUCTION" || inv.auctionId)
-                          ? "bg-blue-500/10 text-blue-300"
-                          : "bg-purple-500/10 text-purple-300"
+                        t.type === "AUCTION" ? "bg-blue-500/10 text-blue-300" : "bg-purple-500/10 text-purple-300"
                       }`}>
-                        {(inv.type === "AUCTION" || inv.auctionId) ? "Auction" : "Market"}
+                        {t.type === "AUCTION" ? "Auction" : "Market"}
                       </span>
                     </td>
                   </tr>
@@ -284,23 +255,9 @@ export default function AdminRevenuePage() {
 
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-              <button
-                type="button"
-                disabled={page === 0}
-                onClick={() => setPage(p => p - 1)}
-                className="rounded border border-white/10 px-4 py-2 hover:text-white disabled:opacity-30"
-              >
-                ← Prev
-              </button>
+              <button type="button" disabled={page === 0} onClick={() => setPage(p => p - 1)} className="rounded border border-white/10 px-4 py-2 hover:text-white disabled:opacity-30">← Prev</button>
               <span>Page {page + 1} of {totalPages}</span>
-              <button
-                type="button"
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage(p => p + 1)}
-                className="rounded border border-white/10 px-4 py-2 hover:text-white disabled:opacity-30"
-              >
-                Next →
-              </button>
+              <button type="button" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="rounded border border-white/10 px-4 py-2 hover:text-white disabled:opacity-30">Next →</button>
             </div>
           )}
         </section>

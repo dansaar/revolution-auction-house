@@ -11,6 +11,7 @@ import { manageSellerGroup } from "./functions/manageSellerGroup/resource";
 import { notifyOfferSms } from "./functions/notifyOfferSms/resource";
 import { autoVerifyBuyer } from "./functions/autoVerifyBuyer/resource";
 import { submitVerificationRequest } from "./functions/submitVerificationRequest/resource";
+import { getRevenueStats } from "./functions/getRevenueStats/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
@@ -27,6 +28,7 @@ const backend = defineBackend({
   notifyOfferSms,
   autoVerifyBuyer,
   submitVerificationRequest,
+  getRevenueStats,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];
@@ -34,6 +36,7 @@ const auctionStateTable = backend.data.resources.tables["AuctionState"];
 const bidTable = backend.data.resources.tables["Bid"];
 const buyerProfileTable = backend.data.resources.tables["BuyerProfile"];
 const bidAuditLogTable = backend.data.resources.tables["BidAuditLog"];
+const invoiceTable = backend.data.resources.tables["Invoice"];
 
 auctionTable.grantReadWriteData(backend.placeBid.resources.lambda);
 auctionStateTable.grantReadWriteData(backend.placeBid.resources.lambda);
@@ -69,6 +72,15 @@ backend.finalizeAuction.resources.lambda.addToRolePolicy(snsPolicy);
 backend.notifyOfferSms.resources.lambda.addToRolePolicy(snsPolicy);
 backend.autoVerifyBuyer.resources.lambda.addToRolePolicy(snsPolicy);
 backend.reviewBuyerVerification.resources.lambda.addToRolePolicy(snsPolicy);
+
+// getRevenueStats: read-only access to Invoice table
+invoiceTable.grantReadData(backend.getRevenueStats.resources.lambda);
+const getRevenueStatsCfn = backend.getRevenueStats.resources.lambda.node
+  .defaultChild as CfnFunction;
+getRevenueStatsCfn.addPropertyOverride(
+  "Environment.Variables.INVOICE_TABLE_NAME",
+  invoiceTable.tableName,
+);
 
 const FROM_EMAIL = "noreply@revolutionauctionhouse.com";
 const SITE_URL = "https://www.revolutionauctionhouse.com";
