@@ -342,6 +342,7 @@ const schema = a
     listingId: a.string(),
     title: a.string(),
     buyerEmail: a.string(),
+    buyerUserId: a.string(),
     sellerEmail: a.string(),
 
     subtotal: a.string(),
@@ -354,7 +355,7 @@ const schema = a
     paidAt: a.datetime(),
   })
       .authorization((allow) => [
-        allow.ownerDefinedIn("buyerEmail").identityClaim("email"),
+        allow.ownerDefinedIn("buyerUserId"),
         allow.ownerDefinedIn("sellerEmail").identityClaim("email"),
         allow.group("Admin"),
       ]),

@@ -61,14 +61,15 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
     const listingId = session.metadata?.listingId || "";
     const cartItemsRaw = session.metadata?.cartItems || "";
 
-    // buyerEmailRaw: preserved for Invoice owner auth (identityClaim("email") compares JWT email to stored value — must match case)
-    // buyerEmail: lowercased for MarketplaceListing/Auction (queried via apiKey with explicit eq filter)
     const buyerEmailRaw =
       session.metadata?.buyerEmail ||
       session.customer_details?.email ||
       session.customer_email ||
       "";
     const buyerEmail = buyerEmailRaw.toLowerCase();
+    // buyerUserId: used for Invoice owner auth (sub-based, no casing issues)
+    // Falls back to metadata when called via apiKey (webhook path, callerSub is empty)
+    const buyerUserId = callerSub || session.metadata?.buyerSub || "";
 
     let cartItems: any[] = [];
     if (cartItemsRaw) {
@@ -117,6 +118,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
               auctionId: item.id,
               title: auctionResult.data?.title || item.title || "Auction",
               buyerEmail: buyerEmailRaw,
+              buyerUserId,
               sellerEmail: auctionResult.data?.sellerEmail || "",
               subtotal: item.subtotal || item.amount,
               buyerPremium: item.buyerPremium || "$0.00",
@@ -155,6 +157,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
                 item.title ||
                 "Marketplace Listing",
               buyerEmail: buyerEmailRaw,
+              buyerUserId,
               sellerEmail: listingResult.data?.sellerEmail || "",
               subtotal: item.subtotal || item.amount,
               buyerPremium: "$0.00",
@@ -195,6 +198,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
           listingId,
           title: listingResult.data?.title || "Marketplace Listing",
           buyerEmail: buyerEmailRaw,
+          buyerUserId,
           sellerEmail: listingResult.data?.sellerEmail || "",
           subtotal,
           buyerPremium,
@@ -229,6 +233,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
           auctionId,
           title: auctionResult.data?.title || "Auction",
           buyerEmail: buyerEmailRaw,
+          buyerUserId,
           sellerEmail: auctionResult.data?.sellerEmail || "",
           subtotal,
           buyerPremium,
