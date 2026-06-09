@@ -118,6 +118,38 @@ export default function RevolutionAuctionHouseHomepage() {
     return () => clearInterval(cleanup);
   }, []);
 
+  // Dedicated ticker: polls AuctionState every 5s and fires on any price change
+  useEffect(() => {
+    const prevTickerPrices: Record<string, string> = {};
+
+    async function checkPrices() {
+      try {
+        const result = await client.models.AuctionState.list({
+          authMode: "apiKey",
+        } as any);
+        for (const state of result.data || []) {
+          const sid = state.auctionId as string | undefined;
+          const price = state.currentPrice as string | undefined;
+          if (!sid || !price || state.ended) continue;
+          const prev = prevTickerPrices[sid];
+          if (prev !== undefined && prev !== price) {
+            const auction = auctionsRef.current.find((a) => a.id === sid);
+            const title = auction?.title || "Live Auction";
+            setLiveBids((prevBids) => {
+              const entry = { id: sid, title, price, ts: Date.now() };
+              return [entry, ...prevBids.filter((b) => b.id !== sid)].slice(0, 20);
+            });
+          }
+          prevTickerPrices[sid] = price;
+        }
+      } catch {}
+    }
+
+    checkPrices();
+    const interval = setInterval(checkPrices, 5_000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
