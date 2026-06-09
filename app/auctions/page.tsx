@@ -371,7 +371,22 @@ export default function AuctionsPage() {
     const stateUpdateSub = client.models.AuctionState.onUpdate({
       authMode: "apiKey",
     }).subscribe({
-      next: () => scheduleRefresh(),
+      next: (state: any) => {
+        if (!state?.auctionId) return;
+        setAuctions((prev) =>
+          prev.map((a) =>
+            a.id === state.auctionId
+              ? {
+                  ...a,
+                  price: state.currentPrice ?? a.price,
+                  bids: state.bidCount ?? a.bids,
+                  ended: state.ended ?? a.ended,
+                  endsAt: state.endsAt || a.endsAt,
+                }
+              : a,
+          ),
+        );
+      },
     });
 
     return () => {

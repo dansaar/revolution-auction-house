@@ -275,9 +275,26 @@ export default function RevolutionAuctionHouseHomepage() {
       authMode: "apiKey",
     }).subscribe({
       next: (state: any) => {
-        scheduleRefresh();
-        if (state?.currentPrice && !state?.ended && state?.auctionId) {
-          const auction = auctionsRef.current.find((a) => a.id === state.auctionId);
+        if (!state?.auctionId) return;
+
+        // Surgically update this auction's price in the card grid
+        const patch = (a: any) =>
+          a.id === state.auctionId
+            ? {
+                ...a,
+                price: state.currentPrice ?? a.price,
+                bids: state.bidCount ?? a.bids,
+                ended: state.ended ?? a.ended,
+                endsAt: state.endsAt || a.endsAt,
+              }
+            : a;
+        const updated = auctionsRef.current.map(patch);
+        auctionsRef.current = updated;
+        setAuctions(updated);
+
+        // Update live bids ticker
+        if (state.currentPrice && !state.ended) {
+          const auction = updated.find((a: any) => a.id === state.auctionId);
           const title = auction?.title || "Live Auction";
           setLiveBids((prev) => {
             const entry = { id: state.auctionId, title, price: state.currentPrice, ts: Date.now() };
