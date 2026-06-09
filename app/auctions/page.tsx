@@ -256,21 +256,46 @@ export default function AuctionsPage() {
   useEffect(() => {
     async function loadAuctions() {
       try {
-        const [result, stateResult] = await Promise.all([
-          client.models.Auction.list({
-            authMode: "apiKey",
-          } as any),
-
-          client.models.AuctionState.list({
-            authMode: "apiKey",
-          } as any),
-        ]);
-
-        if (result.errors?.length) {
-          console.error("AUCTIONS QUERY ERRORS", result.errors);
+        async function fetchAllPages(opts: any) {
+          const all: any[] = [];
+          let nextToken: string | undefined;
+          do {
+            const res: any = await client.models.Auction.list({
+              ...opts,
+              limit: 500,
+              ...(nextToken ? { nextToken } : {}),
+            } as any);
+            all.push(...(res.data || []));
+            nextToken = res.nextToken ?? undefined;
+          } while (nextToken);
+          return all;
         }
 
-        const resolved = result.data.map((auction: any) => {
+        async function fetchAllStates() {
+          const all: any[] = [];
+          let nextToken: string | undefined;
+          do {
+            const res: any = await client.models.AuctionState.list({
+              authMode: "apiKey",
+              filter: { ended: { eq: false } },
+              limit: 500,
+              ...(nextToken ? { nextToken } : {}),
+            } as any);
+            all.push(...(res.data || []));
+            nextToken = res.nextToken ?? undefined;
+          } while (nextToken);
+          return all;
+        }
+
+        const [auctionData, stateData] = await Promise.all([
+          fetchAllPages({
+            authMode: "apiKey",
+            filter: { ended: { eq: false } },
+          }),
+          fetchAllStates(),
+        ]);
+
+        const resolved = auctionData.map((auction: any) => {
           let resolvedImage = "/logo.png";
 
           const imagePath =
@@ -290,7 +315,7 @@ export default function AuctionsPage() {
             }
           } catch {}
 
-          const state = stateResult.data.find(
+          const state = stateData.find(
             (s: any) => s.auctionId === auction.id,
           );
 

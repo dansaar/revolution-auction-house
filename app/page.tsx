@@ -155,11 +155,32 @@ export default function RevolutionAuctionHouseHomepage() {
 
     async function loadAuctions() {
       try {
-        const result = await client.models.Auction.list({
-          authMode: "apiKey",
-        } as any);
+        async function fetchLiveAuctions() {
+          const all: any[] = [];
+          let nextToken: string | undefined;
+          do {
+            const res: any = await client.models.Auction.list({
+              authMode: "apiKey",
+              filter: { ended: { eq: false } },
+              limit: 500,
+              ...(nextToken ? { nextToken } : {}),
+            } as any);
+            all.push(...(res.data || []));
+            nextToken = res.nextToken ?? undefined;
+          } while (nextToken);
+          return all;
+        }
 
-        const live = (result.data || [])
+        const [liveData, soldResult] = await Promise.all([
+          fetchLiveAuctions(),
+          client.models.Auction.list({
+            authMode: "apiKey",
+            filter: { ended: { eq: true } },
+            limit: 100,
+          } as any),
+        ]);
+
+        const live = liveData
           .filter((auction: any) => {
             if (!auction.endsAt) return false;
             if (auction.status === "SCHEDULED" && auction.startsAt && new Date(auction.startsAt).getTime() > Date.now()) return false;
@@ -189,8 +210,8 @@ export default function RevolutionAuctionHouseHomepage() {
         setAuctions(live);
         auctionsRef.current = live;
 
-        const sold = (result.data || [])
-          .filter((a: any) => a.ended && a.winningBid && a.winnerUserId)
+        const sold = (soldResult.data || [])
+          .filter((a: any) => a.winningBid && a.winnerUserId)
           .sort(
             (a: any, b: any) =>
               new Date(b.endsAt || b.updatedAt || 0).getTime() -

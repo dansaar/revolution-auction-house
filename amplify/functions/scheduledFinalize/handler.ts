@@ -28,15 +28,38 @@ function makeBidderDisplayName(value: string) {
   return `Bidder ${value.slice(0, 4).toUpperCase()}`;
 }
 
+async function listAllAuctions(): Promise<any[]> {
+  const all: any[] = [];
+  let nextToken: string | undefined;
+  do {
+    const result: any = await client.models.Auction.list({
+      limit: 1000,
+      ...(nextToken ? { nextToken } : {}),
+    } as any);
+    all.push(...(result.data || []));
+    nextToken = result.nextToken ?? undefined;
+  } while (nextToken);
+  return all;
+}
+
 export const handler = async () => {
   try {
     const now = Date.now();
 
-    const result = await client.models.Auction.list({
-      limit: 1000,
-    } as any);
+    const allAuctions = await listAllAuctions();
 
-    const auctionsToFinalize = (result.data || []).filter((auction: any) => {
+    // Flip SCHEDULED → LIVE for auctions whose start time has arrived
+    const auctionsToActivate = allAuctions.filter((auction: any) => {
+      if (auction.status !== "SCHEDULED" || auction.ended) return false;
+      if (!auction.startsAt) return false;
+      return new Date(auction.startsAt).getTime() <= now;
+    });
+
+    for (const auction of auctionsToActivate) {
+      await client.models.Auction.update({ id: auction.id, status: "LIVE" });
+    }
+
+    const auctionsToFinalize = allAuctions.filter((auction: any) => {
       if (!auction.endsAt || auction.ended) return false;
       return new Date(auction.endsAt).getTime() <= now;
     });
@@ -84,6 +107,7 @@ export const handler = async () => {
 
     return {
       success: true,
+      activated: auctionsToActivate.length,
       finalized: auctionsToFinalize.length,
     };
   } catch (err) {

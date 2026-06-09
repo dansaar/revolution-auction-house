@@ -45,8 +45,18 @@ export default function AdminRevenuePage() {
       try {
         if (!await isAdminUser()) return;
         setIsAdmin(true);
-        const result = await client.models.Invoice.list({ authMode: "userPool", limit: 5000 } as any);
-        setInvoices(result.data || []);
+        const all: any[] = [];
+        let nextToken: string | undefined;
+        do {
+          const res: any = await client.models.Invoice.list({
+            authMode: "userPool",
+            limit: 1000,
+            ...(nextToken ? { nextToken } : {}),
+          } as any);
+          all.push(...(res.data || []));
+          nextToken = res.nextToken ?? undefined;
+        } while (nextToken);
+        setInvoices(all);
       } finally {
         setChecking(false);
         setLoading(false);

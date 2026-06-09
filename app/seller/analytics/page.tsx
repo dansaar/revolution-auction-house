@@ -37,18 +37,42 @@ export default function SellerAnalyticsPage() {
         setSellerEmail(email);
         setSellerUserId(userId);
 
-        const [auctionResult, listingResult] = await Promise.all([
-          client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any),
-          client.models.MarketplaceListing.list({ authMode: "apiKey", limit: 1000 } as any),
+        async function fetchSellerAuctions() {
+          const all: any[] = [];
+          let nextToken: string | undefined;
+          do {
+            const res: any = await client.models.Auction.list({
+              authMode: "apiKey",
+              filter: { or: [{ sellerUserId: { eq: userId } }, { sellerEmail: { eq: email } }] },
+              limit: 500,
+              ...(nextToken ? { nextToken } : {}),
+            } as any);
+            all.push(...(res.data || []));
+            nextToken = res.nextToken ?? undefined;
+          } while (nextToken);
+          return all;
+        }
+
+        async function fetchSellerListings() {
+          const all: any[] = [];
+          let nextToken: string | undefined;
+          do {
+            const res: any = await client.models.MarketplaceListing.list({
+              authMode: "apiKey",
+              filter: { or: [{ sellerUserId: { eq: userId } }, { sellerEmail: { eq: email } }] },
+              limit: 500,
+              ...(nextToken ? { nextToken } : {}),
+            } as any);
+            all.push(...(res.data || []));
+            nextToken = res.nextToken ?? undefined;
+          } while (nextToken);
+          return all;
+        }
+
+        const [myAuctions, myListings] = await Promise.all([
+          fetchSellerAuctions(),
+          fetchSellerListings(),
         ]);
-
-        const myAuctions = (auctionResult.data || []).filter(
-          (a: any) => a.sellerEmail === email || a.sellerUserId === userId,
-        );
-
-        const myListings = (listingResult.data || []).filter(
-          (l: any) => l.sellerEmail === email || l.sellerUserId === userId,
-        );
 
         setAuctions(myAuctions.map((a: any) => ({
           ...a,

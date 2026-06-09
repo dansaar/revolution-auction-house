@@ -56,13 +56,24 @@ export default function AdminUsersPage() {
   // detail drawer
   const [drawerBuyer, setDrawerBuyer] = useState<any>(null);
 
+  async function fetchAllPages(fn: (opts: any) => Promise<any>, opts: any) {
+    const all: any[] = [];
+    let nextToken: string | undefined;
+    do {
+      const res: any = await fn({ ...opts, limit: 1000, ...(nextToken ? { nextToken } : {}) });
+      all.push(...(res.data || []));
+      nextToken = res.nextToken ?? undefined;
+    } while (nextToken);
+    return all;
+  }
+
   async function loadData() {
-    const [buyerResult, sellerResult] = await Promise.all([
-      client.models.BuyerProfile.list({ authMode: "userPool", limit: 2000 } as any),
-      client.models.SellerProfile.list({ authMode: "userPool", limit: 2000 } as any),
+    const [buyers, sellers] = await Promise.all([
+      fetchAllPages((o) => client.models.BuyerProfile.list(o as any), { authMode: "userPool" }),
+      fetchAllPages((o) => client.models.SellerProfile.list(o as any), { authMode: "userPool" }),
     ]);
-    setBuyers([...(buyerResult.data || [])].sort((a: any, b: any) => String(a.email || "").localeCompare(String(b.email || ""))));
-    setSellers([...(sellerResult.data || [])].sort((a: any, b: any) => String(a.email || "").localeCompare(String(b.email || ""))));
+    setBuyers([...buyers].sort((a: any, b: any) => String(a.email || "").localeCompare(String(b.email || ""))));
+    setSellers([...sellers].sort((a: any, b: any) => String(a.email || "").localeCompare(String(b.email || ""))));
   }
 
   useEffect(() => {
