@@ -444,18 +444,11 @@ export default function DashboardPage() {
     if (!userKey) return;
 
     async function loadWatchlist() {
-      const session = await fetchAuthSession();
-      const watchlistEmail =
-        (session.tokens?.idToken?.payload?.email as string) || userKey;
-
       const result = await client.models.WatchlistItem.list({
-        filter: {
-          userEmail: { eq: watchlistEmail },
-        },
         authMode: "userPool",
       });
 
-      setWatchlist(result.data);
+      setWatchlist(result.data || []);
     }
 
     loadWatchlist();

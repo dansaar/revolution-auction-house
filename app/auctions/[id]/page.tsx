@@ -529,24 +529,12 @@ export default function LiveAuctionPage() {
       if (!auction?.id || !user) return;
 
       try {
-        const session = await fetchAuthSession();
-        const safeUserKey =
-          (session.tokens?.idToken?.payload?.email as string) ||
-          user?.signInDetails?.loginId ||
-          user?.username ||
-          "";
-
-        if (!safeUserKey) return;
-
         const result = await client.models.WatchlistItem.list({
-          filter: {
-            auctionId: { eq: auction.id },
-            userEmail: { eq: safeUserKey },
-          },
+          filter: { auctionId: { eq: auction.id } },
           authMode: "userPool",
         });
 
-        setIsWatching(result.data.length > 0);
+        setIsWatching((result.data || []).length > 0);
       } catch {
         setIsWatching(false);
       }
@@ -620,20 +608,9 @@ export default function LiveAuctionPage() {
   async function toggleWatchlist() {
     if (!auction?.id || watchBusy) return;
 
-    let safeUserKey = "";
+    const userSub = user?.userId || user?.username || "";
 
-    try {
-      const session = await fetchAuthSession();
-      safeUserKey =
-        (session.tokens?.idToken?.payload?.email as string) ||
-        (await getCurrentUser())?.signInDetails?.loginId ||
-        "";
-    } catch {
-      window.location.href = "/signin";
-      return;
-    }
-
-    if (!safeUserKey) {
+    if (!userSub) {
       window.location.href = "/signin";
       return;
     }
@@ -647,10 +624,7 @@ export default function LiveAuctionPage() {
 
     try {
       const existing = await client.models.WatchlistItem.list({
-        filter: {
-          auctionId: { eq: auction.id },
-          userEmail: { eq: safeUserKey },
-        },
+        filter: { auctionId: { eq: auction.id } },
         authMode: "userPool",
       });
 
@@ -668,7 +642,8 @@ export default function LiveAuctionPage() {
             title: auction.title,
             image: auction.thumbImages?.[0] || auction.image || "/logo.png",
             href: `/auctions/${auction.id}`,
-            userEmail: safeUserKey,
+            userEmail: user?.signInDetails?.loginId || user?.username || "",
+            userSub,
           },
           { authMode: "userPool" },
         );
@@ -678,16 +653,11 @@ export default function LiveAuctionPage() {
       window.dispatchEvent(new Event("watchlist-updated"));
 
       const refreshed = await client.models.WatchlistItem.list({
-        filter: {
-          auctionId: { eq: auction.id },
-          userEmail: { eq: safeUserKey },
-        },
+        filter: { auctionId: { eq: auction.id } },
         authMode: "userPool",
       });
 
-      const finalWatching = refreshed.data.length > 0;
-
-      setIsWatching(finalWatching);
+      setIsWatching((refreshed.data || []).length > 0);
     } catch (err) {
       console.error("Toggle watchlist failed:", err);
 

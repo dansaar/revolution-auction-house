@@ -295,10 +295,11 @@ const schema = a
         title: a.string().required(),
         image: a.string(),
         href: a.string(),
-        userEmail: a.string().required(),
+        userEmail: a.string(),
+        userSub: a.string(),
       })
       .authorization((allow) => [
-        allow.ownerDefinedIn("userEmail").identityClaim("email"),
+        allow.ownerDefinedIn("userSub"),
         allow.group("Admin"),
       ]),
 

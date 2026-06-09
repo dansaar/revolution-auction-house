@@ -5,7 +5,7 @@ import "@/lib/amplifyclient";
 import React, { useEffect, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
-import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
+import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
@@ -177,32 +177,22 @@ export default function AuctionsPage() {
   }
 
   async function loadWatchlist() {
-    if (!userKey) return;
-
-    const session = await fetchAuthSession();
-    const watchlistEmail =
-      (session.tokens?.idToken?.payload?.email as string) || userKey;
+    if (!user) return;
 
     const result = await client.models.WatchlistItem.list({
-      filter: {
-        userEmail: { eq: watchlistEmail },
-      },
       authMode: "userPool",
     });
 
-    setWatchedIds(result.data.map((item: any) => item.auctionId));
+    setWatchedIds((result.data || []).map((item: any) => item.auctionId));
   }
 
   async function toggleWatchlist(auction: any) {
-    if (!userKey) {
+    if (!user) {
       window.location.href = "/signin";
       return;
     }
 
-    const session = await fetchAuthSession();
-    const watchlistEmail =
-      (session.tokens?.idToken?.payload?.email as string) || userKey;
-
+    const userSub = user.userId || user.username || "";
     const nextWatched = !watchedIds.includes(auction.id);
 
     setWatchedIds((prev) =>
@@ -213,14 +203,10 @@ export default function AuctionsPage() {
 
     try {
       const result = await client.models.WatchlistItem.list({
-        filter: {
-          auctionId: { eq: auction.id },
-          userEmail: { eq: watchlistEmail },
-        },
+        filter: { auctionId: { eq: auction.id } },
         authMode: "userPool",
       });
 
-      // delete existing rows
       for (const item of result.data) {
         await client.models.WatchlistItem.delete(
           { id: item.id },
@@ -228,7 +214,6 @@ export default function AuctionsPage() {
         );
       }
 
-      // create new watchlist item
       if (nextWatched) {
         await client.models.WatchlistItem.create(
           {
@@ -239,9 +224,9 @@ export default function AuctionsPage() {
               auction.storageImage ||
               auction.image ||
               "/logo.png",
-
             href: `/auctions/${auction.id}`,
-            userEmail: watchlistEmail,
+            userEmail: user.signInDetails?.loginId || user.username || "",
+            userSub,
           },
           { authMode: "userPool" },
         );
