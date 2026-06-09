@@ -91,6 +91,24 @@ export default function AdminMarketplacePage() {
     }
   }
 
+  async function deleteListing(listing: any) {
+    if (!confirm(`Permanently delete "${listing.title}"?\n\nThis cannot be undone. Only delete listings with no buyer.`)) return;
+    try {
+      setProcessingId(listing.id);
+      await client.models.MarketplaceListing.delete(
+        { id: listing.id },
+        { authMode: "userPool" } as any,
+      );
+      await loadData();
+      toast.success("Listing deleted.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete listing.");
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
   async function toggleFeatured(listing: any) {
     try {
       setProcessingId(listing.id);
@@ -312,6 +330,16 @@ export default function AdminMarketplacePage() {
                                 {busy ? "..." : "Deactivate"}
                               </button>
                             )
+                          )}
+                          {!listing.sold && !listing.paid && (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => deleteListing(listing)}
+                              className="rounded border border-red-700/40 bg-red-900/20 px-3 py-1.5 text-xs text-red-400 hover:bg-red-900/40 disabled:opacity-50"
+                            >
+                              {busy ? "..." : "Delete"}
+                            </button>
                           )}
                         </div>
                       </td>

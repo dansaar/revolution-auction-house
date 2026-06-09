@@ -100,6 +100,24 @@ export default function AdminAuctionsPage() {
     }
   }
 
+  async function deleteAuction(auction: any) {
+    if (!confirm(`Permanently delete "${auction.title}"?\n\nThis cannot be undone. Only delete auctions with no bids or winner.`)) return;
+    try {
+      setProcessingId(auction.id);
+      await client.models.Auction.delete(
+        { id: auction.id },
+        { authMode: "userPool" } as any,
+      );
+      await loadData();
+      toast.success("Auction deleted.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete auction.");
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
   const filtered = useMemo(() => {
     const search = searchText.trim().toLowerCase();
     return auctions.filter((a: any) => {
@@ -298,6 +316,16 @@ export default function AdminAuctionsPage() {
                                 {busy ? "..." : "Cancel"}
                               </button>
                             </>
+                          )}
+                          {!auction.paid && !auction.winnerUserId && (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => deleteAuction(auction)}
+                              className="rounded border border-red-700/40 bg-red-900/20 px-3 py-1.5 text-xs text-red-400 hover:bg-red-900/40 disabled:opacity-50"
+                            >
+                              {busy ? "..." : "Delete"}
+                            </button>
                           )}
                         </div>
                       </td>
