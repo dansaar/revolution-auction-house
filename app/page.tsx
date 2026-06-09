@@ -88,6 +88,7 @@ function matchesCategory(auction: any, category: string): boolean {
 
 export default function RevolutionAuctionHouseHomepage() {
   const [auctions, setAuctions] = useState<any[]>([]);
+  const [featuredListings, setFeaturedListings] = useState<any[]>([]);
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [liveBids, setLiveBids] = useState<{ id: string; title: string; price: string; ts: number }[]>([]);
   const [activeCategory, setActiveCategory] = useState("All");
@@ -153,7 +154,40 @@ export default function RevolutionAuctionHouseHomepage() {
       refreshTimer = setTimeout(() => loadAuctions(), 300);
     }
 
+    async function loadFeaturedListings() {
+      try {
+        const result = await client.models.MarketplaceListing.list({
+          authMode: "apiKey",
+          limit: 100,
+        } as any);
+
+        const featured = (result.data || [])
+          .filter(
+            (l: any) =>
+              l.featured &&
+              !l.sold &&
+              !l.paid &&
+              (l.status === "ACTIVE" || l.status === "OFFER_PENDING" || !l.status),
+          )
+          .slice(0, 3)
+          .map((l: any) => ({
+            ...l,
+            imageUrl: (() => {
+              const raw = l.thumbImages?.[0] || l.image || l.images?.[0] || "";
+              if (!raw || raw === "undefined") return "/logo.png";
+              if (raw.startsWith("http") || raw.startsWith("/")) return raw;
+              return cdnUrl(raw);
+            })(),
+          }));
+
+        setFeaturedListings(featured);
+      } catch {
+        // non-critical
+      }
+    }
+
     loadAuctions();
+    loadFeaturedListings();
 
     const auctionSub = client.models.Auction.onUpdate({
       authMode: "apiKey",
@@ -387,14 +421,48 @@ export default function RevolutionAuctionHouseHomepage() {
             >
               Shop Marketplace <ArrowRight size={15} />
             </Link>
-            <div className="mt-8 grid grid-cols-3 gap-3">
-              <Category icon={<Gem />} label="PSA 10" />
-              <Category icon={<BadgeCheck />} label="Vintage" />
-              <Category icon={<Crown />} label="1st Edition" />
-              <Category icon={<Package />} label="Sealed" />
-              <Category icon={<Sparkles />} label="Modern" />
-              <Category icon={<Gem />} label="High Value" />
-            </div>
+
+            {featuredListings.length > 0 ? (
+              <div className="mt-6 flex flex-col gap-3">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-[#d6aa55]">
+                  ★ Featured Now
+                </div>
+                {featuredListings.map((listing) => (
+                  <Link
+                    key={listing.id}
+                    href={`/marketplace/${listing.id}`}
+                    className="group flex items-center gap-3 rounded-xl border border-[#d6aa55]/20 bg-[#d6aa55]/[0.03] p-3 transition hover:border-[#d6aa55]/40 hover:bg-[#d6aa55]/[0.06]"
+                  >
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-black">
+                      <img
+                        src={listing.imageUrl}
+                        alt={listing.title}
+                        onError={(e) => { e.currentTarget.src = "/logo.png"; }}
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-[#d7d7d7] group-hover:text-white">
+                        {listing.title}
+                      </div>
+                      <div className="mt-0.5 font-serif text-lg text-[#c0c0c0]">
+                        {listing.price}
+                      </div>
+                    </div>
+                    <ArrowRight size={14} className="shrink-0 text-[#d6aa55] opacity-60 group-hover:opacity-100" />
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-8 grid grid-cols-3 gap-3">
+                <Category icon={<Gem />} label="PSA 10" />
+                <Category icon={<BadgeCheck />} label="Vintage" />
+                <Category icon={<Crown />} label="1st Edition" />
+                <Category icon={<Package />} label="Sealed" />
+                <Category icon={<Sparkles />} label="Modern" />
+                <Category icon={<Gem />} label="High Value" />
+              </div>
+            )}
           </div>
 
           <div>

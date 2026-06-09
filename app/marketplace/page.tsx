@@ -50,10 +50,16 @@ export default function MarketplacePage() {
         );
       });
 
-      const withImages = activeListings.map((listing: any) => ({
-        ...listing,
-        imageUrl: resolveImage(listing),
-      }));
+      const withImages = activeListings
+        .map((listing: any) => ({
+          ...listing,
+          imageUrl: resolveImage(listing),
+        }))
+        .sort((a: any, b: any) => {
+          if (a.featured && !b.featured) return -1;
+          if (!a.featured && b.featured) return 1;
+          return 0;
+        });
 
       setListings(withImages);
     } catch (err) {
@@ -135,7 +141,11 @@ export default function MarketplacePage() {
               <Link
                 key={listing.id}
                 href={`/marketplace/${listing.id}`}
-                className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-[#c0c0c0]/50"
+                className={`group overflow-hidden rounded-2xl border transition hover:border-[#c0c0c0]/50 ${
+                  listing.featured
+                    ? "border-[#d6aa55]/40 bg-[#d6aa55]/[0.03]"
+                    : "border-white/10 bg-white/[0.03]"
+                }`}
               >
                 <div className="relative h-56 bg-black sm:h-64 md:h-72">
                   <div className="absolute inset-0 animate-pulse bg-white/[0.04]" />
@@ -149,6 +159,12 @@ export default function MarketplacePage() {
                     }}
                     className="relative z-10 h-full w-full object-contain transition duration-500 group-hover:scale-105"
                   />
+
+                  {listing.featured && (
+                    <div className="absolute left-3 top-3 z-20 rounded border border-[#d6aa55]/50 bg-[#0b0c0e]/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#e7c77f] backdrop-blur-sm">
+                      ★ Featured
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-4 md:p-5">
