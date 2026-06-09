@@ -12,7 +12,7 @@ const client = generateClient<Schema>();
 
 export default function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get("session_id");
+  const sessionId = searchParams?.get("session_id");
 
   const [status, setStatus] = useState("Verifying payment...");
 

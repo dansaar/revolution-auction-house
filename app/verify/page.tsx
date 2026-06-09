@@ -35,7 +35,7 @@ function VerifyPageInner() {
   const [loadingProfile, setLoadingProfile] = useState(true);
 
   const searchParams = useSearchParams();
-  const identityComplete = searchParams.get("identity") === "complete";
+  const identityComplete = searchParams?.get("identity") === "complete";
 
   const [requestedTier, setRequestedTier] = useState("VERIFIED");
   const [verificationNotes, setVerificationNotes] = useState("");

@@ -20,7 +20,7 @@ export default function SellAuctionContent() {
   const client = clientRef.current;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const relistId = searchParams.get("relist");
+  const relistId = searchParams?.get("relist");
 
   const [form, setForm] = useState({
     title: "",
