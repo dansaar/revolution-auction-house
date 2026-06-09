@@ -211,15 +211,30 @@ export default function RevolutionAuctionHouseHomepage() {
     loadAuctions();
     loadFeaturedListings();
 
+    const pollInterval = setInterval(loadAuctions, 8_000);
+
     const auctionSub = client.models.Auction.onUpdate({
       authMode: "apiKey",
     }).subscribe({ next: scheduleRefresh });
 
     const stateSub = client.models.AuctionState.onUpdate({
       authMode: "apiKey",
-    }).subscribe({ next: scheduleRefresh });
+    }).subscribe({
+      next: (state: any) => {
+        scheduleRefresh();
+        if (state?.currentPrice && !state?.ended && state?.auctionId) {
+          const auction = auctionsRef.current.find((a) => a.id === state.auctionId);
+          const title = auction?.title || "Live Auction";
+          setLiveBids((prev) => {
+            const entry = { id: state.auctionId, title, price: state.currentPrice, ts: Date.now() };
+            return [entry, ...prev.filter((b) => b.id !== state.auctionId)].slice(0, 20);
+          });
+        }
+      },
+    });
 
     return () => {
+      clearInterval(pollInterval);
       if (refreshTimer) clearTimeout(refreshTimer);
       auctionSub.unsubscribe();
       stateSub.unsubscribe();
