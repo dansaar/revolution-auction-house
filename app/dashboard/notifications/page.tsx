@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Bell, MessageSquare, Check } from "lucide-react";
+import { ArrowLeft, Bell, Check } from "lucide-react";
 import "@/lib/amplifyclient";
 import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
@@ -10,11 +10,42 @@ import type { Schema } from "@/amplify/data/resource";
 
 const client = generateClient<Schema>();
 
+type Channel = "email" | "sms" | "both" | "none";
+
+const CHANNELS: { value: Channel; label: string }[] = [
+  { value: "email", label: "Email" },
+  { value: "sms",   label: "Text" },
+  { value: "both",  label: "Both" },
+  { value: "none",  label: "Off" },
+];
+
+const EVENTS = [
+  {
+    key: "notifyOutbid" as const,
+    label: "Outbid",
+    description: "When someone places a higher bid and you lose the lead.",
+  },
+  {
+    key: "notifyWon" as const,
+    label: "Auction Won",
+    description: "When an auction you won has closed and payment is due.",
+  },
+  {
+    key: "notifyWatchlist" as const,
+    label: "Watchlist Activity",
+    description: "When the price changes on an auction you're watching.",
+  },
+];
+
 function formatPhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
   if (digits.length === 10) return `+1${digits}`;
   if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
   return raw.trim();
+}
+
+function needsPhone(prefs: Record<string, Channel>) {
+  return Object.values(prefs).some((v) => v === "sms" || v === "both");
 }
 
 export default function NotificationsPage() {
@@ -24,31 +55,36 @@ export default function NotificationsPage() {
   const [saved, setSaved] = useState(false);
 
   const [phone, setPhone] = useState("");
-  const [smsOptIn, setSmsOptIn] = useState(false);
+  const [prefs, setPrefs] = useState<Record<string, Channel>>({
+    notifyOutbid: "sms",
+    notifyWon: "both",
+    notifyWatchlist: "none",
+  });
 
   useEffect(() => {
     async function load() {
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
-        const userId = currentUser.userId;
 
         const result = await client.models.BuyerProfile.get(
-          { userId },
+          { userId: currentUser.userId },
           { authMode: "userPool" } as any,
         );
 
         const profile = result.data;
-
         if (profile) {
           setPhone(profile.phoneNumber || "");
-          setSmsOptIn(profile.smsOptIn ?? false);
+          setPrefs({
+            notifyOutbid: (profile.notifyOutbid as Channel) || (profile.smsOptIn ? "sms" : "none"),
+            notifyWon: (profile.notifyWon as Channel) || "both",
+            notifyWatchlist: (profile.notifyWatchlist as Channel) || "none",
+          });
         } else {
-          // Pre-fill from sign-up localStorage if profile doesn't exist yet
           const pendingPhone = localStorage.getItem("pendingPhone") || "";
           const pendingSms = localStorage.getItem("pendingSmsOptIn") === "true";
           setPhone(pendingPhone);
-          setSmsOptIn(pendingSms);
+          if (pendingSms) setPrefs((p) => ({ ...p, notifyOutbid: "sms" }));
         }
       } catch {
         // not signed in
@@ -56,13 +92,23 @@ export default function NotificationsPage() {
         setLoading(false);
       }
     }
-
     load();
   }, []);
+
+  function setChannel(key: string, value: Channel) {
+    setPrefs((p) => ({ ...p, [key]: value }));
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+
+    const smsEnabled = needsPhone(prefs);
+    if (smsEnabled && !phone.trim()) {
+      alert("Enter a mobile number to enable text notifications.");
+      return;
+    }
+
     setSaving(true);
     setSaved(false);
 
@@ -70,25 +116,31 @@ export default function NotificationsPage() {
       const userId = user.userId;
       const email = user.signInDetails?.loginId || user.username || "";
       const formattedPhone = phone ? formatPhone(phone) : "";
+      const smsOptIn = smsEnabled;
 
       const existing = await client.models.BuyerProfile.get(
         { userId },
         { authMode: "userPool" } as any,
       );
 
+      const fields = {
+        userId,
+        phoneNumber: formattedPhone || null,
+        smsOptIn,
+        notifyOutbid: prefs.notifyOutbid,
+        notifyWon: prefs.notifyWon,
+        notifyWatchlist: prefs.notifyWatchlist,
+      } as any;
+
       if (existing.data) {
-        await client.models.BuyerProfile.update(
-          { userId, phoneNumber: formattedPhone || null, smsOptIn } as any,
-          { authMode: "userPool" } as any,
-        );
+        await client.models.BuyerProfile.update(fields, { authMode: "userPool" } as any);
       } else {
         await client.models.BuyerProfile.create(
-          { userId, email, phoneNumber: formattedPhone || null, smsOptIn } as any,
+          { ...fields, email },
           { authMode: "userPool" } as any,
         );
       }
 
-      // Clear any pending sign-up values
       localStorage.removeItem("pendingPhone");
       localStorage.removeItem("pendingSmsOptIn");
 
@@ -125,6 +177,8 @@ export default function NotificationsPage() {
     );
   }
 
+  const smsRequired = needsPhone(prefs);
+
   return (
     <div className="min-h-screen bg-[#050607] text-white">
       <main className="mx-auto max-w-xl px-6 py-10">
@@ -139,71 +193,72 @@ export default function NotificationsPage() {
         <div className="mt-8">
           <div className="flex items-center gap-3">
             <Bell className="text-[#d6aa55]" size={24} />
-            <h1 className="font-serif text-4xl text-[#d7d7d7]">
-              Notification Preferences
-            </h1>
+            <h1 className="font-serif text-4xl text-[#d7d7d7]">Notification Preferences</h1>
           </div>
           <p className="mt-3 text-gray-400">
-            Manage how Revolution Auction House contacts you during live auctions.
+            Choose how you want to be notified for each event.
           </p>
         </div>
 
-        <form onSubmit={handleSave} className="mt-8 space-y-5">
-          {/* SMS section */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-            <div className="flex items-center gap-3">
-              <MessageSquare className="text-[#c0c0c0]" size={20} />
-              <h2 className="font-semibold text-white">Text Message Alerts</h2>
+        <form onSubmit={handleSave} className="mt-8 space-y-4">
+
+          {/* Per-event preference cards */}
+          {EVENTS.map(({ key, label, description }) => (
+            <div key={key} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="mb-1 font-semibold text-white">{label}</div>
+              <div className="mb-4 text-sm text-gray-500">{description}</div>
+
+              <div className="grid grid-cols-4 gap-2">
+                {CHANNELS.map(({ value, label: clabel }) => {
+                  const active = prefs[key] === value;
+                  const isSmsChannel = value === "sms" || value === "both";
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setChannel(key, value)}
+                      className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
+                        active
+                          ? "border-[#d6aa55]/60 bg-[#1a1408] text-[#e7c77f]"
+                          : "border-white/10 text-gray-400 hover:border-white/20 hover:text-white"
+                      }`}
+                    >
+                      {clabel}
+                      {isSmsChannel && (
+                        <div className="mt-0.5 text-[9px] uppercase tracking-wide opacity-50">
+                          needs phone
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+          ))}
 
-            <p className="mt-3 text-sm text-gray-400">
-              Get a text the moment you're outbid so you can respond instantly.
-            </p>
-
-            <div className="mt-5">
-              <label className="mb-2 block text-xs uppercase tracking-[0.16em] text-gray-500">
-                Mobile Number
-              </label>
+          {/* Phone number — shown when any SMS channel is selected */}
+          <div className={`overflow-hidden rounded-2xl border transition-all ${
+            smsRequired ? "border-white/10 bg-white/[0.03]" : "border-white/[0.06] bg-white/[0.01] opacity-50"
+          }`}>
+            <div className="p-5">
+              <div className="mb-1 font-semibold text-white">Mobile Number</div>
+              <div className="mb-4 text-sm text-gray-500">
+                {smsRequired
+                  ? "Required for text notifications."
+                  : "Only needed if you choose Text or Both above."}
+              </div>
               <input
                 type="tel"
                 placeholder="+1 (555) 000-0000"
                 value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value);
-                  if (!e.target.value) setSmsOptIn(false);
-                }}
-                className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white placeholder-gray-700 focus:border-white/30 focus:outline-none"
+                disabled={!smsRequired}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white placeholder-gray-700 focus:border-white/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
               />
-              <p className="mt-1 text-xs text-gray-600">
-                Include country code, e.g. +1 for US
+              <p className="mt-2 text-xs text-gray-600">
+                Include country code, e.g. +1 for US. Standard message &amp; data rates apply. Reply STOP to unsubscribe.
               </p>
             </div>
-
-            {phone && (
-              <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <input
-                  type="checkbox"
-                  checked={smsOptIn}
-                  onChange={(e) => setSmsOptIn(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 accent-[#d6aa55]"
-                />
-                <div>
-                  <div className="text-sm font-semibold text-white">
-                    Text me when I'm outbid
-                  </div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    Standard message & data rates apply. Reply STOP to
-                    unsubscribe at any time.
-                  </div>
-                </div>
-              </label>
-            )}
-
-            {!phone && (
-              <p className="mt-5 text-sm text-gray-600">
-                Enter a mobile number above to enable text alerts.
-              </p>
-            )}
           </div>
 
           <button
@@ -212,9 +267,7 @@ export default function NotificationsPage() {
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#c0c0c0] px-6 py-4 font-bold text-black transition hover:bg-white disabled:opacity-60"
           >
             {saved ? (
-              <>
-                <Check size={16} /> Saved
-              </>
+              <><Check size={16} /> Saved</>
             ) : saving ? (
               "Saving…"
             ) : (
@@ -224,7 +277,7 @@ export default function NotificationsPage() {
 
           {saved && (
             <p className="text-center text-sm text-emerald-400">
-              Preferences updated — you&apos;ll receive texts when outbid.
+              Preferences saved.
             </p>
           )}
         </form>

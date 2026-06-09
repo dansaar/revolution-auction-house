@@ -157,32 +157,39 @@ async function finalizeOneAuction(auction: any) {
     });
   }
 
-  // Notify winner (fire-and-forget)
-  if (reserveMet && winnerEmail) {
-    sendWinnerEmail({
-      to: winnerEmail,
-      auctionTitle: auction.title || "this auction",
-      auctionId,
-      finalPrice: formatMoney(finalPrice),
-    }).catch((err) => console.warn("WINNER_EMAIL_FAILED", err));
-  }
+  // Notify winner based on notifyWon preference (fire-and-forget)
+  if (reserveMet && (winnerEmail || winnerUserId)) {
+    const notifyWon$ = winnerUserId
+      ? client.models.BuyerProfile.get({ userId: winnerUserId }, { authMode: "iam" } as any)
+          .then((r) => r.data)
+          .catch(() => null)
+      : Promise.resolve(null);
 
-  // Winner SMS if they opted in (fire-and-forget)
-  if (reserveMet && winnerUserId) {
-    client.models.BuyerProfile.get(
-      { userId: winnerUserId },
-      { authMode: "iam" } as any,
-    ).then((result) => {
-      const profile = result.data;
-      if (profile?.smsOptIn && profile?.phoneNumber) {
-        return sendWinnerSms({
+    notifyWon$.then(async (profile: any) => {
+      // Fall back to "both" (legacy: email always fired, SMS fired on smsOptIn)
+      const notifyWon = (profile?.notifyWon as string) ?? "both";
+      const sends: Promise<any>[] = [];
+
+      if ((notifyWon === "email" || notifyWon === "both") && winnerEmail) {
+        sends.push(sendWinnerEmail({
+          to: winnerEmail,
+          auctionTitle: auction.title || "this auction",
+          auctionId,
+          finalPrice: formatMoney(finalPrice),
+        }));
+      }
+
+      if ((notifyWon === "sms" || notifyWon === "both") && profile?.phoneNumber) {
+        sends.push(sendWinnerSms({
           to: profile.phoneNumber,
           auctionTitle: auction.title || "this auction",
           auctionId,
           finalPrice: formatMoney(finalPrice),
-        });
+        }));
       }
-    }).catch((err: unknown) => console.warn("WINNER_SMS_FAILED", err));
+
+      if (sends.length) await Promise.all(sends);
+    }).catch((err: unknown) => console.warn("WINNER_NOTIFY_FAILED", err));
   }
 
   return {

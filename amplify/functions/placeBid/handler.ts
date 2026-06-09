@@ -12,6 +12,7 @@ import {
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 const { resourceConfig, libraryOptions } =
   await getAmplifyDataClientConfig(env);
@@ -21,8 +22,10 @@ Amplify.configure(resourceConfig, libraryOptions);
 const client = generateClient<Schema>();
 const dynamoClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const snsClient = new SNSClient({});
+const sesClient = new SESClient({});
 
 const SITE_URL = (env as any).SITE_URL || "https://www.revolutionauctionhouse.com";
+const FROM_EMAIL = (env as any).FROM_EMAIL || "";
 
 async function sendOutbidSms({
   to,
@@ -43,6 +46,161 @@ async function sendOutbidSms({
       Message: `Revolution: You've been outbid on "${auctionTitle}". New price: ${newPrice}. Bid now: ${link}`,
     }),
   );
+}
+
+async function sendOutbidEmail({
+  to,
+  auctionTitle,
+  auctionId,
+  newPrice,
+}: {
+  to: string;
+  auctionTitle: string;
+  auctionId: string;
+  newPrice: string;
+}) {
+  if (!FROM_EMAIL || !to) return;
+  const link = `${SITE_URL}/auctions/${auctionId}`;
+  await sesClient.send(
+    new SendEmailCommand({
+      Source: `Revolution Auction House <${FROM_EMAIL}>`,
+      Destination: { ToAddresses: [to] },
+      Message: {
+        Subject: { Data: `You've been outbid on ${auctionTitle}` },
+        Body: {
+          Html: {
+            Data: `
+              <div style="background:#050607;color:#d7d7d7;font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.3em;color:#888;margin-bottom:24px">Revolution Auction House</div>
+                <h1 style="font-size:28px;margin:0 0 8px;color:#ffffff">You've been outbid</h1>
+                <p style="color:#999;margin:0 0 32px">Someone placed a higher bid on <strong style="color:#d7d7d7">${auctionTitle}</strong>.</p>
+                <div style="background:#0d0d0f;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px 24px;margin-bottom:28px">
+                  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.2em;color:#666;margin-bottom:6px">New Price</div>
+                  <div style="font-size:36px;color:#c0c0c0;font-weight:bold">${newPrice}</div>
+                </div>
+                <a href="${link}" style="display:inline-block;background:#c0c0c0;color:#000;font-weight:bold;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:14px">Bid Again →</a>
+                <p style="margin-top:32px;font-size:12px;color:#444">You're receiving this because you have outbid email notifications enabled at Revolution Auction House.</p>
+              </div>`,
+          },
+        },
+      },
+    }),
+  );
+}
+
+async function sendWatchlistNotification({
+  to,
+  phone,
+  notifyWatchlist,
+  auctionTitle,
+  auctionId,
+  newPrice,
+}: {
+  to: string;
+  phone?: string | null;
+  notifyWatchlist: string;
+  auctionTitle: string;
+  auctionId: string;
+  newPrice: string;
+}) {
+  const link = `${SITE_URL}/auctions/${auctionId}`;
+  const sends: Promise<any>[] = [];
+
+  if ((notifyWatchlist === "email" || notifyWatchlist === "both") && FROM_EMAIL && to) {
+    sends.push(
+      sesClient.send(
+        new SendEmailCommand({
+          Source: `Revolution Auction House <${FROM_EMAIL}>`,
+          Destination: { ToAddresses: [to] },
+          Message: {
+            Subject: { Data: `New bid on watched item: ${auctionTitle}` },
+            Body: {
+              Html: {
+                Data: `
+                  <div style="background:#050607;color:#d7d7d7;font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.3em;color:#888;margin-bottom:24px">Revolution Auction House</div>
+                    <h1 style="font-size:28px;margin:0 0 8px;color:#ffffff">New bid on your watchlist</h1>
+                    <p style="color:#999;margin:0 0 32px">A new bid was placed on <strong style="color:#d7d7d7">${auctionTitle}</strong>, which you're watching.</p>
+                    <div style="background:#0d0d0f;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px 24px;margin-bottom:28px">
+                      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.2em;color:#666;margin-bottom:6px">Current Price</div>
+                      <div style="font-size:36px;color:#c0c0c0;font-weight:bold">${newPrice}</div>
+                    </div>
+                    <a href="${link}" style="display:inline-block;background:#c0c0c0;color:#000;font-weight:bold;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:14px">View Auction →</a>
+                    <p style="margin-top:32px;font-size:12px;color:#444">You're receiving this because you have watchlist notifications enabled at Revolution Auction House.</p>
+                  </div>`,
+              },
+            },
+          },
+        }),
+      ),
+    );
+  }
+
+  if ((notifyWatchlist === "sms" || notifyWatchlist === "both") && phone) {
+    sends.push(
+      snsClient.send(
+        new PublishCommand({
+          PhoneNumber: phone,
+          Message: `Revolution: New bid on "${auctionTitle}" you're watching. Price: ${newPrice}. View: ${link}`,
+        }),
+      ),
+    );
+  }
+
+  if (sends.length > 0) await Promise.all(sends);
+}
+
+async function notifyWatchers({
+  auctionId,
+  auctionTitle,
+  newPrice,
+  excludeUserIds,
+}: {
+  auctionId: string;
+  auctionTitle: string;
+  newPrice: string;
+  excludeUserIds: Set<string>;
+}) {
+  try {
+    const watchlistResult = await (client.models.WatchlistItem as any).watchlistByAuction(
+      { auctionId },
+      { authMode: "iam", limit: 100 } as any,
+    );
+    const watchers: any[] = watchlistResult?.data || [];
+
+    await Promise.all(
+      watchers.map(async (item: any) => {
+        const watcherSub = item.userSub as string | undefined;
+        const watcherEmail = item.userEmail as string | undefined;
+        if (!watcherSub || excludeUserIds.has(watcherSub)) return;
+
+        try {
+          const profileResult = await dynamoClient.send(
+            new GetCommand({
+              TableName: BUYER_PROFILE_TABLE_NAME,
+              Key: { userId: watcherSub },
+            }),
+          );
+          const profile = profileResult.Item;
+          const notifyWatchlist = (profile?.notifyWatchlist as string) || "none";
+          if (!notifyWatchlist || notifyWatchlist === "none") return;
+
+          await sendWatchlistNotification({
+            to: watcherEmail || (profile?.email as string) || "",
+            phone: profile?.phoneNumber as string | null,
+            notifyWatchlist,
+            auctionTitle,
+            auctionId,
+            newPrice,
+          });
+        } catch {
+          // individual watcher failure is non-fatal
+        }
+      }),
+    );
+  } catch (err) {
+    console.warn("NOTIFY_WATCHERS_FAILED", err);
+  }
 }
 
 const AUCTION_TABLE_NAME = (env as any).AUCTION_TABLE_NAME;
@@ -814,19 +972,33 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         resultMessage: "Bid placed",
       });
 
-      // Notify displaced leader via SMS if they opted in (fire-and-forget)
+      const auctionTitle = auctionOwnerCheck?.title || "this auction";
+      const formattedPrice = formatMoney(visiblePrice);
+
+      // Notify displaced leader (fire-and-forget)
       if (leaderUserId && leaderUserId !== bidderUserId && newLeaderUserId === bidderUserId) {
-        getBuyerProfileDirect(leaderUserId).then((profile) => {
-          if (profile?.smsOptIn && profile?.phoneNumber) {
-            return sendOutbidSms({
-              to: profile.phoneNumber,
-              auctionTitle: auctionOwnerCheck?.title || "this auction",
-              auctionId,
-              newPrice: formatMoney(visiblePrice),
-            });
+        getBuyerProfileDirect(leaderUserId).then(async (profile) => {
+          if (!profile) return;
+          const notifyOutbid = (profile.notifyOutbid as string) ?? (profile.smsOptIn ? "sms" : "none");
+          const leaderEmail = (profile.email as string) || state?.leaderEmail || "";
+          const sends: Promise<any>[] = [];
+          if ((notifyOutbid === "sms" || notifyOutbid === "both") && profile.phoneNumber) {
+            sends.push(sendOutbidSms({ to: profile.phoneNumber as string, auctionTitle, auctionId, newPrice: formattedPrice }));
           }
-        }).catch((err: unknown) => console.warn("OUTBID_SMS_FAILED", err));
+          if ((notifyOutbid === "email" || notifyOutbid === "both") && leaderEmail) {
+            sends.push(sendOutbidEmail({ to: leaderEmail, auctionTitle, auctionId, newPrice: formattedPrice }));
+          }
+          if (sends.length) await Promise.all(sends);
+        }).catch((err: unknown) => console.warn("OUTBID_NOTIFY_FAILED", err));
       }
+
+      // Notify watchlist watchers (fire-and-forget)
+      notifyWatchers({
+        auctionId,
+        auctionTitle,
+        newPrice: formattedPrice,
+        excludeUserIds: new Set([bidderUserId, leaderUserId].filter(Boolean) as string[]),
+      }).catch((err: unknown) => console.warn("WATCHLIST_NOTIFY_FAILED", err));
 
       return {
         success: true,

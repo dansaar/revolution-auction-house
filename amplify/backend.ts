@@ -63,6 +63,7 @@ const snsPolicy = new PolicyStatement({
 });
 
 backend.placeBid.resources.lambda.addToRolePolicy(snsPolicy);
+backend.placeBid.resources.lambda.addToRolePolicy(sesPolicy);
 backend.finalizeAuction.resources.lambda.addToRolePolicy(sesPolicy);
 backend.finalizeAuction.resources.lambda.addToRolePolicy(snsPolicy);
 backend.notifyOfferSms.resources.lambda.addToRolePolicy(snsPolicy);

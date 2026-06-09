@@ -254,6 +254,10 @@ const schema = a
         phoneNumber: a.string(),
         smsOptIn: a.boolean().default(false),
 
+        notifyOutbid: a.string().default("sms"),
+        notifyWon: a.string().default("both"),
+        notifyWatchlist: a.string().default("none"),
+
         requestedTier: a.string(),
         requestedLimit: a.integer(),
         verificationNotes: a.string(),
@@ -299,6 +303,9 @@ const schema = a
         userEmail: a.string(),
         userSub: a.string(),
       })
+      .secondaryIndexes((index) => [
+        index("auctionId").queryField("watchlistByAuction"),
+      ])
       .authorization((allow) => [
         allow.ownerDefinedIn("userSub"),
         allow.group("Admin"),
