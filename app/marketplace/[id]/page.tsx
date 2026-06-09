@@ -47,6 +47,7 @@ export default function MarketplaceListingPage() {
   const [fullscreen, setFullscreen] = useState(false);
 
   const [isSeller, setIsSeller] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     updateBuyerPresence(`/marketplace/${id}`);
@@ -59,6 +60,7 @@ export default function MarketplaceListingPage() {
         const session = await fetchAuthSession({ forceRefresh: false });
         const groups = (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) || [];
         setIsSeller(groups.includes("Seller"));
+        setIsAdmin(groups.includes("Admin"));
       } catch {
         // not signed in
       }
@@ -186,8 +188,8 @@ export default function MarketplaceListingPage() {
       : "");
 
   async function handleMakeOffer() {
-    if (isSeller) {
-      alert("Sellers cannot make offers on marketplace listings.");
+    if (isSeller || isAdmin) {
+      alert("Sellers and admins cannot make offers on marketplace listings.");
       return;
     }
 
@@ -279,8 +281,8 @@ export default function MarketplaceListingPage() {
   }
 
   async function handleBuyNow() {
-    if (isSeller) {
-      alert("Sellers cannot purchase marketplace listings.");
+    if (isSeller || isAdmin) {
+      alert("Sellers and admins cannot purchase marketplace listings.");
       return;
     }
 
@@ -435,6 +437,7 @@ export default function MarketplaceListingPage() {
               onClick={handleBuyNow}
               disabled={
                 isSeller ||
+                isAdmin ||
                 listing.sold ||
                 listing.status === "SOLD" ||
                 listing.status === "OFFER_PENDING" ||
@@ -442,8 +445,8 @@ export default function MarketplaceListingPage() {
               }
               className="mt-8 w-full rounded bg-[#c0c0c0] py-4 font-semibold text-black transition hover:bg-white disabled:opacity-50 md:mt-10"
             >
-              {isSeller
-                ? "Sellers Cannot Purchase"
+              {isSeller || isAdmin
+                ? "Not Available"
                 : listing.sold || listing.status === "SOLD"
                   ? "Sold"
                   : listing.status === "OFFER_PENDING"
@@ -494,8 +497,8 @@ export default function MarketplaceListingPage() {
                   Make Offer
                 </div>
 
-                {isSeller ? (
-                  <p className="text-sm text-gray-500">Sellers cannot make offers on marketplace listings.</p>
+                {isSeller || isAdmin ? (
+                  <p className="text-sm text-gray-500">Sellers and admins cannot make offers on marketplace listings.</p>
                 ) : (
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <input

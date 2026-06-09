@@ -294,9 +294,6 @@ export default function DashboardPage() {
         setMarketplacePurchases(resolvedMarketplacePurchases);
 
         const invoiceResult = await client.models.Invoice.list({
-          filter: {
-            buyerEmail: { eq: userKeyLower },
-          },
           authMode: "userPool",
         } as any);
 

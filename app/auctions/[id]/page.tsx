@@ -148,6 +148,7 @@ export default function LiveAuctionPage() {
   const [auctionEnded, setAuctionEnded] = useState(false); // FIX #3  reactive state
   const [resolvedImages, setResolvedImages] = useState<string[]>([]);
   const [isSeller, setIsSeller] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const enteredBidAmount = moneyToNumber(input || 0);
   const estimateBaseAmount =
@@ -312,6 +313,7 @@ export default function LiveAuctionPage() {
         const session = await fetchAuthSession({ forceRefresh: false });
         const groups = (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) || [];
         setIsSeller(groups.includes("Seller"));
+        setIsAdmin(groups.includes("Admin"));
       } catch {
         setUser(null);
       } finally {
@@ -722,8 +724,8 @@ export default function LiveAuctionPage() {
       return;
     }
 
-    if (isSeller) {
-      alert("Sellers cannot place bids on auctions.");
+    if (isSeller || isAdmin) {
+      alert("Sellers and admins cannot place bids on auctions.");
       return;
     }
 
@@ -978,9 +980,9 @@ export default function LiveAuctionPage() {
                 </div>
               )}
 
-              {isSeller && !auctionEnded && (
+              {(isSeller || isAdmin) && !auctionEnded && (
                 <div className="mt-5 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-center text-sm text-yellow-300">
-                  Sellers cannot place bids on auctions.
+                  Sellers and admins cannot place bids on auctions.
                 </div>
               )}
 
@@ -992,7 +994,7 @@ export default function LiveAuctionPage() {
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <input
-                      disabled={auctionEnded || isSeller || isSubmitting}
+                      disabled={auctionEnded || isSeller || isAdmin || isSubmitting}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => {
@@ -1000,6 +1002,7 @@ export default function LiveAuctionPage() {
                           e.key === "Enter" &&
                           !auctionEnded &&
                           !isSeller &&
+                          !isAdmin &&
                           !isSubmitting
                         ) {
                           placeBid();
@@ -1019,7 +1022,7 @@ export default function LiveAuctionPage() {
                     ) : (
                       <button
                         onClick={placeBid}
-                        disabled={isSeller || isSubmitting}
+                        disabled={isSeller || isAdmin || isSubmitting}
                         className="rounded-xl bg-[#c0c0c0] px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isSubmitting ? "Placing..." : "Place Bid"}

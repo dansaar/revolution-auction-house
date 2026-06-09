@@ -22,7 +22,7 @@ async function getBuyerFromRequest(req: Request): Promise<{ email: string; sub: 
   if (!authHeader?.startsWith("Bearer ")) return null;
   try {
     const { payload } = await jwtVerify(authHeader.slice(7), JWKS);
-    const email = ((payload.email as string) || "").toLowerCase();
+    const email = (payload.email as string) || "";
     const sub = (payload.sub as string) || "";
     if (!email || !sub) return null;
     return { email, sub };
