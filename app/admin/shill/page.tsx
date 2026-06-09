@@ -266,17 +266,33 @@ export default function ShillDetectionPage() {
                           <div className="text-xs uppercase tracking-widest text-gray-500">
                             Bidder
                           </div>
-                          <div className="mt-1 break-all text-white">
-                            {flag.bidderEmail || flag.bidderId}
-                          </div>
+                          {flag.bidderEmail && (
+                            <div className="mt-1 break-all text-white">{flag.bidderEmail}</div>
+                          )}
+                          {flag.bidderId && (
+                            <div className={`break-all font-mono text-xs ${flag.bidderEmail ? "mt-0.5 text-gray-500" : "mt-1 text-white"}`}>
+                              {flag.bidderId}
+                            </div>
+                          )}
+                          {!flag.bidderEmail && !flag.bidderId && (
+                            <div className="mt-1 text-gray-600">—</div>
+                          )}
                         </div>
                         <div>
                           <div className="text-xs uppercase tracking-widest text-gray-500">
                             Seller
                           </div>
-                          <div className="mt-1 break-all text-white">
-                            {flag.sellerEmail || flag.sellerUserId || "—"}
-                          </div>
+                          {flag.sellerEmail && (
+                            <div className="mt-1 break-all text-white">{flag.sellerEmail}</div>
+                          )}
+                          {flag.sellerUserId && (
+                            <div className={`break-all font-mono text-xs ${flag.sellerEmail ? "mt-0.5 text-gray-500" : "mt-1 text-white"}`}>
+                              {flag.sellerUserId}
+                            </div>
+                          )}
+                          {!flag.sellerEmail && !flag.sellerUserId && (
+                            <div className="mt-1 text-gray-600">—</div>
+                          )}
                         </div>
                       </div>
                     </div>
