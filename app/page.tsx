@@ -89,6 +89,7 @@ function matchesCategory(auction: any, category: string): boolean {
 export default function RevolutionAuctionHouseHomepage() {
   const [auctions, setAuctions] = useState<any[]>([]);
   const auctionsRef = useRef<any[]>([]);
+  const prevPricesRef = useRef<Record<string, string>>({});
   const [featuredListings, setFeaturedListings] = useState<any[]>([]);
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [liveBids, setLiveBids] = useState<{ id: string; title: string; price: string; ts: number }[]>([]);
@@ -140,6 +141,17 @@ export default function RevolutionAuctionHouseHomepage() {
             ...auction,
             imageUrl: resolveAuctionImage(auction),
           }));
+
+        for (const auction of live) {
+          const prev = prevPricesRef.current[auction.id];
+          if (prev !== undefined && prev !== auction.price && auction.title) {
+            setLiveBids((prevBids) => {
+              const entry = { id: auction.id, title: auction.title, price: auction.price, ts: Date.now() };
+              return [entry, ...prevBids.filter((b) => b.id !== auction.id)].slice(0, 20);
+            });
+          }
+          prevPricesRef.current[auction.id] = auction.price;
+        }
 
         setAuctions(live);
         auctionsRef.current = live;
@@ -205,21 +217,7 @@ export default function RevolutionAuctionHouseHomepage() {
 
     const stateSub = client.models.AuctionState.onUpdate({
       authMode: "apiKey",
-    }).subscribe({
-      next: (state: any) => {
-        scheduleRefresh();
-        if (state && !state.ended && state.currentPrice) {
-          const auction = auctionsRef.current.find((a) => a.id === state.auctionId);
-          if (auction?.title) {
-            setLiveBids((prev) => {
-              const entry = { id: state.auctionId, title: auction.title, price: state.currentPrice, ts: Date.now() };
-              const filtered = prev.filter((b) => b.id !== state.auctionId);
-              return [entry, ...filtered].slice(0, 20);
-            });
-          }
-        }
-      },
-    });
+    }).subscribe({ next: scheduleRefresh });
 
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer);
