@@ -109,6 +109,14 @@ export default function RevolutionAuctionHouseHomepage() {
   }, []);
 
   useEffect(() => {
+    const cleanup = setInterval(() => {
+      const cutoff = Date.now() - 5 * 60 * 1000;
+      setLiveBids((prev) => prev.filter((b) => b.ts > cutoff));
+    }, 30_000);
+    return () => clearInterval(cleanup);
+  }, []);
+
+  useEffect(() => {
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
     async function loadAuctions() {

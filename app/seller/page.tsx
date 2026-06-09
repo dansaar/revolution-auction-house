@@ -1371,6 +1371,32 @@ function SellerAuctionCard({
                       ? "Update Shipping Info"
                       : "Enter Shipping Info"}
                   </button>
+
+                  {auction.shippingStatus === "SHIPPED" && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await client.models.Auction.update(
+                            {
+                              id: auction.id,
+                              shippingStatus: "DELIVERED",
+                              deliveredAt: new Date().toISOString(),
+                            },
+                            { authMode: "userPool" } as any,
+                          );
+                          toast.success("Marked as delivered");
+                          window.location.reload();
+                        } catch (err) {
+                          console.error(err);
+                          toast.error("Failed to update");
+                        }
+                      }}
+                      className="mt-2 w-full rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                    >
+                      Mark as Delivered
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1699,6 +1725,38 @@ function MarketplaceSection({
                           ? "Update Shipping Info"
                           : "Enter Shipping Info"}
                       </button>
+
+                      {listing.shippingStatus === "SHIPPED" && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await client.models.MarketplaceListing.update(
+                                {
+                                  id: listing.id,
+                                  shippingStatus: "DELIVERED",
+                                  deliveredAt: new Date().toISOString(),
+                                },
+                                { authMode: "userPool" } as any,
+                              );
+                              toast.success("Marked as delivered");
+                              setMarketplaceListings((prev: any[]) =>
+                                prev.map((item: any) =>
+                                  item.id === listing.id
+                                    ? { ...item, shippingStatus: "DELIVERED" }
+                                    : item,
+                                ),
+                              );
+                            } catch (err) {
+                              console.error(err);
+                              toast.error("Failed to update");
+                            }
+                          }}
+                          className="mt-2 w-full rounded border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                        >
+                          Mark as Delivered
+                        </button>
+                      )}
                     </div>
                   )}
                   <Link
@@ -1850,6 +1908,36 @@ function MarketplaceSection({
                         Activate
                       </button>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await client.models.MarketplaceListing.update(
+                            { id: listing.id, featured: !listing.featured },
+                            { authMode: "userPool" } as any,
+                          );
+                          toast.success(listing.featured ? "Removed from featured" : "Marked as featured");
+                          setMarketplaceListings((prev: any[]) =>
+                            prev.map((item: any) =>
+                              item.id === listing.id
+                                ? { ...item, featured: !item.featured }
+                                : item,
+                            ),
+                          );
+                        } catch (err) {
+                          console.error(err);
+                          toast.error("Failed to update");
+                        }
+                      }}
+                      className={`w-full rounded border px-4 py-2 text-sm transition ${
+                        listing.featured
+                          ? "border-[#d6aa55]/40 bg-[#d6aa55]/10 text-[#e7c77f] hover:bg-[#d6aa55]/20"
+                          : "border-white/10 bg-white/[0.03] text-gray-400 hover:border-[#d6aa55]/30 hover:text-[#e7c77f]"
+                      }`}
+                    >
+                      {listing.featured ? "★ Featured" : "★ Feature"}
+                    </button>
                   </div>
                 </div>
               </div>
