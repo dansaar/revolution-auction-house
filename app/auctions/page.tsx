@@ -167,10 +167,11 @@ export default function AuctionsPage() {
   const [now, setNow] = useState(Date.now());
   const [watchedIds, setWatchedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<
-    "ALL" | "ENDING_SOON" | "HIGH_VALUE" | "PSA_10"
-  >("ALL");
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<"ENDING_SOON" | "HIGHEST" | "LOWEST" | "MOST_BIDS" | "NEWEST">("ENDING_SOON");
+  const [gradeFilter, setGradeFilter] = useState<string>("ALL");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
 
   function isWatching(auctionId: string) {
     return watchedIds.includes(auctionId);
@@ -387,41 +388,51 @@ export default function AuctionsPage() {
     return new Date(a.endsAt).getTime() > now;
   });
 
-  function applySearch(items: any[]) {
-    const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((a) =>
-      [a.title, a.subtitle, a.grade, a.certNumber, a.year, a.setName]
-        .some((f) => String(f || "").toLowerCase().includes(q))
-    );
+  const GRADE_OPTIONS = [
+    { key: "ALL", label: "All Grades" },
+    { key: "PSA10", label: "PSA 10" },
+    { key: "PSA9.5", label: "PSA 9.5" },
+    { key: "PSA9", label: "PSA 9" },
+    { key: "BGS", label: "BGS" },
+    { key: "OTHER", label: "Other" },
+  ];
+
+  function matchesGrade(auction: any) {
+    if (gradeFilter === "ALL") return true;
+    const g = String(auction.grade || "").toLowerCase();
+    if (gradeFilter === "PSA10") return g.includes("psa") && (g.includes("10") && !g.includes("10."));
+    if (gradeFilter === "PSA9.5") return g.includes("9.5");
+    if (gradeFilter === "PSA9") return (g.includes("psa") || g.includes("9")) && g.includes("9") && !g.includes("9.5") && !g.includes("10");
+    if (gradeFilter === "BGS") return g.includes("bgs") || g.includes("beckett");
+    if (gradeFilter === "OTHER") return !g.includes("psa") && !g.includes("bgs") && !g.includes("beckett");
+    return true;
   }
 
-  function applyFilter(items: any[]) {
-    if (filter === "ENDING_SOON") {
-      return [...items].sort(
-        (a, b) =>
-          new Date(a.endsAt || 0).getTime() - new Date(b.endsAt || 0).getTime(),
-      );
-    }
+  const visibleLiveAuctions = (() => {
+    const q = search.trim().toLowerCase();
+    const minP = moneyToNumber(minPrice);
+    const maxP = moneyToNumber(maxPrice);
 
-    if (filter === "HIGH_VALUE") {
-      return [...items].sort(
-        (a, b) => moneyToNumber(b.price || 0) - moneyToNumber(a.price || 0),
-      );
-    }
+    let items = liveAuctions.filter((a) => {
+      if (q && ![a.title, a.subtitle, a.grade, a.certNumber, a.year, a.setName]
+        .some((f) => String(f || "").toLowerCase().includes(q))) return false;
+      if (!matchesGrade(a)) return false;
+      const p = moneyToNumber(a.price || 0);
+      if (minP > 0 && p < minP) return false;
+      if (maxP > 0 && p > maxP) return false;
+      return true;
+    });
 
-    if (filter === "PSA_10") {
-      return items.filter((item) =>
-        String(item.grade || "")
-          .toLowerCase()
-          .includes("10"),
-      );
-    }
+    if (sort === "ENDING_SOON") items = [...items].sort((a, b) => new Date(a.endsAt || 0).getTime() - new Date(b.endsAt || 0).getTime());
+    else if (sort === "HIGHEST") items = [...items].sort((a, b) => moneyToNumber(b.price || 0) - moneyToNumber(a.price || 0));
+    else if (sort === "LOWEST") items = [...items].sort((a, b) => moneyToNumber(a.price || 0) - moneyToNumber(b.price || 0));
+    else if (sort === "MOST_BIDS") items = [...items].sort((a, b) => (b.bids || 0) - (a.bids || 0));
+    else if (sort === "NEWEST") items = [...items].reverse();
 
     return items;
-  }
+  })();
 
-  const visibleLiveAuctions = applyFilter(applySearch(liveAuctions));
+  const hasActiveFilters = search || gradeFilter !== "ALL" || minPrice || maxPrice;
 
   if (loading) {
     return (
@@ -463,72 +474,90 @@ export default function AuctionsPage() {
         </div>
       </div>
 
-      <div className="mx-auto mb-6 max-w-7xl">
+      {/* Search + filters */}
+      <div className="mx-auto mb-8 max-w-7xl space-y-4">
+        {/* Search */}
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by title, grade, year, set, cert number..."
           className="w-full rounded-xl border border-white/10 bg-black px-5 py-4 text-white outline-none placeholder:text-gray-600 focus:border-[#d6aa55]/50"
         />
-      </div>
 
-      <div className="mx-auto mb-8 flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() =>
-              setFilter(filter === "ENDING_SOON" ? "ALL" : "ENDING_SOON")
-            }
-            className={`rounded border px-4 py-2 ${
-              filter === "ENDING_SOON"
-                ? "border-[#c0c0c0] bg-white/[0.08] text-white"
-                : "border-white/20 hover:border-[#c0c0c0]"
-            }`}
-          >
-            Ending Soon
-          </button>
+        {/* Grade chips + sort row */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            {GRADE_OPTIONS.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setGradeFilter(key)}
+                className={`rounded-full border px-3 py-1 text-sm transition ${
+                  gradeFilter === key
+                    ? "border-[#d6aa55]/60 bg-[#1a1408] text-[#e7c77f]"
+                    : "border-white/10 text-gray-400 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
-          <button
-            onClick={() =>
-              setFilter(filter === "HIGH_VALUE" ? "ALL" : "HIGH_VALUE")
-            }
-            className={`rounded border px-4 py-2 ${
-              filter === "HIGH_VALUE"
-                ? "border-[#c0c0c0] bg-white/[0.08] text-white"
-                : "border-white/20 hover:border-[#c0c0c0]"
-            }`}
-          >
-            High Value
-          </button>
-
-          <button
-            onClick={() => setFilter(filter === "PSA_10" ? "ALL" : "PSA_10")}
-            className={`rounded border px-4 py-2 ${
-              filter === "PSA_10"
-                ? "border-[#c0c0c0] bg-white/[0.08] text-white"
-                : "border-white/20 hover:border-[#c0c0c0]"
-            }`}
-          >
-            PSA 10
-          </button>
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal size={14} className="text-gray-500" />
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as typeof sort)}
+              className="rounded border border-white/10 bg-black px-3 py-1.5 text-sm text-gray-300 outline-none focus:border-[#d6aa55]/50"
+            >
+              <option value="ENDING_SOON">Ending Soon</option>
+              <option value="HIGHEST">Highest Bid</option>
+              <option value="LOWEST">Lowest Bid</option>
+              <option value="MOST_BIDS">Most Bids</option>
+              <option value="NEWEST">Newest</option>
+            </select>
+          </div>
         </div>
 
-        {filter !== "ALL" && (
-          <button
-            onClick={() => setFilter("ALL")}
-            className="flex items-center gap-2 rounded border border-white/20 px-4 py-2 text-gray-400 hover:border-[#c0c0c0] hover:text-white"
-          >
-            <SlidersHorizontal size={16} />
-            Clear Filters
-          </button>
-        )}
+        {/* Price range */}
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm text-gray-500">Price range:</span>
+          <input
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            placeholder="Min $"
+            className="w-28 rounded border border-white/10 bg-black px-3 py-1.5 text-sm text-white outline-none placeholder:text-gray-600 focus:border-[#d6aa55]/50"
+          />
+          <span className="text-gray-600">—</span>
+          <input
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            placeholder="Max $"
+            className="w-28 rounded border border-white/10 bg-black px-3 py-1.5 text-sm text-white outline-none placeholder:text-gray-600 focus:border-[#d6aa55]/50"
+          />
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={() => { setSearch(""); setGradeFilter("ALL"); setMinPrice(""); setMaxPrice(""); }}
+              className="ml-2 text-sm text-gray-500 hover:text-white underline"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
       </div>
 
       <section className="mx-auto max-w-7xl">
-        <h2 className="mb-4 font-serif text-2xl">Live Auctions</h2>
+        <div className="mb-4 flex items-baseline gap-3">
+          <h2 className="font-serif text-2xl">Live Auctions</h2>
+          <span className="text-sm text-gray-500">
+            {visibleLiveAuctions.length} of {liveAuctions.length}
+          </span>
+        </div>
 
         {visibleLiveAuctions.length === 0 ? (
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-gray-500">
-            No live auctions{search ? ` matching "${search}"` : ""}.
+            No auctions match your filters.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
