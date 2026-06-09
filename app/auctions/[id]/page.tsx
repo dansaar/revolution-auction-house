@@ -7,6 +7,7 @@ import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { getCurrentUser, fetchAuthSession, type AuthUser } from "aws-amplify/auth";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
@@ -311,6 +312,16 @@ export default function LiveAuctionPage() {
     }
   }, [fullscreen, resolvedImages]);
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "ArrowRight") goNext();
+      else if (e.key === "ArrowLeft") goPrev();
+      else if (e.key === "Escape" && fullscreen) setFullscreen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   //  Load user ONCE
   useEffect(() => {
     async function loadUser() {
@@ -595,6 +606,18 @@ export default function LiveAuctionPage() {
       ? selectedImage
       : images[0] || "/logo.png";
 
+  const currentIndex = images.indexOf(mainImage);
+  const validIndex = currentIndex >= 0 ? currentIndex : 0;
+
+  function goNext() {
+    const next = images[(validIndex + 1) % images.length];
+    setSelectedImage(next);
+  }
+  function goPrev() {
+    const prev = images[(validIndex - 1 + images.length) % images.length];
+    setSelectedImage(prev);
+  }
+
   const sellerPublicId =
     auction.sellerPublicId ||
     (auction.sellerUserId
@@ -810,60 +833,94 @@ export default function LiveAuctionPage() {
         <div className="grid lg:grid-cols-2 gap-10 mt-6">
           {/* IMAGE GALLERY */}
           <div>
-            <button
-              type="button"
-              onClick={() => setFullscreen(true)}
-              className="group relative block h-[360px] w-full rounded-2xl border border-white/10 bg-black md:h-[520px] lg:h-[600px]"
-            >
-              <img
-                loading="eager"
-                src={
-                  mainImage !== "undefined" && mainImage.trim()
-                    ? mainImage
-                    : "/logo.png"
-                }
-                alt={auction.title}
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = "/logo.png";
-                }}
-                className="h-full w-full rounded-2xl object-contain bg-black transition duration-500"
-              />
+            {/* Main image */}
+            <div className="group relative h-[360px] w-full overflow-hidden rounded-2xl border border-white/10 bg-[#181818] md:h-[520px] lg:h-[600px]">
+              <button
+                type="button"
+                onClick={() => setFullscreen(true)}
+                className="block h-full w-full p-4"
+              >
+                <img
+                  loading="eager"
+                  src={
+                    mainImage !== "undefined" && mainImage.trim()
+                      ? mainImage
+                      : "/logo.png"
+                  }
+                  alt={auction.title}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "/logo.png";
+                  }}
+                  className="h-full w-full object-contain transition duration-300"
+                />
+              </button>
 
-              <div className="pointer-events-none absolute bottom-3 right-3 rounded bg-black/70 px-3 py-1 text-xs text-[#c0c0c0] opacity-0 transition group-hover:opacity-100">
-                Click to fullscreen
+              {/* Prev / Next arrows */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={goPrev}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-black/60 p-2 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 hover:bg-black/80"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-black/60 p-2 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 hover:bg-black/80"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </>
+              )}
+
+              {/* Counter + fullscreen hint */}
+              <div className="pointer-events-none absolute bottom-3 left-0 right-0 flex items-center justify-between px-3">
+                {images.length > 1 ? (
+                  <span className="rounded bg-black/70 px-2.5 py-1 text-xs text-gray-400">
+                    {validIndex + 1} / {images.length}
+                  </span>
+                ) : <span />}
+                <span className="rounded bg-black/70 px-2.5 py-1 text-xs text-[#c0c0c0] opacity-0 transition group-hover:opacity-100">
+                  Click to zoom
+                </span>
               </div>
-            </button>
-
-            <div className="mt-4 grid grid-cols-4 gap-3">
-              {images.map((src: string, i: number) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setSelectedImage(src)}
-                  className={`overflow-hidden rounded border ${
-                    mainImage === src
-                      ? "border-[#c0c0c0]"
-                      : "border-white/10 opacity-70"
-                  }`}
-                >
-                  <img
-                    loading="lazy"
-                    src={
-                      src && src !== "undefined" && src.trim()
-                        ? src
-                        : "/logo.png"
-                    }
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = "/logo.png";
-                    }}
-                    alt={`${auction.title} ${i + 1}`}
-                    className="h-20 w-full object-contain bg-black"
-                  />
-                </button>
-              ))}
             </div>
+
+            {/* Thumbnails */}
+            {images.length > 1 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                {images.map((src: string, i: number) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setSelectedImage(src)}
+                    className={`shrink-0 overflow-hidden rounded border transition ${
+                      validIndex === i
+                        ? "border-[#c0c0c0] opacity-100"
+                        : "border-white/10 opacity-50 hover:opacity-80"
+                    }`}
+                  >
+                    <img
+                      loading="lazy"
+                      src={
+                        src && src !== "undefined" && src.trim()
+                          ? src
+                          : "/logo.png"
+                      }
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = "/logo.png";
+                      }}
+                      alt={`${auction.title} ${i + 1}`}
+                      className="h-16 w-16 object-contain bg-[#181818]"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* RIGHT SIDE */}
@@ -1249,16 +1306,42 @@ export default function LiveAuctionPage() {
 
       {/* FULLSCREEN MODAL */}
       {fullscreen && (
-        <div className="fixed inset-0 z-50 bg-black/95 px-6 py-6">
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95"
+          onClick={() => setFullscreen(false)}
+        >
+          {/* Close */}
           <button
             type="button"
             onClick={() => setFullscreen(false)}
             className="absolute right-6 top-6 z-10 rounded bg-white/10 px-4 py-2 text-white hover:bg-white/20"
           >
-            Close
+            Close ✕
           </button>
 
-          <div className="flex h-full flex-col items-center justify-center">
+          {/* Counter */}
+          {images.length > 1 && (
+            <div className="absolute left-1/2 top-6 -translate-x-1/2 rounded bg-black/70 px-3 py-1 text-sm text-gray-400">
+              {validIndex + 1} / {images.length}
+            </div>
+          )}
+
+          {/* Prev arrow */}
+          {images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); goPrev(); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-black/60 p-3 text-white hover:bg-black/80"
+            >
+              <ChevronLeft size={28} />
+            </button>
+          )}
+
+          {/* Main image */}
+          <div
+            className="rounded-2xl bg-[#181818] p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <img
               loading="eager"
               src={
@@ -1271,19 +1354,36 @@ export default function LiveAuctionPage() {
                 e.currentTarget.src = "/logo.png";
               }}
               alt={auction.title}
-              className="max-h-[78vh] max-w-[95vw] rounded-lg object-contain transition duration-500 hover:scale-110"
+              className="max-h-[72vh] max-w-[80vw] object-contain"
             />
+          </div>
 
-            <div className="mt-5 flex max-w-4xl gap-3 overflow-x-auto">
+          {/* Next arrow */}
+          {images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); goNext(); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-black/60 p-3 text-white hover:bg-black/80"
+            >
+              <ChevronRight size={28} />
+            </button>
+          )}
+
+          {/* Thumbnails */}
+          {images.length > 1 && (
+            <div
+              className="mt-5 flex max-w-4xl gap-3 overflow-x-auto pb-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               {images.map((src: string, i: number) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => setSelectedImage(src)}
-                  className={`h-20 w-20 shrink-0 overflow-hidden rounded border ${
-                    mainImage === src
-                      ? "border-[#c0c0c0]"
-                      : "border-white/20 opacity-60"
+                  className={`h-20 w-20 shrink-0 overflow-hidden rounded border transition ${
+                    validIndex === i
+                      ? "border-[#c0c0c0] opacity-100"
+                      : "border-white/20 opacity-50 hover:opacity-80"
                   }`}
                 >
                   <img
@@ -1298,12 +1398,12 @@ export default function LiveAuctionPage() {
                       e.currentTarget.src = "/logo.png";
                     }}
                     alt={`${auction.title} ${i + 1}`}
-                    className="h-full w-full object-contain bg-black"
+                    className="h-full w-full object-contain bg-[#181818]"
                   />
                 </button>
               ))}
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
