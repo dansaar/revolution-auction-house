@@ -7,7 +7,7 @@ import { confirmSignUp, resendSignUpCode } from "aws-amplify/auth";
 export default function ConfirmSignupPage() {
   const params = useSearchParams();
 
-  const email = params.get("email") || "";
+  const email = params?.get("email") || "";
 
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
