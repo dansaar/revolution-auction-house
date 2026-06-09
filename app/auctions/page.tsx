@@ -5,7 +5,7 @@ import "@/lib/amplifyclient";
 import React, { useEffect, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
-import { getCurrentUser } from "aws-amplify/auth";
+import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
@@ -179,9 +179,13 @@ export default function AuctionsPage() {
   async function loadWatchlist() {
     if (!userKey) return;
 
+    const session = await fetchAuthSession();
+    const watchlistEmail =
+      (session.tokens?.idToken?.payload?.email as string) || userKey;
+
     const result = await client.models.WatchlistItem.list({
       filter: {
-        userEmail: { eq: userKey },
+        userEmail: { eq: watchlistEmail },
       },
       authMode: "userPool",
     });
@@ -195,6 +199,10 @@ export default function AuctionsPage() {
       return;
     }
 
+    const session = await fetchAuthSession();
+    const watchlistEmail =
+      (session.tokens?.idToken?.payload?.email as string) || userKey;
+
     const nextWatched = !watchedIds.includes(auction.id);
 
     setWatchedIds((prev) =>
@@ -207,7 +215,7 @@ export default function AuctionsPage() {
       const result = await client.models.WatchlistItem.list({
         filter: {
           auctionId: { eq: auction.id },
-          userEmail: { eq: userKey },
+          userEmail: { eq: watchlistEmail },
         },
         authMode: "userPool",
       });
@@ -233,7 +241,7 @@ export default function AuctionsPage() {
               "/logo.png",
 
             href: `/auctions/${auction.id}`,
-            userEmail: userKey,
+            userEmail: watchlistEmail,
           },
           { authMode: "userPool" },
         );

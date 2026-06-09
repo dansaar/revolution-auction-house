@@ -139,6 +139,7 @@ export default function LiveAuctionPage() {
   const [fullscreen, setFullscreen] = useState(false);
   const [displayPrice, setDisplayPrice] = useState(0);
   const [priceFlash, setPriceFlash] = useState(false);
+  const [priceFlashOutbid, setPriceFlashOutbid] = useState(false);
   const priceFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isWatching, setIsWatching] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
@@ -180,8 +181,9 @@ export default function LiveAuctionPage() {
     }, 250);
   }
 
-  function flashPrice() {
+  function flashPrice(outbid = false) {
     setPriceFlash(true);
+    setPriceFlashOutbid(outbid);
 
     if (priceFlashTimerRef.current) {
       clearTimeout(priceFlashTimerRef.current);
@@ -189,6 +191,7 @@ export default function LiveAuctionPage() {
 
     priceFlashTimerRef.current = setTimeout(() => {
       setPriceFlash(false);
+      setPriceFlashOutbid(false);
     }, 700);
   }
 
@@ -252,7 +255,10 @@ export default function LiveAuctionPage() {
           .map((b) => moneyToNumber(b.maxBid))
           .reduce((max, amt) => Math.max(max, amt), 0);
 
-        setMyMaxBid(myMaxAmount > 0 ? formatMoney(myMaxAmount) : "");
+        const storedMax = localStorage.getItem(`maxBid:${id}`);
+        const storedAmount = storedMax ? moneyToNumber(storedMax) : 0;
+        const finalMax = Math.max(myMaxAmount, storedAmount);
+        setMyMaxBid(finalMax > 0 ? formatMoney(finalMax) : "");
       } catch (err) {
         console.error("LIVE POLL ERROR", err);
       }
@@ -356,7 +362,10 @@ export default function LiveAuctionPage() {
           .map((b) => moneyToNumber(b.maxBid))
           .reduce((max, amt) => Math.max(max, amt), 0);
 
-        setMyMaxBid(myMaxAmount > 0 ? formatMoney(myMaxAmount) : "");
+        const storedMax = localStorage.getItem(`maxBid:${id}`);
+        const storedAmount = storedMax ? moneyToNumber(storedMax) : 0;
+        const finalMax = Math.max(myMaxAmount, storedAmount);
+        setMyMaxBid(finalMax > 0 ? formatMoney(finalMax) : "");
       } catch (err) {
         console.error("LOAD BIDS ERROR", err);
       } finally {
@@ -401,25 +410,25 @@ export default function LiveAuctionPage() {
         if (state.auctionId !== id) return;
 
         const nextPrice = moneyToNumber(state.currentPrice || 0);
+        const newLeader = state.leaderUserId || "";
+        const isOutbid = !!(rawUserKey && myMaxBid && newLeader && newLeader !== rawUserKey);
 
         setDisplayPrice((prev) => {
           if (prev > 0 && nextPrice !== prev) {
-            flashPrice();
+            flashPrice(isOutbid);
           }
 
           return nextPrice;
         });
 
-        const newLeader = state.leaderUserId || "";
-
-        if (rawUserKey && myMaxBid && newLeader && newLeader !== rawUserKey) {
+        if (isOutbid) {
           setFlashOutbid(true);
 
           const audio = new Audio("/outbid.mp3");
           audio.volume = 0.35;
           audio.play().catch(() => {});
 
-          setTimeout(() => setFlashOutbid(false), 1500);
+          setTimeout(() => setFlashOutbid(false), 2000);
         }
 
         setAuction((prev: any) => ({
@@ -510,7 +519,7 @@ export default function LiveAuctionPage() {
     audio.volume = 0.35;
     audio.play().catch(() => {});
 
-    const t = setTimeout(() => setFlashOutbid(false), 1500);
+    const t = setTimeout(() => setFlashOutbid(false), 2000);
 
     return () => clearTimeout(t);
   }, [myMaxBid, rawUserKey, actualWinnerUserId]);
@@ -520,10 +529,12 @@ export default function LiveAuctionPage() {
       if (!auction?.id || !user) return;
 
       try {
-        const currentUser = await getCurrentUser();
-
+        const session = await fetchAuthSession();
         const safeUserKey =
-          currentUser?.signInDetails?.loginId || currentUser?.username || "";
+          (session.tokens?.idToken?.payload?.email as string) ||
+          user?.signInDetails?.loginId ||
+          user?.username ||
+          "";
 
         if (!safeUserKey) return;
 
@@ -612,10 +623,11 @@ export default function LiveAuctionPage() {
     let safeUserKey = "";
 
     try {
-      const currentUser = await getCurrentUser();
-
+      const session = await fetchAuthSession();
       safeUserKey =
-        currentUser?.signInDetails?.loginId || currentUser?.username || "";
+        (session.tokens?.idToken?.payload?.email as string) ||
+        (await getCurrentUser())?.signInDetails?.loginId ||
+        "";
     } catch {
       window.location.href = "/signin";
       return;
@@ -782,6 +794,7 @@ export default function LiveAuctionPage() {
       }));
 
       setMyMaxBid(formatMoney(enteredMaxBid));
+      localStorage.setItem(`maxBid:${auctionIdForBid}`, String(enteredMaxBid));
       setInput("");
 
       pendingRefreshRef.current = true;
@@ -801,7 +814,7 @@ export default function LiveAuctionPage() {
 
   return (
     <div className="min-h-screen bg-[#050607] text-white px-6 py-10">
-      {flashOutbid && (
+      {flashOutbid && !auctionEnded && (
         <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full border border-red-500/30 bg-red-500/20 px-6 py-3 text-sm font-bold uppercase tracking-[0.18em] text-red-300 shadow-[0_0_40px_rgba(239,68,68,0.35)]">
           You’ve been outbid
         </div>
@@ -905,8 +918,10 @@ export default function LiveAuctionPage() {
 
             {/* FIX #11  single source of truth: always use displayPrice number state */}
 
-            <div className="mt-6 text-5xl text-[#c0c0c0] font-serif">
-              {formatMoney(displayPrice)}
+            <div className="mt-6 text-5xl font-serif">
+              <span className={priceFlash ? (priceFlashOutbid ? "animate-price-pop-outbid" : "animate-price-pop") : "text-[#c0c0c0]"}>
+                {formatMoney(displayPrice)}
+              </span>
             </div>
 
             {user && !auctionEnded && userIsWinning && (

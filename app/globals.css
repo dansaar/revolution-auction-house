@@ -29,6 +29,26 @@ body {
   animation-play-state: paused;
 }
 
+@keyframes price-pop {
+  0%   { transform: scale(1);    color: #c0c0c0; text-shadow: none; }
+  18%  { transform: scale(1.07); color: #6ee7b7; text-shadow: 0 0 28px rgba(52,211,153,0.65); }
+  100% { transform: scale(1);    color: #c0c0c0; text-shadow: none; }
+}
+.animate-price-pop {
+  animation: price-pop 650ms ease-out;
+  display: inline-block;
+}
+
+@keyframes price-pop-outbid {
+  0%   { transform: scale(1);    color: #c0c0c0; text-shadow: none; }
+  18%  { transform: scale(1.07); color: #fca5a5; text-shadow: 0 0 28px rgba(239,68,68,0.65); }
+  100% { transform: scale(1);    color: #c0c0c0; text-shadow: none; }
+}
+.animate-price-pop-outbid {
+  animation: price-pop-outbid 650ms ease-out;
+  display: inline-block;
+}
+
 @keyframes shake {
   0% {
     transform: translateX(0);
