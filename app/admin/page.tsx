@@ -291,6 +291,18 @@ export default function AdminPage() {
           />
 
           <AdminCard
+            title="User Management"
+            description="Unified buyers and sellers table — search, edit tiers, revoke access."
+            href="/admin/users"
+          />
+
+          <AdminCard
+            title="Revenue Dashboard"
+            description="Gross revenue, buyer premiums, monthly trend, top sellers, and transaction log."
+            href="/admin/revenue"
+          />
+
+          <AdminCard
             title="Shill Detection"
             description="Flag bidder/seller pairs with suspicious concentration or identity overlap."
             href="/admin/shill"
