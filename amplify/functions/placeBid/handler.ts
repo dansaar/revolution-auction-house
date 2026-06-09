@@ -402,6 +402,18 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
     const bidderDisplayName = makeBidderDisplayName(bidderUserId);
 
+    const callerGroups: string[] =
+      identity?.claims?.["cognito:groups"] ?? [];
+
+    if (callerGroups.includes("Admin") || callerGroups.includes("Seller")) {
+      return {
+        success: false,
+        message: "Admins and sellers cannot place bids.",
+        currentPrice: 0,
+        winner: "",
+      };
+    }
+
     const auctionOwnerCheck = await getAuctionDirect(auctionId);
     if (auctionOwnerCheck?.sellerUserId === bidderUserId) {
       return {
