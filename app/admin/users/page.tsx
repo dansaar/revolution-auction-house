@@ -223,8 +223,8 @@ export default function AdminUsersPage() {
 
         {/* Buyers table */}
         {tab === "buyers" && (
-          <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
-            <table className="w-full text-left text-sm">
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
+            <table className="w-full min-w-[700px] text-left text-sm">
               <thead className="bg-white/[0.04] text-xs uppercase tracking-[0.16em] text-gray-500">
                 <tr>
                   <th className="p-4">Buyer</th>
@@ -323,8 +323,8 @@ export default function AdminUsersPage() {
 
         {/* Sellers table */}
         {tab === "sellers" && (
-          <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
-            <table className="w-full text-left text-sm">
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
+            <table className="w-full min-w-[600px] text-left text-sm">
               <thead className="bg-white/[0.04] text-xs uppercase tracking-[0.16em] text-gray-500">
                 <tr>
                   <th className="p-4">Seller</th>

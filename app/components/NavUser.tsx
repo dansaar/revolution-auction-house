@@ -7,7 +7,7 @@ import Link from "next/link";
 import { getCurrentUser, signOut } from "aws-amplify/auth";
 import { Hub } from "aws-amplify/utils";
 
-export default function NavUser() {
+export default function NavUser({ onNavigate }: { onNavigate?: () => void } = {}) {
   const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
@@ -41,6 +41,7 @@ export default function NavUser() {
     return (
       <Link
         href="/signin"
+        onClick={onNavigate}
         className="rounded border border-white/10 px-3 py-1 text-xs text-gray-400 transition hover:border-[#c0c0c0]/50 hover:text-white"
       >
         Sign In
@@ -56,6 +57,7 @@ export default function NavUser() {
 
       <button
         onClick={async () => {
+          onNavigate?.();
           await signOut();
           setUserEmail("");
           window.location.href = "/";

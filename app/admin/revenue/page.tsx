@@ -197,8 +197,8 @@ export default function AdminRevenuePage() {
         {topSellers.length > 0 && (
           <section className="mt-10">
             <h2 className="mb-4 font-serif text-2xl text-gray-400">Top Sellers by Revenue</h2>
-            <div className="rounded-2xl border border-white/10 overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto rounded-2xl border border-white/10">
+              <table className="w-full min-w-[500px] text-sm">
                 <thead className="bg-white/[0.04] text-xs uppercase tracking-widest text-gray-500">
                   <tr>
                     <th className="p-4 text-left">#</th>
@@ -237,8 +237,8 @@ export default function AdminRevenuePage() {
             <h2 className="font-serif text-2xl text-gray-400">Transaction Log</h2>
             <span className="text-sm text-gray-600">{sorted.length} paid invoices</span>
           </div>
-          <div className="rounded-2xl border border-white/10 overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-2xl border border-white/10">
+            <table className="w-full min-w-[800px] text-sm">
               <thead className="bg-white/[0.04] text-xs uppercase tracking-widest text-gray-500">
                 <tr>
                   <th className="p-4 text-left">Date</th>
