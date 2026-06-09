@@ -263,6 +263,9 @@ export default function AdminUsersPage() {
                             {buyer.phoneNumber && (
                               <div className="text-xs text-gray-600">{buyer.phoneNumber}</div>
                             )}
+                            {buyer.userId && (
+                              <div className="font-mono text-[10px] text-gray-700 select-all">{buyer.userId}</div>
+                            )}
                           </div>
                         </div>
                       </td>
