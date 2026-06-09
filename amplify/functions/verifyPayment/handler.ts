@@ -61,11 +61,12 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
     const listingId = session.metadata?.listingId || "";
     const cartItemsRaw = session.metadata?.cartItems || "";
 
-    const buyerEmail =
+    const buyerEmail = (
       session.metadata?.buyerEmail ||
       session.customer_details?.email ||
       session.customer_email ||
-      "";
+      ""
+    ).toLowerCase();
 
     let cartItems: any[] = [];
     if (cartItemsRaw) {

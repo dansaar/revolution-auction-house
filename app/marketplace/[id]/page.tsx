@@ -199,8 +199,9 @@ export default function MarketplaceListingPage() {
       return;
     }
 
-    const buyerEmail =
-      currentUser.signInDetails?.loginId || currentUser.username || "";
+    const buyerEmail = (
+      currentUser.signInDetails?.loginId || currentUser.username || ""
+    ).toLowerCase();
 
     if (!buyerEmail) {
       window.location.href = "/signin";

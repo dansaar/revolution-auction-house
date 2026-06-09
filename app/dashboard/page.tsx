@@ -119,6 +119,7 @@ export default function DashboardPage() {
   );
 
   const userKey = user?.signInDetails?.loginId || user?.username || "";
+  const userKeyLower = userKey.toLowerCase();
   const userId = user?.userId || user?.username || "";
 
   useEffect(() => {
@@ -227,7 +228,7 @@ export default function DashboardPage() {
         });
         const marketplaceResult = await client.models.MarketplaceListing.list({
           filter: {
-            buyerEmail: { eq: userKey },
+            buyerEmail: { eq: userKeyLower },
           },
           authMode: "apiKey",
         } as any);
@@ -249,7 +250,7 @@ export default function DashboardPage() {
 
         const buyerOfferResult = await client.models.Offer.list({
           filter: {
-            buyerEmail: { eq: userKey },
+            buyerEmail: { eq: userKeyLower },
           },
           authMode: "userPool",
         } as any);
@@ -294,7 +295,7 @@ export default function DashboardPage() {
 
         const invoiceResult = await client.models.Invoice.list({
           filter: {
-            buyerEmail: { eq: userKey },
+            buyerEmail: { eq: userKeyLower },
           },
           authMode: "userPool",
         } as any);
@@ -304,7 +305,7 @@ export default function DashboardPage() {
         const acceptedMarketplaceResult =
           await client.models.MarketplaceListing.list({
             filter: {
-              buyerEmail: { eq: userKey },
+              buyerEmail: { eq: userKeyLower },
               status: { eq: "OFFER_ACCEPTED" },
             },
             authMode: "apiKey",
