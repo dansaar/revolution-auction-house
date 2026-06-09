@@ -291,12 +291,15 @@ export default function DashboardPage() {
 
         setOfferListings(resolvedOfferListings);
 
+        console.log("MARKETPLACE PURCHASES", resolvedMarketplacePurchases.map((l: any) => ({ id: l.id, buyerEmail: l.buyerEmail, status: l.status })));
         setMarketplacePurchases(resolvedMarketplacePurchases);
 
         const invoiceResult = await client.models.Invoice.list({
           authMode: "userPool",
         } as any);
 
+        console.log("INVOICES", (invoiceResult.data || []).map((inv: any) => ({ id: inv.id, type: inv.type, auctionId: inv.auctionId, listingId: inv.listingId, buyerEmail: inv.buyerEmail })));
+        if (invoiceResult.errors?.length) console.error("INVOICE QUERY ERRORS", invoiceResult.errors);
         setInvoices(invoiceResult.data || []);
 
         const acceptedMarketplaceResult =
