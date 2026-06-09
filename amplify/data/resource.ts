@@ -369,6 +369,14 @@ const schema = a
     status: a.string(),
     stripeSessionId: a.string(),
     paidAt: a.datetime(),
+
+    shippingName: a.string(),
+    shippingLine1: a.string(),
+    shippingLine2: a.string(),
+    shippingCity: a.string(),
+    shippingState: a.string(),
+    shippingZip: a.string(),
+    shippingCountry: a.string(),
   })
       .secondaryIndexes((index) => [
         index("sellerEmail").queryField("invoicesBySellerEmail"),

@@ -87,6 +87,17 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
     const buyerPremium = session.metadata?.buyerPremium || "$0.00";
     const tax = session.metadata?.tax || "$0.00";
 
+    const shipping = (session as any).shipping_details || (session as any).shipping || null;
+    const shippingFields = shipping ? {
+      shippingName:    shipping.name || "",
+      shippingLine1:   shipping.address?.line1 || "",
+      shippingLine2:   shipping.address?.line2 || "",
+      shippingCity:    shipping.address?.city || "",
+      shippingState:   shipping.address?.state || "",
+      shippingZip:     shipping.address?.postal_code || "",
+      shippingCountry: shipping.address?.country || "",
+    } : {};
+
     const existingInvoices = await client.models.Invoice.list({
       filter: { stripeSessionId: { eq: session.id } },
     });
@@ -127,6 +138,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
               status: "PAID",
               stripeSessionId: session.id,
               paidAt: new Date().toISOString(),
+              ...shippingFields,
             });
           }
         } else if (item.type === "MARKETPLACE") {
@@ -166,6 +178,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
               status: "PAID",
               stripeSessionId: session.id,
               paidAt: new Date().toISOString(),
+              ...shippingFields,
             });
           }
         }

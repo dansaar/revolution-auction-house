@@ -206,6 +206,18 @@ export default function SellerInvoicesPage() {
                         Stripe Session: {invoice.stripeSessionId}
                       </p>
                     </div>
+
+                    {invoice.shippingLine1 && (
+                      <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                        <div className="mb-1 text-xs uppercase tracking-widest text-gray-500">Ship To</div>
+                        <div className="text-sm text-[#d7d7d7]">{invoice.shippingName}</div>
+                        <div className="text-sm text-gray-400">{invoice.shippingLine1}</div>
+                        {invoice.shippingLine2 && <div className="text-sm text-gray-400">{invoice.shippingLine2}</div>}
+                        <div className="text-sm text-gray-400">
+                          {invoice.shippingCity}, {invoice.shippingState} {invoice.shippingZip}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="text-right">

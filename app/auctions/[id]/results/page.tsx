@@ -55,6 +55,7 @@ export default function AuctionResultsPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [resolvedImage, setResolvedImage] = useState("/logo.png");
+  const [invoice, setInvoice] = useState<any>(null);
 
   useEffect(() => {
     async function loadUser() {
@@ -67,6 +68,21 @@ export default function AuctionResultsPage() {
     }
     loadUser();
   }, []);
+
+  useEffect(() => {
+    if (!auction?.paid || !id) return;
+    async function loadInvoice() {
+      try {
+        const res = await client.models.Invoice.list({
+          filter: { auctionId: { eq: id } },
+          authMode: "userPool",
+        } as any);
+        const inv = (res.data || []).find((i: any) => i.status === "PAID" || i.paidAt);
+        if (inv) setInvoice(inv);
+      } catch { /* not logged in or not authorized */ }
+    }
+    loadInvoice();
+  }, [auction?.paid, id]);
 
   useEffect(() => {
     async function loadResults() {
@@ -181,6 +197,9 @@ export default function AuctionResultsPage() {
   ].map((v) => String(v || ""));
 
   const isWinner = winnerValues.some((wv) => userValues.includes(wv));
+  const isSeller = auction.sellerUserId
+    ? user?.userId === auction.sellerUserId
+    : user?.signInDetails?.loginId?.toLowerCase() === auction.sellerEmail?.toLowerCase();
 
   const finalPrice = moneyToNumber(auction.price || auction.winningBid || 0);
   const reservePrice = moneyToNumber(auction.reservePrice || 0);
@@ -326,6 +345,25 @@ export default function AuctionResultsPage() {
                 <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-3 text-emerald-400">
                   <span className="text-base">✓</span>
                   <span className="text-sm font-semibold">Payment received</span>
+                </div>
+              )}
+
+              {isSeller && auction.paid && invoice?.shippingLine1 && (
+                <div className="mt-4 rounded-lg border border-[#d6aa55]/20 bg-[#1a1408]/60 p-4">
+                  <div className="mb-2 text-xs uppercase tracking-widest text-[#d6aa55]/70">Ship To</div>
+                  <div className="space-y-0.5 text-sm">
+                    <div className="font-medium text-white">{invoice.shippingName}</div>
+                    <div className="text-gray-300">{invoice.shippingLine1}</div>
+                    {invoice.shippingLine2 && <div className="text-gray-300">{invoice.shippingLine2}</div>}
+                    <div className="text-gray-300">{invoice.shippingCity}, {invoice.shippingState} {invoice.shippingZip}</div>
+                    <div className="text-gray-500 text-xs">{invoice.buyerEmail}</div>
+                  </div>
+                </div>
+              )}
+
+              {isSeller && auction.paid && !invoice?.shippingLine1 && (
+                <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm text-gray-500">
+                  Payment received — no shipping address on file (purchased before shipping collection was enabled).
                 </div>
               )}
 
