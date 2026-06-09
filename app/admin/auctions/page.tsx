@@ -249,7 +249,10 @@ export default function AdminAuctionsPage() {
                       </td>
 
                       <td className="p-4 text-gray-400">
-                        {auction.sellerPublicId || auction.sellerEmail || "—"}
+                        <div>{auction.sellerEmail || "—"}</div>
+                        {auction.sellerPublicId && (
+                          <div className="text-xs text-gray-600">{auction.sellerPublicId}</div>
+                        )}
                       </td>
 
                       <td className="p-4 text-[#c0c0c0]">

@@ -258,7 +258,10 @@ export default function AdminMarketplacePage() {
                       </td>
 
                       <td className="p-4 text-gray-400">
-                        {listing.sellerEmail || listing.sellerPublicId || "—"}
+                        <div>{listing.sellerEmail || "—"}</div>
+                        {listing.sellerPublicId && (
+                          <div className="text-xs text-gray-600">{listing.sellerPublicId}</div>
+                        )}
                       </td>
 
                       <td className="p-4 text-[#c0c0c0]">
