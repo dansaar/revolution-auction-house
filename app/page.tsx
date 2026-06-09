@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -88,6 +88,7 @@ function matchesCategory(auction: any, category: string): boolean {
 
 export default function RevolutionAuctionHouseHomepage() {
   const [auctions, setAuctions] = useState<any[]>([]);
+  const auctionsRef = useRef<any[]>([]);
   const [featuredListings, setFeaturedListings] = useState<any[]>([]);
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [liveBids, setLiveBids] = useState<{ id: string; title: string; price: string; ts: number }[]>([]);
@@ -141,6 +142,7 @@ export default function RevolutionAuctionHouseHomepage() {
           }));
 
         setAuctions(live);
+        auctionsRef.current = live;
 
         const sold = (result.data || [])
           .filter((a: any) => a.ended && a.winningBid && a.winnerUserId)
@@ -199,24 +201,25 @@ export default function RevolutionAuctionHouseHomepage() {
 
     const auctionSub = client.models.Auction.onUpdate({
       authMode: "apiKey",
-    }).subscribe({
-      next: (updated: any) => {
-        scheduleRefresh();
-        // Capture live bid events — only for live auctions with a new price
-        if (updated && !updated.ended && updated.price && updated.title) {
-          setLiveBids((prev) => {
-            const entry = { id: updated.id, title: updated.title, price: updated.price, ts: Date.now() };
-            // Dedupe by id, keep newest at front, cap at 20
-            const filtered = prev.filter((b) => b.id !== updated.id);
-            return [entry, ...filtered].slice(0, 20);
-          });
-        }
-      },
-    });
+    }).subscribe({ next: scheduleRefresh });
 
     const stateSub = client.models.AuctionState.onUpdate({
       authMode: "apiKey",
-    }).subscribe({ next: scheduleRefresh });
+    }).subscribe({
+      next: (state: any) => {
+        scheduleRefresh();
+        if (state && !state.ended && state.currentPrice) {
+          const auction = auctionsRef.current.find((a) => a.id === state.auctionId);
+          if (auction?.title) {
+            setLiveBids((prev) => {
+              const entry = { id: state.auctionId, title: auction.title, price: state.currentPrice, ts: Date.now() };
+              const filtered = prev.filter((b) => b.id !== state.auctionId);
+              return [entry, ...filtered].slice(0, 20);
+            });
+          }
+        }
+      },
+    });
 
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer);
