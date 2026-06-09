@@ -55,6 +55,8 @@ export default function AdminUsersPage() {
 
   // detail drawer
   const [drawerBuyer, setDrawerBuyer] = useState<any>(null);
+  const [drawerInvoices, setDrawerInvoices] = useState<any[]>([]);
+  const [drawerInvoicesLoading, setDrawerInvoicesLoading] = useState(false);
 
   async function fetchAllPages(fn: (opts: any) => Promise<any>, opts: any) {
     const all: any[] = [];
@@ -89,6 +91,33 @@ export default function AdminUsersPage() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    if (!drawerBuyer?.userId) { setDrawerInvoices([]); return; }
+    setDrawerInvoicesLoading(true);
+    async function fetchInvoices() {
+      try {
+        const all: any[] = [];
+        let nextToken: string | undefined;
+        do {
+          const res: any = await (client.models.Invoice as any).invoicesByBuyer(
+            { buyerUserId: drawerBuyer.userId },
+            { authMode: "userPool", limit: 100, ...(nextToken ? { nextToken } : {}) },
+          );
+          all.push(...(res.data || []));
+          nextToken = res.nextToken ?? undefined;
+        } while (nextToken);
+        all.sort((a, b) => new Date(b.paidAt || b.createdAt || 0).getTime() - new Date(a.paidAt || a.createdAt || 0).getTime());
+        setDrawerInvoices(all);
+      } catch (err) {
+        console.error("DRAWER_INVOICES_ERROR", err);
+        setDrawerInvoices([]);
+      } finally {
+        setDrawerInvoicesLoading(false);
+      }
+    }
+    fetchInvoices();
+  }, [drawerBuyer?.userId]);
 
   async function saveBuyerTier(buyer: any) {
     if (saving) return;
@@ -429,6 +458,66 @@ export default function AdminUsersPage() {
                 <div>
                   <div className="text-xs uppercase tracking-widest text-gray-500">Notes</div>
                   <div className="mt-2 rounded border border-white/10 bg-black/30 p-3 text-gray-300">{drawerBuyer.verificationNotes}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Purchase history */}
+            <div className="mt-8">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-xs uppercase tracking-widest text-gray-500">Purchase History</div>
+                {!drawerInvoicesLoading && (
+                  <span className="text-xs text-gray-600">{drawerInvoices.length} invoice{drawerInvoices.length !== 1 ? "s" : ""}</span>
+                )}
+              </div>
+
+              {drawerInvoicesLoading ? (
+                <div className="space-y-2">
+                  {[1,2,3].map(i => <div key={i} className="h-12 animate-pulse rounded-lg bg-white/[0.04]" />)}
+                </div>
+              ) : drawerInvoices.length === 0 ? (
+                <div className="rounded-lg border border-white/[0.06] p-4 text-center text-xs text-gray-600">No purchases yet.</div>
+              ) : (
+                <div className="space-y-2">
+                  {drawerInvoices.map((inv: any) => {
+                    const paid = inv.status === "PAID" || inv.paidAt;
+                    return (
+                      <div key={inv.id} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="truncate text-xs font-medium text-[#c0c0c0]">{inv.title || "—"}</div>
+                            <div className="mt-0.5 text-[10px] text-gray-600">
+                              {inv.paidAt ? new Date(inv.paidAt).toLocaleDateString() : "—"}
+                              {" · "}
+                              {inv.sellerEmail || "—"}
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <div className="text-xs font-semibold text-[#e7c77f]">{inv.amount || "—"}</div>
+                            <div className="mt-0.5 flex items-center gap-1 justify-end">
+                              <span className={`rounded px-1.5 py-0.5 text-[9px] uppercase font-semibold ${
+                                inv.type === "AUCTION" ? "bg-blue-500/10 text-blue-300" : "bg-purple-500/10 text-purple-300"
+                              }`}>
+                                {inv.type === "AUCTION" ? "Auction" : "Market"}
+                              </span>
+                              <span className={`rounded px-1.5 py-0.5 text-[9px] uppercase font-semibold ${
+                                paid ? "bg-emerald-500/10 text-emerald-300" : "bg-yellow-500/10 text-yellow-300"
+                              }`}>
+                                {paid ? "Paid" : "Pending"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {inv.subtotal && inv.buyerPremium && (
+                          <div className="mt-2 flex gap-3 text-[10px] text-gray-600">
+                            <span>Hammer: {inv.subtotal}</span>
+                            <span>Premium: {inv.buyerPremium}</span>
+                            {inv.tax && inv.tax !== "$0.00" && <span>Tax: {inv.tax}</span>}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
