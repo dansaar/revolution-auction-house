@@ -162,6 +162,7 @@ export default function RevolutionAuctionHouseHomepage() {
         const live = (result.data || [])
           .filter((auction: any) => {
             if (!auction.endsAt) return false;
+            if (auction.status === "SCHEDULED" && auction.startsAt && new Date(auction.startsAt).getTime() > Date.now()) return false;
             return new Date(auction.endsAt).getTime() > Date.now();
           })
           .sort(

@@ -43,6 +43,9 @@ export default function SellAuctionContent() {
     buyerPremiumRate: "18",
   });
 
+  const [scheduled, setScheduled] = useState(false);
+  const [startsAt, setStartsAt] = useState(`${new Date().toISOString().split("T")[0]}T12:00`);
+
   const [loading, setLoading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -280,6 +283,10 @@ export default function SellAuctionContent() {
         buyerPremiumRate: 18,
 
         endsAt: new Date(form.endsAt).toISOString(),
+        ...(scheduled ? {
+          startsAt: new Date(startsAt).toISOString(),
+          status: "SCHEDULED",
+        } : {}),
 
         bids: 0,
 
@@ -721,6 +728,81 @@ export default function SellAuctionContent() {
                 Date · Hour · Minute
               </div>
             </div>
+          </div>
+
+          {/* Scheduling */}
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+            <label className="flex cursor-pointer items-center justify-between">
+              <div>
+                <div className="font-medium text-white">Schedule for Later</div>
+                <div className="mt-0.5 text-xs text-gray-500">
+                  Auction stays hidden until the start time
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setScheduled((s) => !s)}
+                className={`relative h-6 w-11 rounded-full border transition ${
+                  scheduled
+                    ? "border-[#d6aa55]/60 bg-[#d6aa55]/30"
+                    : "border-white/10 bg-white/[0.06]"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full border transition-all ${
+                    scheduled
+                      ? "left-5 border-[#d6aa55] bg-[#e7c77f]"
+                      : "left-0.5 border-white/20 bg-white/30"
+                  }`}
+                />
+              </button>
+            </label>
+
+            {scheduled && (
+              <div className="mt-4">
+                <div className="mb-2 text-xs uppercase text-gray-500">Start Time</div>
+                <div className="grid grid-cols-[1.6fr_1fr_1fr] gap-3">
+                  <input
+                    type="date"
+                    value={startsAt.split("T")[0] || ""}
+                    onChange={(e) => {
+                      const time = startsAt.split("T")[1] || "12:00";
+                      setStartsAt(`${e.target.value}T${time}`);
+                    }}
+                    className="rounded border border-white/10 bg-black px-4 py-3 text-white"
+                  />
+                  <select
+                    value={startsAt.split("T")[1]?.split(":")[0] || "12"}
+                    onChange={(e) => {
+                      const date = startsAt.split("T")[0];
+                      const minute = startsAt.split("T")[1]?.split(":")[1] || "00";
+                      setStartsAt(`${date}T${e.target.value}:${minute}`);
+                    }}
+                    className="rounded border border-white/10 bg-black px-4 py-3 text-white"
+                  >
+                    {Array.from({ length: 24 }).map((_, h) => (
+                      <option key={h} value={String(h).padStart(2, "0")}>
+                        {String(h).padStart(2, "0")}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={startsAt.split("T")[1]?.split(":")[1] || "00"}
+                    onChange={(e) => {
+                      const date = startsAt.split("T")[0];
+                      const hour = startsAt.split("T")[1]?.split(":")[0] || "12";
+                      setStartsAt(`${date}T${hour}:${e.target.value}`);
+                    }}
+                    className="rounded border border-white/10 bg-black px-4 py-3 text-white"
+                  >
+                    {["00", "15", "30", "45"].map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mt-2 text-xs text-gray-500">Date · Hour · Minute</div>
+              </div>
+            )}
           </div>
 
           <button

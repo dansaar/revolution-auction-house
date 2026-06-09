@@ -9,7 +9,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
-import { Gavel, Tag, Archive } from "lucide-react";
+import { Gavel, Tag, Archive, BarChart2, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
@@ -239,8 +239,14 @@ export default function SellerPage() {
     );
   }
 
+  const scheduledAuctions = auctions.filter(
+    (a) => a.status === "SCHEDULED" && a.startsAt && new Date(a.startsAt).getTime() > Date.now(),
+  );
+
   const liveAuctions = auctions.filter(
-    (a) => !a.endsAt || new Date(a.endsAt).getTime() > Date.now(),
+    (a) =>
+      (!a.endsAt || new Date(a.endsAt).getTime() > Date.now()) &&
+      !(a.status === "SCHEDULED" && a.startsAt && new Date(a.startsAt).getTime() > Date.now()),
   );
 
   const allEndedAuctions = auctions.filter(
@@ -487,6 +493,14 @@ export default function SellerPage() {
               View Results Archive
             </div>
           </Link>
+
+          <Link
+            href="/seller/analytics"
+            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+          >
+            <BarChart2 className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Analytics</div>
+          </Link>
         </div>
 
         <div className="mt-10 grid gap-5 md:grid-cols-4">
@@ -508,6 +522,10 @@ export default function SellerPage() {
               client={client}
               setBuyerRequests={setBuyerRequests}
             />
+
+            {scheduledAuctions.length > 0 && (
+              <ScheduledAuctionsSection auctions={scheduledAuctions} client={client} />
+            )}
 
             <AuctionSection
               title="Live Auctions"
@@ -605,6 +623,61 @@ export default function SellerPage() {
     </main>
   );
 }
+function ScheduledAuctionsSection({ auctions, client }: any) {
+  return (
+    <section className="mt-12">
+      <div className="mb-5 flex items-center gap-3">
+        <Clock className="h-6 w-6 text-[#d6aa55]" />
+        <h2 className="font-serif text-3xl text-[#c0c0c0]">Scheduled Auctions</h2>
+        <span className="rounded-full border border-[#d6aa55]/30 bg-[#1a1408] px-2.5 py-0.5 text-xs text-[#e7c77f]">
+          {auctions.length}
+        </span>
+      </div>
+
+      <div className="grid gap-4">
+        {auctions.map((auction: any) => {
+          const startsAt = auction.startsAt ? new Date(auction.startsAt) : null;
+          return (
+            <div
+              key={auction.id}
+              className="flex items-center gap-4 rounded-xl border border-[#d6aa55]/20 bg-[#1a1408]/40 p-4"
+            >
+              <img
+                src={auction.image || "/logo.png"}
+                alt={auction.title}
+                onError={(e) => { e.currentTarget.src = "/logo.png"; }}
+                className="h-16 w-16 rounded-lg object-contain bg-black shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-white truncate">{auction.title}</div>
+                <div className="mt-1 text-sm text-gray-400">
+                  Starts: {startsAt ? startsAt.toLocaleString() : "—"}
+                </div>
+                {auction.endsAt && (
+                  <div className="text-xs text-gray-600">
+                    Ends: {new Date(auction.endsAt).toLocaleString()}
+                  </div>
+                )}
+              </div>
+              <div className="shrink-0 flex flex-col items-end gap-2">
+                <span className="rounded border border-[#d6aa55]/30 bg-[#1a1408] px-2.5 py-0.5 text-xs text-[#e7c77f] uppercase tracking-wide">
+                  Scheduled
+                </span>
+                <Link
+                  href={`/auctions/${auction.id}`}
+                  className="text-xs text-gray-500 hover:text-white"
+                >
+                  View →
+                </Link>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function AuctionSection({
   title,
   auctions,

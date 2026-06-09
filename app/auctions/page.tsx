@@ -384,6 +384,7 @@ export default function AuctionsPage() {
 
   const liveAuctions = auctions.filter((a) => {
     if (a.ended === true) return false;
+    if (a.status === "SCHEDULED" && a.startsAt && new Date(a.startsAt).getTime() > Date.now()) return false;
     if (!a.endsAt) return true;
     return new Date(a.endsAt).getTime() > now;
   });
