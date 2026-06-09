@@ -261,7 +261,7 @@ export default function MyBidsPage() {
             </div>
           ) : (
             visible.map((row) => {
-              const cfg = STATUS_CONFIG[row.status];
+              const cfg = STATUS_CONFIG[row.status as Status];
               const countdown = !row.isEnded ? getCountdown(row.endsAt, now) : null;
 
               return (
