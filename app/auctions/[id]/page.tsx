@@ -1009,6 +1009,8 @@ export default function LiveAuctionPage() {
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <input
+                      id="bid-amount"
+                      name="bid-amount"
                       disabled={auctionEnded || isSeller || isAdmin || isSubmitting}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}

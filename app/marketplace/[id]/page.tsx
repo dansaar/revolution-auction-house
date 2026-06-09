@@ -502,6 +502,8 @@ export default function MarketplaceListingPage() {
                 ) : (
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <input
+                      id="offer-amount"
+                      name="offer-amount"
                       value={offerAmount}
                       onChange={(e) => setOfferAmount(e.target.value)}
                       placeholder="Offer Amount"

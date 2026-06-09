@@ -82,6 +82,8 @@ export default function SignInPage() {
 
         <form onSubmit={handleSignIn} className="flex flex-col gap-4">
           <input
+            id="email"
+            name="email"
             type="email"
             placeholder="Email"
             value={email}
@@ -91,6 +93,8 @@ export default function SignInPage() {
           />
 
           <input
+            id="password"
+            name="password"
             type="password"
             placeholder="Password"
             value={password}

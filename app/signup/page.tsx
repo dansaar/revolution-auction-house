@@ -71,6 +71,8 @@ export default function SignupPage() {
 
         <form onSubmit={handleSignup} className="flex flex-col gap-4">
           <input
+            id="email"
+            name="email"
             type="email"
             placeholder="Email"
             value={email}
@@ -80,6 +82,8 @@ export default function SignupPage() {
           />
 
           <input
+            id="password"
+            name="new-password"
             type="password"
             placeholder="Password"
             value={password}
@@ -90,6 +94,8 @@ export default function SignupPage() {
 
           <div>
             <input
+              id="phone"
+              name="phone"
               type="tel"
               placeholder="Mobile phone (optional)"
               value={phone}

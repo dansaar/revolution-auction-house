@@ -55,8 +55,6 @@ export default function MarketplacePage() {
         imageUrl: resolveImage(listing),
       }));
 
-      console.log("MARKETPLACE ACTIVE LISTINGS", withImages);
-
       setListings(withImages);
     } catch (err) {
       console.error("MARKETPLACE LOAD ERROR", err);
