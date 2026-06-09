@@ -33,9 +33,9 @@ export default function Header() {
   }, [open]);
 
   const Logo = (
-    <Link href="/" className="flex items-center gap-4" onClick={() => setOpen(false)}>
-      <img src="/logo.png" alt="Revolution Auction House" className="h-16 w-auto object-contain" />
-      <div className="leading-tight">
+    <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
+      <img src="/logo.png" alt="Revolution Auction House" className="h-12 w-auto object-contain lg:h-16" />
+      <div className="leading-tight hidden sm:block">
         <div className="font-serif text-lg tracking-[0.4em] text-[#c0c0c0]">REVOLUTION</div>
         <div className="text-[10px] tracking-[0.4em] text-[#c0c0c0]">AUCTION HOUSE</div>
       </div>
