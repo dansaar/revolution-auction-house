@@ -147,9 +147,7 @@ export default function MarketplacePage() {
                     : "border-white/10 bg-white/[0.03]"
                 }`}
               >
-                <div className="relative h-56 bg-black sm:h-64 md:h-72">
-                  <div className="absolute inset-0 animate-pulse bg-white/[0.04]" />
-
+                <div className="relative h-56 bg-[#181818] sm:h-64 md:h-72">
                   <img
                     loading="lazy"
                     src={listing.imageUrl || "/logo.png"}
@@ -157,7 +155,7 @@ export default function MarketplacePage() {
                     onError={(e) => {
                       e.currentTarget.src = "/logo.png";
                     }}
-                    className="relative z-10 h-full w-full object-contain transition duration-500 group-hover:scale-105"
+                    className="h-full w-full object-contain p-3 transition duration-500 group-hover:scale-105"
                   />
 
                   {listing.featured && (

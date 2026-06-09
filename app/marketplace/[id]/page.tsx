@@ -8,6 +8,7 @@ import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 import { moneyToNumber } from "@/lib/money";
@@ -45,6 +46,25 @@ export default function MarketplaceListingPage() {
   const [images, setImages] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
+
+  function goNext() {
+    const i = images.indexOf(selectedImage);
+    if (i < images.length - 1) setSelectedImage(images[i + 1]);
+  }
+  function goPrev() {
+    const i = images.indexOf(selectedImage);
+    if (i > 0) setSelectedImage(images[i - 1]);
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "ArrowRight") goNext();
+      else if (e.key === "ArrowLeft") goPrev();
+      else if (e.key === "Escape" && fullscreen) setFullscreen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const [isSeller, setIsSeller] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -346,40 +366,68 @@ export default function MarketplaceListingPage() {
         <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
           {/* LEFT */}
           <div>
-            <button
-              type="button"
-              onClick={() => setFullscreen(true)}
-              className="group relative block w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
-            >
-              <img
-                loading="eager"
-                src={selectedImage || "/logo.png"}
-                alt={listing.title}
-                className="relative z-10 h-[280px] w-full object-contain sm:h-[360px] md:h-[500px] lg:h-[600px]"
-              />
+            <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#181818]">
+              <button
+                type="button"
+                onClick={() => setFullscreen(true)}
+                className="block w-full p-4"
+              >
+                <img
+                  loading="eager"
+                  src={selectedImage || "/logo.png"}
+                  alt={listing.title}
+                  onError={(e) => { e.currentTarget.src = "/logo.png"; }}
+                  className="h-[280px] w-full object-contain sm:h-[360px] md:h-[500px] lg:h-[600px]"
+                />
+              </button>
+
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={goPrev}
+                    disabled={images.indexOf(selectedImage) === 0}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 p-2 opacity-0 transition hover:bg-black/80 group-hover:opacity-100 disabled:opacity-0"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    disabled={images.indexOf(selectedImage) === images.length - 1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 p-2 opacity-0 transition hover:bg-black/80 group-hover:opacity-100 disabled:opacity-0"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </>
+              )}
+
               <div className="pointer-events-none absolute bottom-3 right-3 rounded bg-black/70 px-3 py-1 text-xs text-[#c0c0c0] opacity-0 transition group-hover:opacity-100">
-                Click to fullscreen
+                {images.length > 1
+                  ? `${images.indexOf(selectedImage) + 1} / ${images.length} · Click to fullscreen`
+                  : "Click to fullscreen"}
               </div>
-            </button>
+            </div>
 
             {images.length > 1 && (
-              <div className="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-6 md:mt-4 md:grid-cols-4 md:gap-3">
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1 md:mt-4">
                 {images.map((src, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => setSelectedImage(src)}
-                    className={`overflow-hidden rounded border ${
+                    className={`shrink-0 overflow-hidden rounded border ${
                       selectedImage === src
                         ? "border-[#c0c0c0]"
-                        : "border-white/10"
+                        : "border-white/10 opacity-60 hover:opacity-100"
                     }`}
                   >
                     <img
                       loading="lazy"
                       src={src}
                       alt={`${listing.title} ${i + 1}`}
-                      className="h-14 w-full object-cover sm:h-16 md:h-20 lg:h-24"
+                      onError={(e) => { e.currentTarget.src = "/logo.png"; }}
+                      className="h-16 w-16 object-contain bg-[#181818] md:h-20 md:w-20"
                     />
                   </button>
                 ))}
@@ -542,7 +590,10 @@ export default function MarketplaceListingPage() {
       </div>
 
       {fullscreen && (
-        <div className="fixed inset-0 z-50 bg-black/95 px-6 py-6">
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 px-6 py-6"
+          onClick={() => setFullscreen(false)}
+        >
           <button
             type="button"
             onClick={() => setFullscreen(false)}
@@ -551,15 +602,46 @@ export default function MarketplaceListingPage() {
             Close
           </button>
 
-          <div className="flex h-full flex-col items-center justify-center">
-            <img
-              loading="eager"
-              src={selectedImage || "/logo.png"}
-              alt={listing.title}
-              className="max-h-[78vh] max-w-[95vw] rounded-lg object-contain transition duration-500 hover:scale-110"
-            />
+          {images.length > 1 && (
+            <div className="absolute bottom-32 right-6 text-xs text-gray-500">
+              {images.indexOf(selectedImage) + 1} / {images.length}
+            </div>
+          )}
 
-            <div className="mt-5 flex max-w-4xl gap-3 overflow-x-auto">
+          {images.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); goPrev(); }}
+                disabled={images.indexOf(selectedImage) === 0}
+                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 p-3 hover:bg-black/80 disabled:opacity-20"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); goNext(); }}
+                disabled={images.indexOf(selectedImage) === images.length - 1}
+                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 p-3 hover:bg-black/80 disabled:opacity-20"
+              >
+                <ChevronRight size={24} />
+              </button>
+            </>
+          )}
+
+          <img
+            loading="eager"
+            src={selectedImage || "/logo.png"}
+            alt={listing.title}
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[78vh] max-w-[95vw] rounded-lg object-contain"
+          />
+
+          {images.length > 1 && (
+            <div
+              className="mt-5 flex max-w-4xl gap-3 overflow-x-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               {images.map((src, i) => (
                 <button
                   key={i}
@@ -568,19 +650,19 @@ export default function MarketplaceListingPage() {
                   className={`h-20 w-20 shrink-0 overflow-hidden rounded border ${
                     selectedImage === src
                       ? "border-[#c0c0c0]"
-                      : "border-white/20 opacity-60"
+                      : "border-white/20 opacity-60 hover:opacity-100"
                   }`}
                 >
                   <img
                     loading="lazy"
                     src={src}
                     alt={`${listing.title} ${i + 1}`}
-                    className="h-full w-full object-contain bg-black"
+                    className="h-full w-full object-contain bg-[#181818]"
                   />
                 </button>
               ))}
             </div>
-          </div>
+          )}
         </div>
       )}
     </main>
