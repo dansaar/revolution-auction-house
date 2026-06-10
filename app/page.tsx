@@ -97,7 +97,6 @@ export default function RevolutionAuctionHouseHomepage() {
   const [now, setNow] = useState(Date.now());
 
   const featuredAuction = auctions[0];
-  const endingSoon = auctions.slice(0, 5);
   const countdown = getCountdown(featuredAuction?.endsAt, now);
   const filteredAuctions = (
     activeCategory === "All"
@@ -245,7 +244,7 @@ export default function RevolutionAuctionHouseHomepage() {
               !l.paid &&
               (l.status === "ACTIVE" || l.status === "OFFER_PENDING" || !l.status),
           )
-          .slice(0, 3)
+          .slice(0, 5)
           .map((l: any) => ({
             ...l,
             imageUrl: (() => {
@@ -517,109 +516,71 @@ export default function RevolutionAuctionHouseHomepage() {
               Shop Marketplace <ArrowRight size={15} />
             </Link>
 
-            {featuredListings.length > 0 ? (
-              <div className="mt-6 flex flex-col gap-3">
-                <div className="text-[10px] uppercase tracking-[0.22em] text-[#d6aa55]">
-                  ★ Featured Now
-                </div>
-                {featuredListings.map((listing) => (
-                  <Link
-                    key={listing.id}
-                    href={`/marketplace/${listing.id}`}
-                    className="group flex items-center gap-3 rounded-xl border border-[#d6aa55]/20 bg-[#d6aa55]/[0.03] p-3 transition hover:border-[#d6aa55]/40 hover:bg-[#d6aa55]/[0.06]"
-                  >
-                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-black">
-                      <img
-                        src={listing.imageUrl}
-                        alt={listing.title}
-                        onError={(e) => { e.currentTarget.src = "/logo.png"; }}
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-semibold text-[#d7d7d7] group-hover:text-white">
-                        {listing.title}
-                      </div>
-                      <div className="mt-0.5 font-serif text-lg text-[#c0c0c0]">
-                        {listing.price}
-                      </div>
-                    </div>
-                    <ArrowRight size={14} className="shrink-0 text-[#d6aa55] opacity-60 group-hover:opacity-100" />
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-8 grid grid-cols-3 gap-3">
-                <Category icon={<Gem />} label="PSA 10" />
-                <Category icon={<BadgeCheck />} label="Vintage" />
-                <Category icon={<Crown />} label="1st Edition" />
-                <Category icon={<Package />} label="Sealed" />
-                <Category icon={<Sparkles />} label="Modern" />
-                <Category icon={<Gem />} label="High Value" />
-              </div>
-            )}
+            <div className="mt-8 grid grid-cols-3 gap-3">
+              <Category icon={<Gem />} label="PSA 10" />
+              <Category icon={<BadgeCheck />} label="Vintage" />
+              <Category icon={<Crown />} label="1st Edition" />
+              <Category icon={<Package />} label="Sealed" />
+              <Category icon={<Sparkles />} label="Modern" />
+              <Category icon={<Gem />} label="High Value" />
+            </div>
           </div>
 
           <div>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-serif text-3xl text-[#d7d7d7]">
-                Ending Soon
+                Featured Listings
               </h2>
               <Link
-                href="/auctions"
+                href="/marketplace"
                 className="text-xs uppercase tracking-[0.18em] text-gray-500 hover:text-white"
               >
-                View All Auctions
+                View All Listings
               </Link>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-5">
-              {endingSoon.map((auction) => {
-                const ct = formatCountdown(auction.endsAt, now);
-                return (
+            {featuredListings.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-5">
+                {featuredListings.map((listing) => (
                   <Link
-                    key={auction.id}
-                    href={`/auctions/${auction.id}`}
-                    className="group rounded-xl border border-white/10 bg-white/[0.03] p-3 hover:border-[#c0c0c0]/40"
+                    key={listing.id}
+                    href={`/marketplace/${listing.id}`}
+                    className="group rounded-xl border border-white/10 bg-white/[0.03] p-3 hover:border-[#d6aa55]/40"
                   >
                     <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-lg bg-black">
                       <div className="absolute inset-0 animate-pulse rounded-lg bg-white/[0.04]" />
                       <img
                         loading="lazy"
                         decoding="async"
-                        src={auction.imageUrl || "/logo.png"}
-                        alt={auction.title}
+                        src={listing.imageUrl || "/logo.png"}
+                        alt={listing.title}
                         className="relative z-10 h-28 object-contain opacity-80"
                       />
                     </div>
 
-                    {ct.text && (
-                      <div
-                        className={`mt-3 flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold ${
-                          ct.urgent
-                            ? "bg-red-950/60 text-red-400"
-                            : "bg-black/70 text-[#e7c77f]"
-                        }`}
-                      >
-                        <Timer size={10} />
-                        {ct.text}
-                      </div>
-                    )}
+                    <div className="mt-3 flex items-center gap-1 rounded bg-[#d6aa55]/10 px-2 py-1 text-xs font-semibold text-[#e7c77f]">
+                      <Sparkles size={10} />
+                      Buy Now
+                    </div>
 
-                    <h3 className="mt-3 text-sm font-semibold">{auction.title}</h3>
+                    <h3 className="mt-3 text-sm font-semibold">{listing.title}</h3>
                     <p className="text-xs text-gray-400">
-                      {auction.subtitle || auction.grade || "Premium Collectible"}
+                      {listing.condition || listing.category || "Premium Collectible"}
                     </p>
                     <div className="mt-2 font-serif text-xl text-[#c0c0c0]">
-                      {auction.price || "$0"}
+                      {listing.price}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {auction.bids || 0} bids
-                    </div>
+                    {listing.acceptsOffers && (
+                      <div className="text-xs text-[#d6aa55]/70">Offers accepted</div>
+                    )}
                   </Link>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex h-48 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-gray-500">
+                No featured listings right now.
+              </div>
+            )}
           </div>
         </section>
 
