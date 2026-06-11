@@ -220,6 +220,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
           status: "PAID",
           stripeSessionId: session.id,
           paidAt: new Date().toISOString(),
+          ...shippingFields,
         });
       }
 
@@ -255,6 +256,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
           status: "PAID",
           stripeSessionId: session.id,
           paidAt: new Date().toISOString(),
+          ...shippingFields,
         });
       }
 
