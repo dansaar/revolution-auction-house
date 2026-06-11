@@ -24,7 +24,7 @@ import { cdnUrl } from "@/lib/cdn";
 
 const client = generateClient<Schema>();
 
-const CATEGORIES = ["All", "PSA 10", "PSA 9.5", "PSA 9", "Vintage", "Sealed"];
+const CATEGORIES = ["All", "PSA 10", "PSA 9", "Vintage", "Sealed"];
 
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "";
@@ -75,11 +75,9 @@ function matchesCategory(auction: any, category: string): boolean {
   const text = `${auction.title || ""} ${auction.subtitle || ""}`.toLowerCase();
   if (category === "PSA 10")
     return grade.includes("PSA 10") || grade === "10";
-  if (category === "PSA 9.5") return grade.includes("9.5");
   if (category === "PSA 9")
     return (
       (grade.includes("PSA 9") || grade === "9") &&
-      !grade.includes("9.5") &&
       !grade.includes("10")
     );
   if (category === "Vintage")

@@ -443,7 +443,6 @@ export default function AuctionsPage() {
   const GRADE_OPTIONS = [
     { key: "ALL", label: "All Grades" },
     { key: "PSA10", label: "PSA 10" },
-    { key: "PSA9.5", label: "PSA 9.5" },
     { key: "PSA9", label: "PSA 9" },
     { key: "BGS", label: "BGS" },
     { key: "OTHER", label: "Other" },
@@ -453,8 +452,7 @@ export default function AuctionsPage() {
     if (gradeFilter === "ALL") return true;
     const g = String(auction.grade || "").toLowerCase();
     if (gradeFilter === "PSA10") return g.includes("psa") && (g.includes("10") && !g.includes("10."));
-    if (gradeFilter === "PSA9.5") return g.includes("9.5");
-    if (gradeFilter === "PSA9") return (g.includes("psa") || g.includes("9")) && g.includes("9") && !g.includes("9.5") && !g.includes("10");
+    if (gradeFilter === "PSA9") return (g.includes("psa") || g.includes("9")) && g.includes("9") && !g.includes("10");
     if (gradeFilter === "BGS") return g.includes("bgs") || g.includes("beckett");
     if (gradeFilter === "OTHER") return !g.includes("psa") && !g.includes("bgs") && !g.includes("beckett");
     return true;
