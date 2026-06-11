@@ -39,8 +39,26 @@ async function getAllInvoices(): Promise<any[]> {
   return all;
 }
 
-function computeStats(invoices: any[]) {
-  const paid = invoices.filter((i) => i.status === "PAID" || i.paidAt);
+function computeStats(
+  invoices: any[],
+  startDate?: string | null,
+  endDate?: string | null,
+) {
+  const startMs = startDate ? new Date(startDate).getTime() : null;
+  const endMs = endDate ? new Date(endDate).getTime() : null;
+
+  const paid = invoices.filter((i) => {
+    if (!(i.status === "PAID" || i.paidAt)) return false;
+    if (startMs !== null || endMs !== null) {
+      const d = i.paidAt ? new Date(i.paidAt).getTime() : null;
+      if (!d) return false;
+      if (startMs !== null && d < startMs) return false;
+      if (endMs !== null && d > endMs) return false;
+    }
+    return true;
+  });
+
+  // Pending is always all-time (no paidAt to filter on)
   const pending = invoices.filter((i) => !i.paidAt && i.status !== "PAID");
 
   const auctionInvoices = paid.filter((i) => i.type === "AUCTION" || (i.auctionId && !i.listingId));
@@ -75,7 +93,6 @@ function computeStats(invoices: any[]) {
 
     const monthly = Object.keys(monthMap)
       .sort()
-      .slice(-12)
       .map((k) => ({ key: k, label: monthLabel(k), ...monthMap[k] }));
 
     const topSellers = Object.entries(sellerMap)
@@ -102,7 +119,6 @@ function computeStats(invoices: any[]) {
     pending:    { value: pendingValue, count: pending.length },
   });
 
-  // Most recent 100 paid transactions
   const recent = [...paid]
     .sort((a, b) =>
       new Date(b.paidAt || b.updatedAt || 0).getTime() -
@@ -125,10 +141,11 @@ function computeStats(invoices: any[]) {
   return { statsJson, recentJson: JSON.stringify(recent) };
 }
 
-export const handler = async () => {
+export const handler = async (event: any) => {
   try {
+    const { startDate, endDate } = event?.arguments || {};
     const invoices = await getAllInvoices();
-    return computeStats(invoices);
+    return computeStats(invoices, startDate || null, endDate || null);
   } catch (err: any) {
     console.error("GET_REVENUE_STATS_ERROR", err);
     return {

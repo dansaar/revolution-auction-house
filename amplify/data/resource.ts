@@ -473,7 +473,7 @@ const schema = a
 
     getRevenueStats: a
       .query()
-      .arguments({})
+      .arguments({ startDate: a.string(), endDate: a.string() })
       .returns(a.customType({
         statsJson: a.string(),
         recentJson: a.string(),
