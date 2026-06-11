@@ -87,15 +87,21 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
     const buyerPremium = session.metadata?.buyerPremium || "$0.00";
     const tax = session.metadata?.tax || "$0.00";
 
-    const shipping = (session as any).shipping_details || (session as any).shipping || null;
-    const shippingFields = shipping ? {
-      shippingName:    shipping.name || "",
-      shippingLine1:   shipping.address?.line1 || "",
-      shippingLine2:   shipping.address?.line2 || "",
-      shippingCity:    shipping.address?.city || "",
-      shippingState:   shipping.address?.state || "",
-      shippingZip:     shipping.address?.postal_code || "",
-      shippingCountry: shipping.address?.country || "",
+    const shippingObj = (session as any).shipping_details
+      || (session as any).collected_information?.shipping_details
+      || (session as any).shipping
+      || null;
+    // Fall back to billing address when no separate shipping was collected
+    const shippingAddress = shippingObj?.address || session.customer_details?.address || null;
+    const shippingName = shippingObj?.name || session.customer_details?.name || "";
+    const shippingFields = shippingAddress ? {
+      shippingName,
+      shippingLine1:   shippingAddress.line1 || "",
+      shippingLine2:   shippingAddress.line2 || "",
+      shippingCity:    shippingAddress.city || "",
+      shippingState:   shippingAddress.state || "",
+      shippingZip:     shippingAddress.postal_code || "",
+      shippingCountry: shippingAddress.country || "",
     } : {};
 
     const existingInvoices = await client.models.Invoice.list({
