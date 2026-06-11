@@ -443,11 +443,11 @@ export default function SellerPage() {
           </p>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="mt-10 flex flex-wrap justify-center gap-4">
           <button
             type="button"
             onClick={() => setActiveTab("auctions")}
-            className={`group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
+            className={`w-36 group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
               activeTab === "auctions"
                 ? "border-[#d6aa55]/60 bg-[#1a1408]"
                 : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
@@ -460,7 +460,7 @@ export default function SellerPage() {
           <button
             type="button"
             onClick={() => setActiveTab("marketplace")}
-            className={`group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
+            className={`w-36 group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
               activeTab === "marketplace"
                 ? "border-[#d6aa55]/60 bg-[#1a1408]"
                 : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
@@ -472,7 +472,7 @@ export default function SellerPage() {
 
           <Link
             href="/sell/auction"
-            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+            className="w-36 group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
             <Gavel className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
             <div className="text-lg font-bold text-white">Create Auction</div>
@@ -480,7 +480,7 @@ export default function SellerPage() {
 
           <Link
             href="/sell/listing"
-            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+            className="w-36 group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
             <Tag className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
             <div className="text-lg font-bold text-white">Create Listing</div>
@@ -488,7 +488,7 @@ export default function SellerPage() {
 
           <Link
             href="/auctions/results"
-            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+            className="w-36 group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
             <Archive className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
             <div className="text-lg font-bold text-white">
@@ -498,7 +498,7 @@ export default function SellerPage() {
 
           <Link
             href="/seller/analytics"
-            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+            className="w-36 group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
             <BarChart2 className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
             <div className="text-lg font-bold text-white">Analytics</div>
@@ -506,7 +506,7 @@ export default function SellerPage() {
 
           <Link
             href="/seller/revenue"
-            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+            className="w-36 group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
           >
             <TrendingUp className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
             <div className="text-lg font-bold text-white">Revenue</div>
@@ -515,7 +515,7 @@ export default function SellerPage() {
           {isAdmin && (
             <Link
               href="/admin"
-              className="group rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-red-500/20"
+              className="w-36 group rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-red-500/20"
             >
               <ShieldCheck className="mx-auto mb-4 h-9 w-9 text-red-400" />
               <div className="text-lg font-bold text-red-300">Admin Panel</div>
