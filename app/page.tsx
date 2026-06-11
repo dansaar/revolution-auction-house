@@ -339,11 +339,11 @@ export default function RevolutionAuctionHouseHomepage() {
               For Collectors, By Collectors
             </div>
 
-            <h1 className="mx-auto mt-12 max-w-3xl font-serif text-4xl leading-tight text-[#d7d7d7] lg:mx-0 lg:text-5xl">
+            <h1 className="mx-auto mt-12 max-w-3xl text-center font-serif text-4xl leading-tight text-[#d7d7d7] lg:text-5xl">
               The Premier Destination for Pokémon Collectibles
             </h1>
 
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-300 lg:mx-0">
+            <p className="mx-auto mt-6 max-w-2xl text-center text-lg leading-8 text-gray-300">
               High-end auctions. Verified buyers. Authenticated cards. Where
               collectors invest in legends.
             </p>
