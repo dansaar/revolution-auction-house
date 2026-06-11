@@ -21,13 +21,14 @@ export default function SellerInvoicesPage() {
       try {
         const user = await getCurrentUser();
 
-        const email = user.signInDetails?.loginId || user.username;
+        const email = (user.signInDetails?.loginId || user.username || "").toLowerCase();
 
         const result = await (client.models.Invoice as any).invoicesBySellerEmail(
           { sellerEmail: email },
           { authMode: "userPool", limit: 500 },
         );
 
+        if (result.errors) console.error("Seller invoice query errors:", result.errors);
         setInvoices(result.data || []);
       } catch (err) {
         console.error(err);

@@ -87,6 +87,8 @@ export async function GET(
             buyerEmail sellerEmail
             subtotal buyerPremium tax amount
             status stripeSessionId paidAt
+            shippingName shippingLine1 shippingLine2
+            shippingCity shippingState shippingZip shippingCountry
           }
         }`,
         variables: { id },
@@ -230,6 +232,25 @@ export async function GET(
     doc.setFont("helvetica", "bold");
     doc.text(`Total Paid: ${formatInvoiceAmount(invoice.amount)}`, 28, y);
     y += 12;
+
+    if (invoice.shippingLine1) {
+      y += 6;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(60, 60, 60);
+      doc.text("Ship To:", 28, y);
+      y += 8;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      if (invoice.shippingName) { doc.text(invoice.shippingName, 28, y); y += 7; }
+      doc.text(invoice.shippingLine1, 28, y); y += 7;
+      if (invoice.shippingLine2) { doc.text(invoice.shippingLine2, 28, y); y += 7; }
+      doc.text(
+        `${invoice.shippingCity || ""}, ${invoice.shippingState || ""} ${invoice.shippingZip || ""}`.trim(),
+        28, y
+      );
+      y += 12;
+    }
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);

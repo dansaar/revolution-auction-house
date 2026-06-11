@@ -59,13 +59,14 @@ export default function SellerPage() {
       try {
         const user = await getCurrentUser();
 
-        const email = user.signInDetails?.loginId || user.username;
+        const email = (user.signInDetails?.loginId || user.username || "").toLowerCase();
 
         const invoiceResult = await (client.models.Invoice as any).invoicesBySellerEmail(
           { sellerEmail: email },
           { authMode: "userPool", limit: 500 },
         );
 
+        if (invoiceResult.errors) console.error("Invoice query errors:", invoiceResult.errors);
         setInvoices(invoiceResult.data || []);
 
         const userId = user.userId || user.username || "";

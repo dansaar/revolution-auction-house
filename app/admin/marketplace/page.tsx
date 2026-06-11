@@ -28,10 +28,7 @@ export default function AdminMarketplacePage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   async function loadData() {
-    const [listingResult, invoiceResult] = await Promise.all([
-      client.models.MarketplaceListing.list({ authMode: "apiKey", limit: 1000 } as any),
-      client.models.Invoice.list({ authMode: "userPool", limit: 1000 } as any),
-    ]);
+    const listingResult = await client.models.MarketplaceListing.list({ authMode: "apiKey", limit: 1000 } as any);
 
     const sorted = [...(listingResult.data || [])].sort(
       (a: any, b: any) =>
@@ -39,7 +36,19 @@ export default function AdminMarketplacePage() {
     );
 
     setListings(sorted);
-    setInvoices(invoiceResult.data || []);
+
+    const sellerEmails = [...new Set(
+      (listingResult.data || []).map((l: any) => (l.sellerEmail || "").toLowerCase()).filter(Boolean)
+    )];
+    const invoiceResults = await Promise.all(
+      sellerEmails.map((email: string) =>
+        (client.models.Invoice as any).invoicesBySellerEmail(
+          { sellerEmail: email },
+          { authMode: "userPool", limit: 500 },
+        )
+      )
+    );
+    setInvoices(invoiceResults.flatMap((r: any) => r.data || []));
   }
 
   useEffect(() => {

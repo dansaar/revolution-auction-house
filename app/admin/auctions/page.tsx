@@ -35,10 +35,7 @@ export default function AdminAuctionsPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   async function loadData() {
-    const [auctionResult, invoiceResult] = await Promise.all([
-      client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any),
-      client.models.Invoice.list({ authMode: "userPool", limit: 1000 } as any),
-    ]);
+    const auctionResult = await client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any);
 
     const sorted = [...(auctionResult.data || [])].sort(
       (a: any, b: any) =>
@@ -47,7 +44,19 @@ export default function AdminAuctionsPage() {
     );
 
     setAuctions(sorted);
-    setInvoices(invoiceResult.data || []);
+
+    const sellerEmails = [...new Set(
+      (auctionResult.data || []).map((a: any) => (a.sellerEmail || "").toLowerCase()).filter(Boolean)
+    )];
+    const invoiceResults = await Promise.all(
+      sellerEmails.map((email: string) =>
+        (client.models.Invoice as any).invoicesBySellerEmail(
+          { sellerEmail: email },
+          { authMode: "userPool", limit: 500 },
+        )
+      )
+    );
+    setInvoices(invoiceResults.flatMap((r: any) => r.data || []));
   }
 
   useEffect(() => {
