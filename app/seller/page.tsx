@@ -9,7 +9,8 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
-import { Gavel, Tag, Archive, BarChart2, Clock } from "lucide-react";
+import { isAdminUser } from "@/lib/sellers";
+import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
@@ -37,6 +38,7 @@ export default function SellerPage() {
   const [loading, setLoading] = useState(true);
   const [sellerEmail, setSellerEmail] = useState("");
   const [sellerUserId, setSellerUserId] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [activeTab, setActiveTab] = useState<"auctions" | "marketplace">(
     "auctions",
@@ -73,6 +75,7 @@ export default function SellerPage() {
 
         setSellerEmail(email);
         setSellerUserId(userId);
+        setIsAdmin(await isAdminUser());
 
         const session = await fetchAuthSession({ forceRefresh: false });
         const sellerSub = (session.tokens?.idToken?.payload?.sub as string) || userId;
@@ -500,6 +503,16 @@ export default function SellerPage() {
             <BarChart2 className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
             <div className="text-lg font-bold text-white">Analytics</div>
           </Link>
+
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="group rounded-2xl border border-white/20 bg-white/[0.04] px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-white/[0.07]"
+            >
+              <ShieldCheck className="mx-auto mb-4 h-9 w-9 text-gray-300" />
+              <div className="text-lg font-bold text-white">Admin Panel</div>
+            </Link>
+          )}
         </div>
 
         <div className="mt-10 grid gap-5 md:grid-cols-4">

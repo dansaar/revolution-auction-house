@@ -5,12 +5,12 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import NavUser from "./NavUser";
 import SellerOnly from "./SellerOnly";
+import BuyerDashboardLink from "./BuyerDashboardLink";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/auctions", label: "Auctions" },
   { href: "/marketplace", label: "Marketplace" },
-  { href: "/dashboard", label: "Buyer Dashboard" },
   { href: "/verify", label: "Verify" },
 ];
 
@@ -52,6 +52,7 @@ export default function Header() {
             {NAV_LINKS.map(({ href, label }) => (
               <Link key={href} href={href} className="hover:text-white">{label}</Link>
             ))}
+            <BuyerDashboardLink />
             <NavUser />
             <SellerOnly />
           </nav>
@@ -97,6 +98,7 @@ export default function Header() {
                 {label}
               </Link>
             ))}
+            <BuyerDashboardLink onNavigate={() => setOpen(false)} />
 
             <div className="my-4 border-t border-white/10" />
 
