@@ -314,7 +314,7 @@ export default function AdminAuctionsPage() {
                                 onClick={() => forceEnd(auction)}
                                 className="rounded border border-orange-500/20 bg-orange-500/10 px-3 py-1.5 text-xs text-orange-300 hover:bg-orange-500/20 disabled:opacity-50"
                               >
-                                {busy ? "..." : "Force End"}
+                                {busy ? "..." : "End"}
                               </button>
                               <button
                                 type="button"
