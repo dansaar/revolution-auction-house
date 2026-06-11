@@ -177,10 +177,38 @@ export async function GET(
     doc.setTextColor(20, 20, 20);
     doc.text(formatInvoiceAmount(invoice.amount), 141, 79);
 
-    // Details card
+    const subtotal = invoice.subtotal || invoice.amount;
+    const buyerPremium = invoice.buyerPremium || "$0";
+    const tax = invoice.tax || "$0";
+
+    // Pre-calculate box height based on content
+    const titleLines = doc.splitTextToSize(`Title: ${invoice.title || "-"}`, 150);
+    const stripeSessionText = `Stripe Session: ${invoice.stripeSessionId || "-"}`;
+    const stripeSessionLines = doc.splitTextToSize(stripeSessionText, 150);
+
+    let contentHeight = 28; // top padding (box top 98 → first y 126)
+    contentHeight += 11; // Invoice Type
+    contentHeight += titleLines.length * 7 + 4; // Title
+    contentHeight += 11; // Buyer
+    contentHeight += 11; // Seller
+    contentHeight += 11; // Status
+    contentHeight += 11; // Subtotal
+    if (moneyToNumber(buyerPremium) > 0) contentHeight += 11;
+    if (moneyToNumber(tax) > 0) contentHeight += 11;
+    contentHeight += 12; // Total Paid
+    if (invoice.shippingLine1) {
+      contentHeight += 14; // "Ship To:" header + gap
+      if (invoice.shippingName) contentHeight += 7;
+      contentHeight += 7; // line1
+      if (invoice.shippingLine2) contentHeight += 7;
+      contentHeight += 12; // city/state/zip
+    }
+    contentHeight += stripeSessionLines.length * 6 + 10; // Stripe session + bottom padding
+
+    // Details card — height adjusts to content
     doc.setDrawColor(225, 225, 225);
     doc.setFillColor(252, 252, 252);
-    doc.roundedRect(20, 98, 170, 140, 3, 3, "FD");
+    doc.roundedRect(20, 98, 170, contentHeight, 3, 3, "FD");
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
@@ -196,10 +224,6 @@ export async function GET(
     doc.text(`Invoice Type: ${invoice.type || "-"}`, 28, y);
     y += 11;
 
-    const titleLines = doc.splitTextToSize(
-      `Title: ${invoice.title || "-"}`,
-      150,
-    );
     doc.text(titleLines, 28, y);
     y += titleLines.length * 7 + 4;
 
@@ -211,10 +235,6 @@ export async function GET(
 
     doc.text(`Status: ${invoice.status || "PAID"}`, 28, y);
     y += 11;
-
-    const subtotal = invoice.subtotal || invoice.amount;
-    const buyerPremium = invoice.buyerPremium || "$0";
-    const tax = invoice.tax || "$0";
 
     doc.text(`Subtotal: ${formatInvoiceAmount(subtotal)}`, 28, y);
     y += 11;
@@ -247,7 +267,7 @@ export async function GET(
       if (invoice.shippingLine2) { doc.text(invoice.shippingLine2, 28, y); y += 7; }
       doc.text(
         `${invoice.shippingCity || ""}, ${invoice.shippingState || ""} ${invoice.shippingZip || ""}`.trim(),
-        28, y
+        28, y,
       );
       y += 12;
     }
@@ -256,18 +276,18 @@ export async function GET(
     doc.setFontSize(9);
     doc.setTextColor(70, 70, 70);
 
-    const stripeSessionText = `Stripe Session: ${invoice.stripeSessionId || "-"}`;
-    const stripeSessionLines = doc.splitTextToSize(stripeSessionText, 125);
     doc.text(stripeSessionLines, 28, y);
+    y += stripeSessionLines.length * 6 + 14;
 
-    // Footer
+    // Footer — positioned below the card with a minimum clearance
+    const footerY = Math.max(y + 10, 260);
     doc.setDrawColor(230, 230, 230);
-    doc.line(20, 260, 190, 260);
+    doc.line(20, footerY, 190, footerY);
 
     doc.setFontSize(9);
     doc.setTextColor(120, 120, 120);
-    doc.text("Thank you for using Revolution Auction House.", 20, 270);
-    doc.text("This invoice is generated electronically.", 20, 277);
+    doc.text("Thank you for using Revolution Auction House.", 20, footerY + 10);
+    doc.text("This invoice is generated electronically.", 20, footerY + 17);
 
     const pdfBuffer = doc.output("arraybuffer");
 

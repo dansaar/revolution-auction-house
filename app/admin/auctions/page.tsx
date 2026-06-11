@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import { isAdminUser } from "@/lib/sellers";
+import { isAdminUser, adminFetchAllInvoices } from "@/lib/sellers";
 import { toast } from "sonner";
 
 const client = generateClient<Schema>();
@@ -35,7 +35,10 @@ export default function AdminAuctionsPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   async function loadData() {
-    const auctionResult = await client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any);
+    const [auctionResult, allInvoices] = await Promise.all([
+      client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any),
+      adminFetchAllInvoices(),
+    ]);
 
     const sorted = [...(auctionResult.data || [])].sort(
       (a: any, b: any) =>
@@ -44,19 +47,7 @@ export default function AdminAuctionsPage() {
     );
 
     setAuctions(sorted);
-
-    const sellerEmails = [...new Set(
-      (auctionResult.data || []).map((a: any) => (a.sellerEmail || "").toLowerCase()).filter(Boolean)
-    )];
-    const invoiceResults = await Promise.all(
-      sellerEmails.map((email: string) =>
-        (client.models.Invoice as any).invoicesBySellerEmail(
-          { sellerEmail: email },
-          { authMode: "userPool", limit: 500 },
-        )
-      )
-    );
-    setInvoices(invoiceResults.flatMap((r: any) => r.data || []));
+    setInvoices(allInvoices);
   }
 
   useEffect(() => {

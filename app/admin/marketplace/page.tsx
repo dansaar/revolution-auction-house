@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import { isAdminUser } from "@/lib/sellers";
+import { isAdminUser, adminFetchAllInvoices } from "@/lib/sellers";
 import { toast } from "sonner";
 
 const client = generateClient<Schema>();
@@ -28,7 +28,10 @@ export default function AdminMarketplacePage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   async function loadData() {
-    const listingResult = await client.models.MarketplaceListing.list({ authMode: "apiKey", limit: 1000 } as any);
+    const [listingResult, allInvoices] = await Promise.all([
+      client.models.MarketplaceListing.list({ authMode: "apiKey", limit: 1000 } as any),
+      adminFetchAllInvoices(),
+    ]);
 
     const sorted = [...(listingResult.data || [])].sort(
       (a: any, b: any) =>
@@ -36,19 +39,7 @@ export default function AdminMarketplacePage() {
     );
 
     setListings(sorted);
-
-    const sellerEmails = [...new Set(
-      (listingResult.data || []).map((l: any) => (l.sellerEmail || "").toLowerCase()).filter(Boolean)
-    )];
-    const invoiceResults = await Promise.all(
-      sellerEmails.map((email: string) =>
-        (client.models.Invoice as any).invoicesBySellerEmail(
-          { sellerEmail: email },
-          { authMode: "userPool", limit: 500 },
-        )
-      )
-    );
-    setInvoices(invoiceResults.flatMap((r: any) => r.data || []));
+    setInvoices(allInvoices);
   }
 
   useEffect(() => {
