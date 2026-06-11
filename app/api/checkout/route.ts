@@ -256,6 +256,7 @@ export async function POST(req: Request) {
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
+        customer_email: buyerEmail || undefined,
         line_items: lineItems,
         shipping_address_collection: { allowed_countries: ["US"] },
         metadata: {
@@ -309,6 +310,7 @@ export async function POST(req: Request) {
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
+        customer_email: buyerEmail || undefined,
         line_items: buildAuctionLineItems(title, amounts),
         shipping_address_collection: { allowed_countries: ["US"] },
         metadata: {
@@ -365,6 +367,7 @@ export async function POST(req: Request) {
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
+        customer_email: buyerEmail || undefined,
         line_items: buildListingLineItems(title, amounts),
         shipping_address_collection: { allowed_countries: ["US"] },
         metadata: {
