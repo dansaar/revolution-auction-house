@@ -61,12 +61,10 @@ export default function SellerPage() {
 
         const email = user.signInDetails?.loginId || user.username;
 
-        const invoiceResult = await client.models.Invoice.list({
-          filter: {
-            sellerEmail: { eq: email },
-          },
-          authMode: "userPool",
-        } as any);
+        const invoiceResult = await (client.models.Invoice as any).invoicesBySellerEmail(
+          { sellerEmail: email },
+          { authMode: "userPool", limit: 500 },
+        );
 
         setInvoices(invoiceResult.data || []);
 

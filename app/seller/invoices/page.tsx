@@ -23,14 +23,10 @@ export default function SellerInvoicesPage() {
 
         const email = user.signInDetails?.loginId || user.username;
 
-        const result = await client.models.Invoice.list({
-          filter: {
-            sellerEmail: {
-              eq: email,
-            },
-          },
-          authMode: "userPool",
-        } as any);
+        const result = await (client.models.Invoice as any).invoicesBySellerEmail(
+          { sellerEmail: email },
+          { authMode: "userPool", limit: 500 },
+        );
 
         setInvoices(result.data || []);
       } catch (err) {
