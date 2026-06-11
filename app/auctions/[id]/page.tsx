@@ -987,14 +987,11 @@ export default function LiveAuctionPage() {
 
                   {user && (
                     <div className="mt-4 flex items-center gap-3">
-                      <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-emerald-300">
-                        Verified Bidder
-                      </span>
-
-                      <span className="text-xs uppercase tracking-[0.22em] text-[#c0c0c0]">
-                        {makeBidderDisplayName(
-                          user?.userId || user?.username || "",
-                        )}
+                      <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-emerald-300 leading-tight text-center">
+                        <div>Verified Bidder</div>
+                        <div className="mt-0.5 text-emerald-400/70">
+                          {makeBidderDisplayName(user?.userId || user?.username || "")}
+                        </div>
                       </span>
                       {myMaxBid && (
                         <span className="rounded-full border border-[#d6aa55]/50 bg-gradient-to-r from-[#1a1408] to-[#241909] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f5d487] shadow-[0_0_24px_rgba(214,170,85,0.18)]">

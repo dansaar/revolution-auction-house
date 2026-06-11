@@ -10,7 +10,7 @@ import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
 import { isAdminUser } from "@/lib/sellers";
-import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck } from "lucide-react";
+import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
@@ -502,6 +502,14 @@ export default function SellerPage() {
           >
             <BarChart2 className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
             <div className="text-lg font-bold text-white">Analytics</div>
+          </Link>
+
+          <Link
+            href="/seller/revenue"
+            className="group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+          >
+            <TrendingUp className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Revenue</div>
           </Link>
 
           {isAdmin && (

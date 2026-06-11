@@ -478,7 +478,7 @@ const schema = a
         statsJson: a.string(),
         recentJson: a.string(),
       }))
-      .authorization((allow) => [allow.group("Admin")])
+      .authorization((allow) => [allow.group("Admin"), allow.group("Seller")])
       .handler(a.handler.function(getRevenueStats)),
 
     adminListInvoices: a
