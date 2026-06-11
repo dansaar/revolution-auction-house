@@ -228,7 +228,7 @@ export default function AdminMarketplacePage() {
                 <th className="p-4">Seller</th>
                 <th className="p-4">Price / Paid</th>
                 <th className="p-4">Status</th>
-                <th className="p-4">Created</th>
+                <th className="p-4">Dates</th>
                 <th className="p-4">Actions</th>
               </tr>
             </thead>
@@ -288,9 +288,12 @@ export default function AdminMarketplacePage() {
                       </td>
 
                       <td className="p-4 text-xs text-gray-400">
-                        {listing.createdAt
-                          ? new Date(listing.createdAt).toLocaleDateString()
-                          : "—"}
+                        {listing.createdAt && (
+                          <div>Listed {new Date(listing.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        )}
+                        {(invoice?.paidAt || listing.paidAt) && (
+                          <div className="mt-0.5 text-emerald-400">Sold {new Date(invoice?.paidAt || listing.paidAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        )}
                       </td>
 
                       <td className="p-4">

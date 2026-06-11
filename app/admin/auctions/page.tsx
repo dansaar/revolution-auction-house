@@ -219,7 +219,7 @@ export default function AdminAuctionsPage() {
                 <th className="p-4">Seller</th>
                 <th className="p-4">Hammer / Paid</th>
                 <th className="p-4">Status</th>
-                <th className="p-4">Ends</th>
+                <th className="p-4">Dates</th>
                 <th className="p-4">Bids</th>
                 <th className="p-4">Actions</th>
               </tr>
@@ -279,9 +279,15 @@ export default function AdminAuctionsPage() {
                       </td>
 
                       <td className="p-4 text-xs text-gray-400">
-                        {auction.endsAt
-                          ? new Date(auction.endsAt).toLocaleString()
-                          : "—"}
+                        {auction.createdAt && (
+                          <div>Listed {new Date(auction.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        )}
+                        {auction.endsAt && (
+                          <div className="mt-0.5">Ends {new Date(auction.endsAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        )}
+                        {invoice?.paidAt && (
+                          <div className="mt-0.5 text-emerald-400">Sold {new Date(invoice.paidAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        )}
                       </td>
 
                       <td className="p-4 text-gray-400">{auction.bids || 0}</td>
