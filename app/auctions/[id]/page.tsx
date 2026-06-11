@@ -1086,7 +1086,7 @@ export default function LiveAuctionPage() {
 
                       {auction?.chargeTax ? (
                         <div className="flex justify-between gap-4">
-                          <span>Buyer Premium with Tax Included ({buyerPremiumRate}%)</span>
+                          <span>Buyer Premium with Tax Included ({+(buyerPremiumRate + taxRate).toFixed(4)}%)</span>
                           <span className="text-white">
                             {formatCurrency(buyerPremiumAmount + taxAmount)}
                           </span>
