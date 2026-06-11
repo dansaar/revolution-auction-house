@@ -1084,18 +1084,18 @@ export default function LiveAuctionPage() {
                         </span>
                       </div>
 
-                      <div className="flex justify-between gap-4">
-                        <span>Buyer Premium ({buyerPremiumRate}%)</span>
-                        <span className="text-white">
-                          {formatCurrency(buyerPremiumAmount)}
-                        </span>
-                      </div>
-
-                      {auction?.chargeTax && (
+                      {auction?.chargeTax ? (
                         <div className="flex justify-between gap-4">
-                          <span>NJ Sales Tax ({taxRate}%)</span>
+                          <span>Buyer Premium with Tax Included ({buyerPremiumRate}%)</span>
                           <span className="text-white">
-                            {formatCurrency(taxAmount)}
+                            {formatCurrency(buyerPremiumAmount + taxAmount)}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex justify-between gap-4">
+                          <span>Buyer Premium ({buyerPremiumRate}%)</span>
+                          <span className="text-white">
+                            {formatCurrency(buyerPremiumAmount)}
                           </span>
                         </div>
                       )}

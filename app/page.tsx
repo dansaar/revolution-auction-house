@@ -323,7 +323,7 @@ export default function RevolutionAuctionHouseHomepage() {
       <main className="relative z-10 mx-auto max-w-[1500px] px-6 pb-16 pt-10">
         {/* Hero */}
         <section className="grid items-center gap-10 py-10 sm:py-14 lg:min-h-[650px] lg:grid-cols-[1.35fr_0.9fr] lg:py-16">
-          <div className="text-center lg:text-left">
+          <div className="text-center">
             <div className="font-serif text-5xl leading-none tracking-[0.08em] text-transparent bg-gradient-to-b from-[#ffffff] via-[#e7e7e7] to-[#cfcfcf] bg-clip-text drop-shadow-[0_0_12px_rgba(255,255,255,0.08)] sm:text-6xl md:text-8xl lg:text-[9rem]">
               Revolution
             </div>
