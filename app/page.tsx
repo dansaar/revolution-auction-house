@@ -402,7 +402,7 @@ export default function RevolutionAuctionHouseHomepage() {
               href={
                 featuredAuction ? `/auctions/${featuredAuction.id}` : "/auctions"
               }
-              className="mt-8 flex items-center justify-center gap-2 rounded bg-[#c0c0c0] px-6 py-4 font-bold text-black"
+              className="mt-8 flex items-center justify-center gap-2 rounded border border-[#d6aa55] bg-[#c0c0c0] px-6 py-4 font-bold text-black"
             >
               View Auction <ArrowRight size={16} />
             </Link>
