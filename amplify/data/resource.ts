@@ -9,6 +9,7 @@ import { manageSellerGroup } from "../functions/manageSellerGroup/resource";
 import { autoVerifyBuyer } from "../functions/autoVerifyBuyer/resource";
 import { submitVerificationRequest } from "../functions/submitVerificationRequest/resource";
 import { getRevenueStats } from "../functions/getRevenueStats/resource";
+import { adminListInvoices } from "../functions/adminListInvoices/resource";
 
 const schema = a
   .schema({
@@ -479,6 +480,15 @@ const schema = a
       }))
       .authorization((allow) => [allow.group("Admin")])
       .handler(a.handler.function(getRevenueStats)),
+
+    adminListInvoices: a
+      .query()
+      .arguments({})
+      .returns(a.customType({
+        invoicesJson: a.string(),
+      }))
+      .authorization((allow) => [allow.group("Admin")])
+      .handler(a.handler.function(adminListInvoices)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -491,6 +501,7 @@ const schema = a
     allow.resource(autoVerifyBuyer),
     allow.resource(submitVerificationRequest),
     allow.resource(getRevenueStats),
+    allow.resource(adminListInvoices),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

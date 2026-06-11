@@ -507,10 +507,10 @@ export default function SellerPage() {
           {isAdmin && (
             <Link
               href="/admin"
-              className="group rounded-2xl border border-white/20 bg-white/[0.04] px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-white/[0.07]"
+              className="group rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-red-500/20"
             >
-              <ShieldCheck className="mx-auto mb-4 h-9 w-9 text-gray-300" />
-              <div className="text-lg font-bold text-white">Admin Panel</div>
+              <ShieldCheck className="mx-auto mb-4 h-9 w-9 text-red-400" />
+              <div className="text-lg font-bold text-red-300">Admin Panel</div>
             </Link>
           )}
         </div>

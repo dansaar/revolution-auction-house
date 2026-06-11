@@ -23,29 +23,16 @@ export async function adminGraphQL(query: string, variables?: Record<string, any
 }
 
 export async function adminFetchAllInvoices(): Promise<any[]> {
-  const fields = `id type auctionId listingId title buyerEmail sellerEmail
-    subtotal buyerPremium tax amount status stripeSessionId paidAt
-    shippingName shippingLine1 shippingLine2 shippingCity shippingState shippingZip shippingCountry`;
-
-  const all: any[] = [];
-  let nextToken: string | null = null;
-
-  do {
-    const result: any = await adminGraphQL(
-      `query ListInvoices($limit: Int, $nextToken: String) {
-        listInvoices(limit: $limit, nextToken: $nextToken) {
-          items { ${fields} }
-          nextToken
-        }
-      }`,
-      { limit: 1000, nextToken },
-    );
-    const page = result?.data?.listInvoices;
-    all.push(...(page?.items || []));
-    nextToken = page?.nextToken ?? null;
-  } while (nextToken);
-
-  return all;
+  const result: any = await adminGraphQL(
+    `query AdminListInvoices { adminListInvoices { invoicesJson } }`,
+  );
+  const json = result?.data?.adminListInvoices?.invoicesJson;
+  if (!json) return [];
+  try {
+    return JSON.parse(json);
+  } catch {
+    return [];
+  }
 }
 
 export async function isAdminUser(): Promise<boolean> {

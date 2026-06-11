@@ -12,6 +12,7 @@ import { notifyOfferSms } from "./functions/notifyOfferSms/resource";
 import { autoVerifyBuyer } from "./functions/autoVerifyBuyer/resource";
 import { submitVerificationRequest } from "./functions/submitVerificationRequest/resource";
 import { getRevenueStats } from "./functions/getRevenueStats/resource";
+import { adminListInvoices } from "./functions/adminListInvoices/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
@@ -29,6 +30,7 @@ const backend = defineBackend({
   autoVerifyBuyer,
   submitVerificationRequest,
   getRevenueStats,
+  adminListInvoices,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];
@@ -78,6 +80,15 @@ invoiceTable.grantReadData(backend.getRevenueStats.resources.lambda);
 const getRevenueStatsCfn = backend.getRevenueStats.resources.lambda.node
   .defaultChild as CfnFunction;
 getRevenueStatsCfn.addPropertyOverride(
+  "Environment.Variables.INVOICE_TABLE_NAME",
+  invoiceTable.tableName,
+);
+
+// adminListInvoices: read-only access to Invoice table
+invoiceTable.grantReadData(backend.adminListInvoices.resources.lambda);
+const adminListInvoicesCfn = backend.adminListInvoices.resources.lambda.node
+  .defaultChild as CfnFunction;
+adminListInvoicesCfn.addPropertyOverride(
   "Environment.Variables.INVOICE_TABLE_NAME",
   invoiceTable.tableName,
 );
