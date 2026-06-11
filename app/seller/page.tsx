@@ -65,7 +65,7 @@ export default function SellerPage() {
           filter: {
             sellerEmail: { eq: email },
           },
-          authMode: "apiKey",
+          authMode: "userPool",
         } as any);
 
         setInvoices(invoiceResult.data || []);
@@ -1404,6 +1404,16 @@ function SellerAuctionCard({
                     Shipping
                   </div>
 
+                  {invoice?.shippingLine1 && (
+                    <div className="mt-3 rounded-lg border border-[#d6aa55]/20 bg-[#d6aa55]/[0.03] p-3">
+                      <div className="mb-1 text-xs uppercase tracking-widest text-[#d6aa55]/70">Ship To</div>
+                      <div className="text-sm text-[#d7d7d7]">{invoice.shippingName}</div>
+                      <div className="text-sm text-gray-400">{invoice.shippingLine1}</div>
+                      {invoice.shippingLine2 && <div className="text-sm text-gray-400">{invoice.shippingLine2}</div>}
+                      <div className="text-sm text-gray-400">{invoice.shippingCity}, {invoice.shippingState} {invoice.shippingZip}</div>
+                    </div>
+                  )}
+
                   <div className="mt-2 flex items-center gap-3 text-sm text-gray-300">
                     <span>Status: {auction.shippingStatus || "PAID"}</span>
 
@@ -1756,6 +1766,16 @@ function MarketplaceSection({
                       <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
                         Shipping
                       </div>
+
+                      {invoice?.shippingLine1 && (
+                        <div className="mt-3 rounded-lg border border-[#d6aa55]/20 bg-[#d6aa55]/[0.03] p-3">
+                          <div className="mb-1 text-xs uppercase tracking-widest text-[#d6aa55]/70">Ship To</div>
+                          <div className="text-sm text-[#d7d7d7]">{invoice.shippingName}</div>
+                          <div className="text-sm text-gray-400">{invoice.shippingLine1}</div>
+                          {invoice.shippingLine2 && <div className="text-sm text-gray-400">{invoice.shippingLine2}</div>}
+                          <div className="text-sm text-gray-400">{invoice.shippingCity}, {invoice.shippingState} {invoice.shippingZip}</div>
+                        </div>
+                      )}
 
                       <div className="mt-2 flex items-center gap-3 text-sm text-gray-300">
                         <span>Status: {listing.shippingStatus || "PAID"}</span>
