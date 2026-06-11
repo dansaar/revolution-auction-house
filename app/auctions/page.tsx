@@ -11,6 +11,11 @@ import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
 
+function fmtDate(iso: string | null | undefined) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 function GradeBadge({ grade }: { grade?: string | null }) {
   if (!grade) return null;
   const g = grade.trim();
@@ -129,6 +134,12 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
             <div className="text-xl text-[#c0c0c0]">{item.price}</div>
           </div>
           <div className="text-sm text-gray-400">{item.bids || 0} bids</div>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between text-[10px] text-gray-600">
+          {item.createdAt && <span>Listed {fmtDate(item.createdAt)}</span>}
+          {ended && item.paidAt && <span className="text-emerald-700">Sold {fmtDate(item.paidAt)}</span>}
+          {ended && !item.paidAt && item.endsAt && <span>Ended {fmtDate(item.endsAt)}</span>}
         </div>
 
         {!ended && (

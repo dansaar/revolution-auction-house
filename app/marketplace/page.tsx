@@ -10,6 +10,11 @@ import { cdnUrl } from "@/lib/cdn";
 
 const client = generateClient<Schema>();
 
+function fmtDate(iso: string | null | undefined) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 function resolveImage(listing: any) {
   const rawImage =
     listing.thumbImages?.[0] || listing.image || listing.images?.[0] || "";
@@ -186,6 +191,11 @@ export default function MarketplacePage() {
 
                   <div className="mt-3 font-serif text-2xl text-[#c0c0c0] md:mt-4 md:text-3xl">
                     {listing.price}
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between text-[10px] text-gray-600">
+                    {listing.createdAt && <span>Listed {fmtDate(listing.createdAt)}</span>}
+                    {listing.paidAt && <span className="text-emerald-700">Sold {fmtDate(listing.paidAt)}</span>}
                   </div>
                 </div>
               </Link>

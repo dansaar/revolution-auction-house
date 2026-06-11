@@ -26,6 +26,11 @@ const client = generateClient<Schema>();
 
 const CATEGORIES = ["All", "PSA 10", "PSA 9.5", "PSA 9", "Vintage", "Sealed"];
 
+function fmtDate(iso: string | null | undefined) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 function resolveAuctionImage(auction: any) {
   const imagePath =
     auction.thumbImages?.find(
@@ -573,6 +578,10 @@ export default function RevolutionAuctionHouseHomepage() {
                     {listing.acceptsOffers && (
                       <div className="text-xs text-[#d6aa55]/70">Offers accepted</div>
                     )}
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-gray-600">
+                      {listing.createdAt && <span>Listed {fmtDate(listing.createdAt)}</span>}
+                      {listing.paidAt && <span className="text-emerald-700">Sold {fmtDate(listing.paidAt)}</span>}
+                    </div>
                   </Link>
                 ))}
               </div>
@@ -698,6 +707,10 @@ export default function RevolutionAuctionHouseHomepage() {
                               LOT-{auction.id.slice(-6).toUpperCase()}
                             </div>
                           </div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-[10px] text-gray-600">
+                          {auction.createdAt && <span>Listed {fmtDate(auction.createdAt)}</span>}
+                          {auction.paidAt && <span className="text-emerald-700">Sold {fmtDate(auction.paidAt)}</span>}
                         </div>
                       </div>
                     </Link>

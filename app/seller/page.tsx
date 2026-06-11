@@ -1499,6 +1499,18 @@ function SellerAuctionCard({
               )}
           </div>
 
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-gray-600">
+            {auction.createdAt && (
+              <span>Listed {new Date(auction.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+            )}
+            {auction.paidAt && (
+              <span className="text-emerald-700">Sold {new Date(auction.paidAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+            )}
+            {auction.endsAt && !auction.paidAt && (
+              <span>Ended {new Date(auction.endsAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+            )}
+          </div>
+
           {(auction.sellerPublicId || auction.sellerUserId) && (
             <div className="mt-5 border-t border-white/10 pt-4 text-xs uppercase tracking-[0.22em] text-gray-500">
               Seller ID{" "}
@@ -1886,6 +1898,15 @@ function MarketplaceSection({
                       Edit Listing
                     </Link>
                   )}
+
+                  <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-gray-600">
+                    {listing.createdAt && (
+                      <span>Listed {new Date(listing.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                    )}
+                    {listing.paidAt && (
+                      <span className="text-emerald-700">Sold {new Date(listing.paidAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                    )}
+                  </div>
 
                   {(listing.sellerPublicId || listing.sellerUserId) && (
                     <div className="mt-5 border-t border-white/10 pt-4 text-xs uppercase tracking-[0.22em] text-gray-500">
