@@ -285,14 +285,8 @@ export default function AdminPage() {
           />
 
           <AdminCard
-            title="Buyer Management"
-            description="View all buyers, filter by tier, and manually adjust bid limits."
-            href="/admin/buyers"
-          />
-
-          <AdminCard
             title="User Management"
-            description="Unified buyers and sellers table — search, edit tiers, revoke access."
+            description="View all buyers, edit tiers, purchase history, and online status."
             href="/admin/users"
           />
 
