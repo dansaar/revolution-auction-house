@@ -157,18 +157,13 @@ export default function LiveAuctionPage() {
     enteredBidAmount > 0 ? enteredBidAmount : displayPrice;
 
   const buyerPremiumRate = Number(auction?.buyerPremiumRate || 18);
-  const buyerPremiumAmount = calculateBuyerPremium(
-    estimateBaseAmount,
-    buyerPremiumRate,
-  );
-
+  const buyerPremiumAmount = calculateBuyerPremium(estimateBaseAmount, buyerPremiumRate);
   const taxRate = Number(auction?.taxRate || 6.625);
   const taxAmount = calculateTax(
     estimateBaseAmount + buyerPremiumAmount,
     Boolean(auction?.chargeTax),
     taxRate,
   );
-
   const estimatedTotalDue = estimateBaseAmount + buyerPremiumAmount + taxAmount;
 
   function scheduleBidRefresh() {
@@ -1084,18 +1079,18 @@ export default function LiveAuctionPage() {
                         </span>
                       </div>
 
-                      {auction?.chargeTax ? (
+                      <div className="flex justify-between gap-4">
+                        <span>Buyer Premium ({buyerPremiumRate}%)</span>
+                        <span className="text-white">
+                          {formatCurrency(buyerPremiumAmount)}
+                        </span>
+                      </div>
+
+                      {auction?.chargeTax && (
                         <div className="flex justify-between gap-4">
-                          <span>Buyer Premium with Tax Included ({+(buyerPremiumRate + taxRate).toFixed(4)}%)</span>
+                          <span>NJ Sales Tax ({taxRate}%)</span>
                           <span className="text-white">
-                            {formatCurrency(buyerPremiumAmount + taxAmount)}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex justify-between gap-4">
-                          <span>Buyer Premium ({buyerPremiumRate}%)</span>
-                          <span className="text-white">
-                            {formatCurrency(buyerPremiumAmount)}
+                            {formatCurrency(taxAmount)}
                           </span>
                         </div>
                       )}
