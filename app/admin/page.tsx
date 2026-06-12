@@ -23,6 +23,7 @@ export default function AdminPage() {
   const [pendingVerifications, setPendingVerifications] = useState<any[]>([]);
   const [approvalTiers, setApprovalTiers] = useState<Record<string, string>>({});
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [pendingInvoices, setPendingInvoices] = useState<Record<string, any[]>>({});
 
   async function loadPendingVerifications() {
     try {
@@ -36,9 +37,33 @@ export default function AdminPage() {
 
       const defaults: Record<string, string> = {};
       for (const p of pending) {
-        defaults[p.userId] = p.requestedTier || "VERIFIED";
+        defaults[p.userId] = p.requestedTier && p.requestedTier !== "VERIFIED" ? p.requestedTier : "PREMIUM";
       }
       setApprovalTiers((prev) => ({ ...defaults, ...prev }));
+
+      // Fetch invoices for each pending buyer
+      const invoiceMap: Record<string, any[]> = {};
+      await Promise.allSettled(
+        pending.map(async (p: any) => {
+          try {
+            const all: any[] = [];
+            let nextToken: string | undefined;
+            do {
+              const res: any = await (client.models.Invoice as any).invoicesByBuyer(
+                { buyerUserId: p.userId },
+                { authMode: "userPool", limit: 50, ...(nextToken ? { nextToken } : {}) },
+              );
+              all.push(...(res.data || []));
+              nextToken = res.nextToken ?? undefined;
+            } while (nextToken);
+            all.sort((a, b) => new Date(b.paidAt || b.createdAt || 0).getTime() - new Date(a.paidAt || a.createdAt || 0).getTime());
+            invoiceMap[p.userId] = all;
+          } catch {
+            invoiceMap[p.userId] = [];
+          }
+        }),
+      );
+      setPendingInvoices(invoiceMap);
     } catch (err) {
       console.error("Failed to load pending verifications", err);
     }
@@ -177,8 +202,13 @@ export default function AdminPage() {
             <div className="space-y-4">
               {pendingVerifications.map((profile) => {
                 const currentTier = getTier(profile.verificationTier || "BASIC");
-                const requestedTierData = getTier(profile.requestedTier || "VERIFIED");
+                const requestedTierData = getTier(profile.requestedTier || "PREMIUM");
                 const isProcessing = processingIds.has(profile.userId);
+                const invoices = pendingInvoices[profile.userId] ?? [];
+                const totalSpend = invoices.reduce((sum: number, inv: any) => {
+                  const n = parseFloat(String(inv.amount || "0").replace(/[$,]/g, ""));
+                  return sum + (isNaN(n) ? 0 : n);
+                }, 0);
 
                 return (
                   <div
@@ -186,7 +216,7 @@ export default function AdminPage() {
                     className="rounded-xl border border-yellow-400/20 bg-yellow-400/5 p-5"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="font-semibold text-white">
                           {profile.email}
                         </div>
@@ -210,15 +240,40 @@ export default function AdminPage() {
                             {profile.verificationNotes}
                           </div>
                         )}
+
+                        {/* Purchase history */}
+                        <div className="mt-4">
+                          <div className="mb-2 flex items-center gap-3 text-xs uppercase tracking-widest text-gray-500">
+                            <span>Purchase History</span>
+                            {invoices.length > 0 && (
+                              <span className="text-[#e7c77f]">{invoices.length} invoice{invoices.length !== 1 ? "s" : ""} · ${totalSpend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total</span>
+                            )}
+                          </div>
+                          {invoices.length === 0 ? (
+                            <div className="text-xs text-gray-600 italic">No purchases on record.</div>
+                          ) : (
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                              {invoices.map((inv: any) => (
+                                <div key={inv.id} className="flex items-center justify-between rounded border border-white/[0.06] bg-black/20 px-3 py-1.5 text-xs">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="truncate text-gray-300">{inv.title || "—"}</div>
+                                    <div className="text-gray-600">{inv.paidAt ? new Date(inv.paidAt).toLocaleDateString() : "—"}</div>
+                                  </div>
+                                  <div className="ml-3 shrink-0 font-semibold text-[#e7c77f]">{inv.amount || "—"}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
+                      <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start">
                         <div className="flex flex-col gap-1">
                           <label className="text-[10px] uppercase tracking-[0.15em] text-gray-500">
                             Approve as
                           </label>
                           <select
-                            value={approvalTiers[profile.userId] || "VERIFIED"}
+                            value={approvalTiers[profile.userId] || "PREMIUM"}
                             onChange={(e) =>
                               setApprovalTiers((prev) => ({
                                 ...prev,
@@ -227,7 +282,7 @@ export default function AdminPage() {
                             }
                             className="rounded border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6aa55]/50"
                           >
-                            {BUYER_TIERS.filter((t) => t.code !== "BASIC").map((tier) => (
+                            {BUYER_TIERS.filter((t) => t.code !== "BASIC" && t.code !== "VERIFIED").map((tier) => (
                               <option key={tier.code} value={tier.code}>
                                 {tier.name} — {formatTierLimit(tier.code)}
                               </option>
@@ -235,21 +290,23 @@ export default function AdminPage() {
                           </select>
                         </div>
 
-                        <button
-                          disabled={isProcessing}
-                          onClick={() => handleReview(profile.userId, true)}
-                          className="rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
-                        >
-                          {isProcessing ? "..." : "Approve"}
-                        </button>
+                        <div className="flex flex-col gap-2 sm:mt-6">
+                          <button
+                            disabled={isProcessing}
+                            onClick={() => handleReview(profile.userId, true)}
+                            className="rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                          >
+                            {isProcessing ? "..." : "Approve"}
+                          </button>
 
-                        <button
-                          disabled={isProcessing}
-                          onClick={() => handleReview(profile.userId, false)}
-                          className="rounded border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
-                        >
-                          {isProcessing ? "..." : "Decline"}
-                        </button>
+                          <button
+                            disabled={isProcessing}
+                            onClick={() => handleReview(profile.userId, false)}
+                            className="rounded border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                          >
+                            {isProcessing ? "..." : "Decline"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

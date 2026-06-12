@@ -4,6 +4,8 @@ import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
 import { env } from "$amplify/env/submitVerificationRequest";
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const { resourceConfig, libraryOptions } =
   await getAmplifyDataClientConfig(env);
@@ -11,6 +13,10 @@ const { resourceConfig, libraryOptions } =
 Amplify.configure(resourceConfig, libraryOptions);
 
 const client = generateClient<Schema>();
+const sesClient = new SESClient({});
+const snsClient = new SNSClient({});
+const FROM_EMAIL = (env as any).FROM_EMAIL || "";
+const SITE_URL = (env as any).SITE_URL || "https://www.revolutionauctionhouse.com";
 
 const TIER_LIMITS: Record<string, number> = {
   BASIC: 1_000,
@@ -69,6 +75,67 @@ export const handler: Schema["submitVerificationRequest"]["functionHandler"] =
           },
           { authMode: "iam" } as any,
         );
+      }
+
+      // Notify approved sellers per their notification preferences (fire-and-forget)
+      if (FROM_EMAIL) {
+        try {
+          const sellersResult = await client.models.SellerProfile.list({ authMode: "iam" } as any);
+          const approvedSellers = (sellersResult.data || []).filter((s: any) => s.status === "APPROVED");
+
+          const emailTo: string[] = [];
+          const smsTo: string[] = [];
+
+          for (const s of approvedSellers) {
+            const pref = (s as any).notifyVerifications ?? "email";
+            if ((pref === "email" || pref === "both") && s.email) emailTo.push(s.email);
+            if ((pref === "sms" || pref === "both") && (s as any).phoneNumber) smsTo.push((s as any).phoneNumber);
+          }
+
+          const emailHtml = `<p>A buyer has submitted a verification request.</p>
+<ul>
+  <li><strong>Buyer:</strong> ${email}</li>
+  <li><strong>Requested tier:</strong> ${tier}</li>
+  ${verificationNotes ? `<li><strong>Notes:</strong> ${verificationNotes}</li>` : ""}
+</ul>
+<p><a href="${SITE_URL}/seller/verifications">Review the request →</a></p>`;
+          const emailText = `New verification request from ${email} for ${tier} tier.\nNotes: ${verificationNotes || "none"}\n\nReview: ${SITE_URL}/seller/verifications`;
+
+          const tasks: Promise<any>[] = [];
+
+          if (emailTo.length > 0) {
+            tasks.push(
+              sesClient.send(
+                new SendEmailCommand({
+                  Source: `Revolution Auction House <${FROM_EMAIL}>`,
+                  Destination: { ToAddresses: emailTo },
+                  Message: {
+                    Subject: { Data: "New Buyer Verification Request" },
+                    Body: {
+                      Html: { Data: emailHtml },
+                      Text: { Data: emailText },
+                    },
+                  },
+                }),
+              ),
+            );
+          }
+
+          for (const phone of smsTo) {
+            tasks.push(
+              snsClient.send(
+                new PublishCommand({
+                  PhoneNumber: phone,
+                  Message: `Revolution: New buyer verification request from ${email}. Review: ${SITE_URL}/seller/verifications`,
+                }),
+              ),
+            );
+          }
+
+          await Promise.allSettled(tasks);
+        } catch (notifyErr) {
+          console.warn("NOTIFY_SELLERS_FAILED", notifyErr);
+        }
       }
 
       return { success: true, message: "Verification request submitted" };

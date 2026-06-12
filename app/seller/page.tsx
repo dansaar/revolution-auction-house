@@ -481,6 +481,14 @@ export default function SellerPage() {
             <div className="text-lg font-bold text-white">Revenue</div>
           </Link>
 
+          <Link
+            href="/seller/verifications"
+            className="w-36 group rounded-2xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-yellow-500/20"
+          >
+            <ShieldCheck className="mx-auto mb-4 h-9 w-9 text-yellow-400" />
+            <div className="text-lg font-bold text-white">Verifications</div>
+          </Link>
+
           {isAdmin && (
             <Link
               href="/admin"

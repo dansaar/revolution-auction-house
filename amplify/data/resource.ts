@@ -295,10 +295,16 @@ const schema = a
 
         revokedBy: a.string(),
         revokedAt: a.datetime(),
+
+        // Notification preferences
+        notifyVerifications: a.string().default("email"), // "email" | "sms" | "both" | "none"
+        notifyOffers: a.string().default("email"),        // "email" | "sms" | "both" | "none"
+        phoneNumber: a.string(),
       })
       .identifier(["email"])
       .authorization((allow) => [
         allow.authenticated().to(["read"]),
+        allow.ownerDefinedIn("email").identityClaim("email").to(["read", "update"]),
         allow.group("Admin"),
       ]),
 

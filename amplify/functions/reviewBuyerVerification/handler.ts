@@ -52,11 +52,11 @@ export const handler: Schema["reviewBuyerVerification"]["functionHandler"] =
         return { success: false, message: "Cannot approve your own profile" };
       }
 
-      // Sellers can only approve up to VERIFIED; higher tiers require Admin
-      const SELLER_ALLOWED_TIERS = ["BASIC", "VERIFIED"];
-      const effectiveTier = tierOverride || "VERIFIED";
+      // Sellers can approve up to PREMIUM; PRIVATE and TROPHY require Admin
+      const SELLER_ALLOWED_TIERS = ["BASIC", "VERIFIED", "PREMIUM"];
+      const effectiveTier = tierOverride || "PREMIUM";
       if (!SELLER_ALLOWED_TIERS.includes(effectiveTier)) {
-        return { success: false, message: "Sellers can only approve up to VERIFIED tier" };
+        return { success: false, message: "Sellers can approve up to Premium tier. Higher tiers require Admin." };
       }
     }
 

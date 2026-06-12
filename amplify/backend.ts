@@ -74,6 +74,8 @@ backend.finalizeAuction.resources.lambda.addToRolePolicy(snsPolicy);
 backend.notifyOfferSms.resources.lambda.addToRolePolicy(snsPolicy);
 backend.autoVerifyBuyer.resources.lambda.addToRolePolicy(snsPolicy);
 backend.reviewBuyerVerification.resources.lambda.addToRolePolicy(snsPolicy);
+backend.submitVerificationRequest.resources.lambda.addToRolePolicy(sesPolicy);
+backend.submitVerificationRequest.resources.lambda.addToRolePolicy(snsPolicy);
 
 // getRevenueStats: read-only access to Invoice table
 invoiceTable.grantReadData(backend.getRevenueStats.resources.lambda);
@@ -109,6 +111,14 @@ const notifyOfferSmsCfn = backend.notifyOfferSms.resources.lambda.node
   .defaultChild as CfnFunction;
 
 notifyOfferSmsCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
+notifyOfferSmsCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
+backend.notifyOfferSms.resources.lambda.addToRolePolicy(sesPolicy);
+
+const submitVerificationRequestCfn = backend.submitVerificationRequest.resources.lambda.node
+  .defaultChild as CfnFunction;
+
+submitVerificationRequestCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
+submitVerificationRequestCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
 
 const userPool = backend.auth.resources.userPool;
 
