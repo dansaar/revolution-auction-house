@@ -6,7 +6,8 @@ export type DatePreset =
   | "3months"
   | "6months"
   | "year"
-  | "last_year";
+  | "last_year"
+  | "custom";
 
 export const DATE_PRESETS: { key: DatePreset; label: string }[] = [
   { key: "all",        label: "All Time" },
@@ -17,9 +18,14 @@ export const DATE_PRESETS: { key: DatePreset; label: string }[] = [
   { key: "6months",    label: "6 Months" },
   { key: "year",       label: "This Year" },
   { key: "last_year",  label: "Last Year" },
+  { key: "custom",     label: "Custom" },
 ];
 
-export function getDateRange(preset: DatePreset): { start: Date | null; end: Date | null } {
+export function getDateRange(
+  preset: DatePreset,
+  customStart?: string,
+  customEnd?: string,
+): { start: Date | null; end: Date | null } {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const endOfToday = new Date(today.getTime() + 86400000 - 1);
@@ -51,8 +57,26 @@ export function getDateRange(preset: DatePreset): { start: Date | null; end: Dat
         start: new Date(now.getFullYear() - 1, 0, 1),
         end: new Date(now.getFullYear(), 0, 0),
       };
+    case "custom":
+      return {
+        start: customStart ? new Date(customStart) : null,
+        end: customEnd ? new Date(new Date(customEnd).getTime() + 86400000 - 1) : null,
+      };
     case "all":
     default:
       return { start: null, end: null };
   }
+}
+
+export function inRange(
+  dateStr: string | null | undefined,
+  start: Date | null,
+  end: Date | null,
+): boolean {
+  if (!start && !end) return true;
+  if (!dateStr) return false;
+  const d = new Date(dateStr).getTime();
+  if (start && d < start.getTime()) return false;
+  if (end && d > end.getTime()) return false;
+  return true;
 }

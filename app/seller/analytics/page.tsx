@@ -2,13 +2,14 @@
 
 import "@/lib/amplifyclient";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
+import { DATE_PRESETS, DatePreset, getDateRange, inRange } from "@/lib/datePresets";
 
 const client = generateClient<Schema>();
 
@@ -23,19 +24,20 @@ function pct(n: number, d: number) {
 
 export default function SellerAnalyticsPage() {
   const [loading, setLoading] = useState(true);
-  const [auctions, setAuctions] = useState<any[]>([]);
-  const [listings, setListings] = useState<any[]>([]);
-  const [sellerEmail, setSellerEmail] = useState("");
-  const [sellerUserId, setSellerUserId] = useState("");
+  const [allAuctions, setAllAuctions] = useState<any[]>([]);
+  const [allListings, setAllListings] = useState<any[]>([]);
+
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const [appliedCustomStart, setAppliedCustomStart] = useState("");
+  const [appliedCustomEnd, setAppliedCustomEnd] = useState("");
 
   useEffect(() => {
     async function load() {
       try {
         const user = await getCurrentUser();
-        const email = user.signInDetails?.loginId || user.username || "";
         const userId = user.userId || user.username || "";
-        setSellerEmail(email);
-        setSellerUserId(userId);
 
         async function fetchSellerAuctions() {
           const all: any[] = [];
@@ -70,11 +72,11 @@ export default function SellerAnalyticsPage() {
           fetchSellerListings(),
         ]);
 
-        setAuctions(myAuctions.map((a: any) => ({
+        setAllAuctions(myAuctions.map((a: any) => ({
           ...a,
           image: cdnUrl(a.thumbImages?.[0] || a.images?.[0] || a.image || ""),
         })));
-        setListings(myListings);
+        setAllListings(myListings);
       } catch (err) {
         console.error(err);
       } finally {
@@ -83,6 +85,21 @@ export default function SellerAnalyticsPage() {
     }
     load();
   }, []);
+
+  const { start, end } = useMemo(
+    () => getDateRange(datePreset, appliedCustomStart, appliedCustomEnd),
+    [datePreset, appliedCustomStart, appliedCustomEnd],
+  );
+
+  // Filter by createdAt for the selected period
+  const auctions = useMemo(
+    () => allAuctions.filter((a) => inRange(a.createdAt, start, end)),
+    [allAuctions, start, end],
+  );
+  const listings = useMemo(
+    () => allListings.filter((l) => inRange(l.createdAt, start, end)),
+    [allListings, start, end],
+  );
 
   if (loading) {
     return (
@@ -98,7 +115,6 @@ export default function SellerAnalyticsPage() {
 
   const now = Date.now();
 
-  // Auction stats
   const liveAuctions = auctions.filter(
     (a) => !a.ended && a.endsAt && new Date(a.endsAt).getTime() > now &&
       !(a.status === "SCHEDULED" && a.startsAt && new Date(a.startsAt).getTime() > now),
@@ -122,7 +138,6 @@ export default function SellerAnalyticsPage() {
   }, null as any);
   const totalBids = auctions.reduce((s, a) => s + Number(a.bids || 0), 0);
 
-  // Marketplace stats
   const activeListings = listings.filter((l) => l.status === "ACTIVE" || l.status === "PAUSED" || l.status === "OFFER_PENDING");
   const soldListings = listings.filter((l) => l.status === "SOLD" || l.sold);
   const marketplaceRevenue = soldListings.reduce((s, l) => s + moneyToNumber(l.acceptedOfferAmount || l.price || 0), 0);
@@ -145,6 +160,56 @@ export default function SellerAnalyticsPage() {
         <h1 className="mt-6 font-serif text-5xl text-[#c0c0c0]">Analytics</h1>
         <div className="mt-2 h-px w-48 bg-gradient-to-r from-transparent via-[#d6aa55]/60 to-transparent" />
 
+        {/* Date filter */}
+        <div className="mt-8 flex flex-wrap gap-2">
+          {DATE_PRESETS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setDatePreset(key)}
+              className={`rounded-lg border px-4 py-2 text-sm transition ${
+                datePreset === key
+                  ? "border-[#d6aa55]/60 bg-[#d6aa55]/10 text-[#e7c77f]"
+                  : "border-white/10 text-gray-400 hover:border-white/20 hover:text-white"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {datePreset === "custom" && (
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] uppercase tracking-widest text-gray-500">From</label>
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6aa55]/50"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] uppercase tracking-widest text-gray-500">To</label>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6aa55]/50"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => { setAppliedCustomStart(customStart); setAppliedCustomEnd(customEnd); }}
+              className="rounded-lg border border-[#d6aa55]/40 bg-[#d6aa55]/10 px-5 py-2 text-sm text-[#e7c77f] hover:bg-[#d6aa55]/20"
+            >
+              Apply
+            </button>
+          </div>
+        )}
+
+        <p className="mt-2 text-xs text-gray-600">Filtered by listed date (createdAt)</p>
+
         {/* Auction stats */}
         <h2 className="mt-10 mb-4 font-serif text-2xl text-gray-400">Auctions</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -158,7 +223,6 @@ export default function SellerAnalyticsPage() {
           <StatCard label="Unpaid Wins" value={String(soldAuctions.filter((a) => !a.paid).length)} />
         </div>
 
-        {/* Highest sale */}
         {highestSale && (
           <div className="mt-6 rounded-xl border border-[#d6aa55]/20 bg-[#1a1408]/40 p-5">
             <div className="mb-3 text-xs uppercase tracking-widest text-gray-500">Top Sale</div>
@@ -197,7 +261,7 @@ export default function SellerAnalyticsPage() {
         <h2 className="mt-12 mb-4 font-serif text-2xl text-gray-400">Auction Sale History</h2>
         {soldAuctions.length === 0 ? (
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-center text-gray-500">
-            No sold auctions yet.
+            No sold auctions in this period.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-white/10">

@@ -56,12 +56,14 @@ export default function SellerRevenuePage() {
   const [view, setView] = useState<"all" | "auctions" | "marketplace">("all");
   const [page, setPage] = useState(0);
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const PAGE_SIZE = 25;
 
-  const fetchStats = useCallback(async (preset: DatePreset) => {
+  const fetchStats = useCallback(async (preset: DatePreset, cs?: string, ce?: string) => {
     setLoading(true);
     try {
-      const { start, end } = getDateRange(preset);
+      const { start, end } = getDateRange(preset, cs, ce);
       const result = await (client as any).queries.getRevenueStats(
         {
           startDate: start?.toISOString() ?? null,
@@ -98,7 +100,7 @@ export default function SellerRevenuePage() {
   const handlePreset = (preset: DatePreset) => {
     setDatePreset(preset);
     setPage(0);
-    fetchStats(preset);
+    if (preset !== "custom") fetchStats(preset);
   };
 
   const viewStats: ViewStats = stats?.[view] ?? EMPTY_STATS;
@@ -150,6 +152,36 @@ export default function SellerRevenuePage() {
             </button>
           ))}
         </div>
+
+        {datePreset === "custom" && (
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] uppercase tracking-widest text-gray-500">From</label>
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6aa55]/50"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] uppercase tracking-widest text-gray-500">To</label>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6aa55]/50"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => { setPage(0); fetchStats("custom", customStart, customEnd); }}
+              className="rounded-lg border border-[#d6aa55]/40 bg-[#d6aa55]/10 px-5 py-2 text-sm text-[#e7c77f] hover:bg-[#d6aa55]/20"
+            >
+              Apply
+            </button>
+          </div>
+        )}
 
         {/* View toggle */}
         <div className="mt-5 flex gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1 w-fit">
