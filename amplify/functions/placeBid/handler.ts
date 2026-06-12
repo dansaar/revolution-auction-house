@@ -826,7 +826,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
       const newBidCount = (state.bidCount || 0) + (proxyUserId ? 2 : 1);
       const SOFT_CLOSE_WINDOW_SEC = 60;
-      const SOFT_CLOSE_EXTENSION_SEC = 60;
+      const SOFT_CLOSE_EXTENSION_SEC = 300;
 
       let updatedEndsAt = state.endsAt;
 
