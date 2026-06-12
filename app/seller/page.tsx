@@ -58,19 +58,34 @@ export default function SellerPage() {
 
   useEffect(() => {
     async function loadSellerAuctions() {
+      // Fetch public data (apiKey) independently so a userPool auth failure
+      // can't prevent the main auction/listing content from loading.
+      const [listingResult, auctionResult] = await Promise.all([
+        client.models.MarketplaceListing.list({ authMode: "apiKey", limit: 1000 } as any).catch(() => ({ data: [] })),
+        client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any).catch(() => ({ data: [] })),
+      ]);
+
+      const resolvedListings = (listingResult.data || []).map((listing: any) => ({
+        ...listing,
+        image: cdnUrl(listing.thumbImages?.[0] || listing.image || listing.images?.[0] || ""),
+      }));
+      setMarketplaceListings(resolvedListings);
+
+      const sorted = [...(auctionResult.data || [])].sort(
+        (a: any, b: any) => new Date(b.endsAt || 0).getTime() - new Date(a.endsAt || 0).getTime(),
+      );
+      const resolved = sorted.map((auction: any) => ({
+        ...auction,
+        image: cdnUrl(auction.thumbImages?.[0] || auction.images?.[0] || auction.image || ""),
+      }));
+      setAuctions(resolved);
+
+      // Fetch user-specific data (userPool) separately — failures here won't
+      // blank out the auctions/listings already loaded above.
       try {
         const user = await getCurrentUser();
 
         const email = (user.signInDetails?.loginId || user.username || "").toLowerCase();
-
-        const invoiceResult = await (client.models.Invoice as any).invoicesBySellerEmail(
-          { sellerEmail: email },
-          { authMode: "userPool", limit: 500 },
-        );
-
-        if (invoiceResult.errors) console.error("Invoice query errors:", invoiceResult.errors);
-        setInvoices(invoiceResult.data || []);
-
         const userId = user.userId || user.username || "";
 
         setSellerEmail(email);
@@ -80,80 +95,34 @@ export default function SellerPage() {
         const session = await fetchAuthSession({ forceRefresh: false });
         const sellerSub = (session.tokens?.idToken?.payload?.sub as string) || userId;
 
-        const offerResult = await client.models.Offer.list({
-          filter: {
-            sellerUserId: { eq: sellerSub },
-          },
-          authMode: "userPool",
-        } as any);
+        const [invoiceResult, offerResult, buyerRequestResult, buyerProfileResult] = await Promise.allSettled([
+          (client.models.Invoice as any).invoicesBySellerEmail(
+            { sellerEmail: email },
+            { authMode: "userPool", limit: 500 },
+          ),
+          client.models.Offer.list({
+            filter: { sellerUserId: { eq: sellerSub } },
+            authMode: "userPool",
+          } as any),
+          client.models.BuyerProfile.list({
+            filter: { status: { eq: "PENDING_REVIEW" } },
+            authMode: "userPool",
+          } as any),
+          client.models.BuyerProfile.list({
+            authMode: "userPool",
+            limit: 1000,
+          } as any),
+        ]);
 
-        setOffers(offerResult.data || []);
-
-        const buyerRequestResult = await client.models.BuyerProfile.list({
-          filter: {
-            status: { eq: "PENDING_REVIEW" },
-          },
-          authMode: "userPool",
-        } as any);
-
-        setBuyerRequests(buyerRequestResult.data || []);
-
-        const buyerProfileResult = await client.models.BuyerProfile.list({
-          authMode: "userPool",
-          limit: 1000,
-        } as any);
-
-        setBuyerProfiles(buyerProfileResult.data || []);
-
-        const listingResult = await client.models.MarketplaceListing.list({
-          authMode: "apiKey",
-          limit: 1000,
-        } as any);
-
-        const resolvedListings = (listingResult.data || []).map(
-          (listing: any) => {
-            const rawImage =
-              listing.thumbImages?.[0] ||
-              listing.image ||
-              listing.images?.[0] ||
-              "";
-
-            return {
-              ...listing,
-              image: cdnUrl(rawImage),
-            };
-          },
-        );
-
-        setMarketplaceListings(resolvedListings);
-
-        const result = await client.models.Auction.list({
-          authMode: "apiKey",
-          limit: 1000,
-        } as any);
-
-        const sorted = [...result.data].sort(
-          (a: any, b: any) =>
-            new Date(b.endsAt || 0).getTime() -
-            new Date(a.endsAt || 0).getTime(),
-        );
-
-        const resolved = sorted.map((auction: any) => {
-          const rawImage =
-            auction.thumbImages?.[0] ||
-            auction.images?.[0] ||
-            auction.image ||
-            "";
-
-          return {
-            ...auction,
-            image: cdnUrl(rawImage),
-          };
-        });
-
-        setAuctions(resolved);
+        if (invoiceResult.status === "fulfilled") {
+          if (invoiceResult.value.errors) console.error("Invoice query errors:", invoiceResult.value.errors);
+          setInvoices(invoiceResult.value.data || []);
+        }
+        if (offerResult.status === "fulfilled") setOffers(offerResult.value.data || []);
+        if (buyerRequestResult.status === "fulfilled") setBuyerRequests(buyerRequestResult.value.data || []);
+        if (buyerProfileResult.status === "fulfilled") setBuyerProfiles(buyerProfileResult.value.data || []);
       } catch (err) {
-        console.error(err);
+        console.error("Seller user-specific data error:", err);
       }
 
       setLoading(false);
