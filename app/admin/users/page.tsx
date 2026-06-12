@@ -9,6 +9,7 @@ import type { Schema } from "@/amplify/data/resource";
 import { isAdminUser } from "@/lib/sellers";
 import { BUYER_TIERS, getTier, formatTierLimit } from "@/lib/tiers";
 import { toast } from "sonner";
+import { fetchAuthSession } from "aws-amplify/auth";
 
 const client = generateClient<Schema>();
 
@@ -39,6 +40,8 @@ export default function AdminUsersPage() {
 
   const [buyers, setBuyers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adminEmails, setAdminEmails] = useState<Set<string>>(new Set());
+  const [sellerEmails, setSellerEmails] = useState<Set<string>>(new Set());
 
   const [search, setSearch] = useState("");
   const [filterTier, setFilterTier] = useState("ALL");
@@ -70,12 +73,29 @@ export default function AdminUsersPage() {
     setBuyers([...buyers].sort((a: any, b: any) => String(a.email || "").localeCompare(String(b.email || ""))));
   }
 
+  async function loadGroupMembers() {
+    try {
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString();
+      if (!token) return;
+      const res = await fetch("/api/admin/group-members", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setAdminEmails(new Set((data.admin ?? []).map((e: string) => e.toLowerCase())));
+      setSellerEmails(new Set((data.seller ?? []).map((e: string) => e.toLowerCase())));
+    } catch {
+      // non-fatal
+    }
+  }
+
   useEffect(() => {
     async function load() {
       try {
         if (!await isAdminUser()) return;
         setIsAdmin(true);
-        await loadData();
+        await Promise.all([loadData(), loadGroupMembers()]);
       } finally {
         setChecking(false);
         setLoading(false);
@@ -232,13 +252,21 @@ export default function AdminUsersPage() {
                         <div className="flex items-center gap-2">
                           {isOnline && <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" title="Online" />}
                           <div>
-                            <button
-                              type="button"
-                              onClick={() => setDrawerBuyer(buyer)}
-                              className="font-medium text-white hover:text-[#e7c77f]"
-                            >
-                              {buyer.email}
-                            </button>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setDrawerBuyer(buyer)}
+                                className="font-medium text-white hover:text-[#e7c77f]"
+                              >
+                                {buyer.email}
+                              </button>
+                              {adminEmails.has((buyer.email || "").toLowerCase()) && (
+                                <span className="inline-flex rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-rose-300">Admin</span>
+                              )}
+                              {sellerEmails.has((buyer.email || "").toLowerCase()) && (
+                                <span className="inline-flex rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-300">Seller</span>
+                              )}
+                            </div>
                             {buyer.displayName && buyer.displayName !== buyer.email && (
                               <div className="text-xs text-gray-500">{buyer.displayName}</div>
                             )}
@@ -318,6 +346,14 @@ export default function AdminUsersPage() {
             </button>
 
             <h2 className="font-serif text-2xl text-[#c0c0c0]">{drawerBuyer.email}</h2>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {adminEmails.has((drawerBuyer.email || "").toLowerCase()) && (
+                <span className="inline-flex rounded border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-300">Admin</span>
+              )}
+              {sellerEmails.has((drawerBuyer.email || "").toLowerCase()) && (
+                <span className="inline-flex rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">Seller</span>
+              )}
+            </div>
             {drawerBuyer.displayName && drawerBuyer.displayName !== drawerBuyer.email && (
               <div className="mt-1 text-gray-400">{drawerBuyer.displayName}</div>
             )}
