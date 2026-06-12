@@ -33,17 +33,13 @@ function statusDot(status: string) {
   }
 }
 
-type Tab = "buyers" | "sellers";
-
 export default function AdminUsersPage() {
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [buyers, setBuyers] = useState<any[]>([]);
-  const [sellers, setSellers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [tab, setTab] = useState<Tab>("buyers");
   const [search, setSearch] = useState("");
   const [filterTier, setFilterTier] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -70,12 +66,8 @@ export default function AdminUsersPage() {
   }
 
   async function loadData() {
-    const [buyers, sellers] = await Promise.all([
-      fetchAllPages((o) => client.models.BuyerProfile.list(o as any), { authMode: "userPool" }),
-      fetchAllPages((o) => client.models.SellerProfile.list(o as any), { authMode: "userPool" }),
-    ]);
+    const buyers = await fetchAllPages((o) => client.models.BuyerProfile.list(o as any), { authMode: "userPool" });
     setBuyers([...buyers].sort((a: any, b: any) => String(a.email || "").localeCompare(String(b.email || ""))));
-    setSellers([...sellers].sort((a: any, b: any) => String(a.email || "").localeCompare(String(b.email || ""))));
   }
 
   useEffect(() => {
@@ -138,19 +130,6 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function toggleSeller(seller: any, action: "add" | "remove") {
-    try {
-      await client.mutations.manageSellerGroup(
-        { email: seller.email, action },
-        { authMode: "userPool" } as any,
-      );
-      await loadData();
-      toast.success(action === "add" ? "Seller reinstated" : "Seller revoked");
-    } catch {
-      toast.error("Failed to update seller.");
-    }
-  }
-
   const filteredBuyers = useMemo(() => {
     const q = search.trim().toLowerCase();
     return buyers.filter((b: any) => {
@@ -160,15 +139,6 @@ export default function AdminUsersPage() {
       return true;
     });
   }, [buyers, search, filterTier, filterStatus]);
-
-  const filteredSellers = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return sellers.filter((s: any) => {
-      if (filterStatus !== "ALL" && (s.status || "APPROVED") !== filterStatus) return false;
-      if (q && !`${s.email} ${s.displayName}`.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [sellers, search, filterStatus]);
 
   const onlineCutoff = Date.now() - 5 * 60 * 1000;
   const onlineCount = buyers.filter((b: any) => b.lastSeenAt && new Date(b.lastSeenAt).getTime() >= onlineCutoff).length;
@@ -193,7 +163,6 @@ export default function AdminUsersPage() {
         {/* Summary cards */}
         <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           <SummaryCard label="Total Buyers" value={buyers.length} />
-          <SummaryCard label="Total Sellers" value={sellers.length} />
           <SummaryCard label="Online Now" value={onlineCount} accent="emerald" />
           <SummaryCard label="Pending Review" value={pendingCount} accent={pendingCount > 0 ? "yellow" : undefined} />
           {BUYER_TIERS.filter(t => t.code !== "BASIC").map(t => (
@@ -201,21 +170,8 @@ export default function AdminUsersPage() {
           ))}
         </div>
 
-        {/* Tabs + search */}
+        {/* Search + filters */}
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1 w-fit">
-            {(["buyers", "sellers"] as Tab[]).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => { setTab(t); setFilterTier("ALL"); setFilterStatus("ALL"); setSearch(""); }}
-                className={`rounded-lg px-5 py-2 text-sm font-medium capitalize transition ${tab === t ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
-              >
-                {t} <span className="ml-1 text-xs opacity-60">{t === "buyers" ? buyers.length : sellers.length}</span>
-              </button>
-            ))}
-          </div>
-
           <div className="flex flex-wrap gap-3">
             <input
               value={search}
@@ -223,8 +179,7 @@ export default function AdminUsersPage() {
               placeholder="Search email, name, ID…"
               className="rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none placeholder:text-gray-600 focus:border-[#d6aa55]/50 w-64"
             />
-            {tab === "buyers" && (
-              <select
+            <select
                 value={filterTier}
                 onChange={(e) => setFilterTier(e.target.value)}
                 className="rounded-xl border border-white/10 bg-black px-3 py-2.5 text-sm text-white outline-none"
@@ -232,7 +187,6 @@ export default function AdminUsersPage() {
                 <option value="ALL">All Tiers</option>
                 {TIER_ORDER.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
-            )}
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -247,12 +201,11 @@ export default function AdminUsersPage() {
         </div>
 
         <div className="mt-3 text-xs text-gray-600">
-          {tab === "buyers" ? `${filteredBuyers.length} of ${buyers.length} buyers` : `${filteredSellers.length} of ${sellers.length} sellers`}
+          {filteredBuyers.length} of {buyers.length} buyers
         </div>
 
         {/* Buyers table */}
-        {tab === "buyers" && (
-          <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
+        <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
             <table className="w-full min-w-[700px] text-left text-sm">
               <thead className="bg-white/[0.04] text-xs uppercase tracking-[0.16em] text-gray-500">
                 <tr>
@@ -351,79 +304,6 @@ export default function AdminUsersPage() {
               </tbody>
             </table>
           </div>
-        )}
-
-        {/* Sellers table */}
-        {tab === "sellers" && (
-          <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
-            <table className="w-full min-w-[600px] text-left text-sm">
-              <thead className="bg-white/[0.04] text-xs uppercase tracking-[0.16em] text-gray-500">
-                <tr>
-                  <th className="p-4">Seller</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Approved By</th>
-                  <th className="p-4">Approved At</th>
-                  <th className="p-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSellers.length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-gray-500">No sellers found.</td></tr>
-                ) : filteredSellers.map((seller: any) => {
-                  const isActive = seller.status === "APPROVED" || !seller.revokedAt;
-                  return (
-                    <tr key={seller.email} className="border-t border-white/[0.06] hover:bg-white/[0.02]">
-                      <td className="p-4">
-                        <div className="font-medium text-white">{seller.email}</div>
-                        {seller.displayName && seller.displayName !== seller.email && (
-                          <div className="text-xs text-gray-500">{seller.displayName}</div>
-                        )}
-                      </td>
-
-                      <td className="p-4">
-                        <span className={`inline-flex rounded border px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${
-                          isActive
-                            ? "text-emerald-300 border-emerald-500/20 bg-emerald-500/10"
-                            : "text-red-300 border-red-500/20 bg-red-500/10"
-                        }`}>
-                          {isActive ? "Active" : "Revoked"}
-                        </span>
-                      </td>
-
-                      <td className="p-4 text-xs text-gray-500">{seller.approvedBy || "—"}</td>
-
-                      <td className="p-4 text-xs text-gray-500">
-                        {seller.approvedAt ? new Date(seller.approvedAt).toLocaleDateString() : "—"}
-                      </td>
-
-                      <td className="p-4">
-                        {isActive ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (confirm(`Revoke seller access for ${seller.email}?`)) toggleSeller(seller, "remove");
-                            }}
-                            className="rounded border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/20"
-                          >
-                            Revoke
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => toggleSeller(seller, "add")}
-                            className="rounded border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-300 hover:bg-emerald-500/20"
-                          >
-                            Reinstate
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       {/* Buyer detail drawer */}

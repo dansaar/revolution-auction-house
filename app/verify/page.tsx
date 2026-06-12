@@ -73,6 +73,21 @@ function VerifyPageInner() {
     };
   }, []);
 
+  // Poll every 8 seconds after returning from Stripe until the tier upgrades
+  useEffect(() => {
+    if (!identityComplete) return;
+    const interval = setInterval(async () => {
+      await loadBuyerProfile();
+      setBuyerProfile((prev: any) => {
+        if (prev?.verificationTier && prev.verificationTier !== "BASIC") {
+          clearInterval(interval);
+        }
+        return prev;
+      });
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [identityComplete]);
+
   const currentTierCode = buyerProfile?.verificationTier || "BASIC";
   const currentTier = getTier(currentTierCode);
 
