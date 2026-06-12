@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-east-1_ql598Lj3R",
+    "user_pool_id": "us-east-1_xDzoZx0Eo",
     "aws_region": "us-east-1",
-    "user_pool_client_id": "6qvggmvbuvcq0pt9knbllbcd5d",
-    "identity_pool_id": "us-east-1:34dac6ca-8dc1-4e3f-bbb7-a2bb8f4220c6",
+    "user_pool_client_id": "2khhn627s1pg56pj8kiod5la5g",
+    "identity_pool_id": "us-east-1:46d63828-8c7b-4e6a-9206-80d84d689833",
     "mfa_methods": [],
     "standard_required_attributes": [
       "email"
@@ -14,7 +14,7 @@
     "user_verification_types": [
       "email"
     ],
-    "groups": [],
+    "groups": ["Admin", "Seller"],
     "mfa_configuration": "NONE",
     "password_policy": {
       "min_length": 8,
