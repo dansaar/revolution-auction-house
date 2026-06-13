@@ -37,7 +37,7 @@ function VerifyPageInner() {
   const searchParams = useSearchParams();
   const identityComplete = searchParams?.get("identity") === "complete";
 
-  const [requestedTier, setRequestedTier] = useState("VERIFIED");
+  const [requestedTier, setRequestedTier] = useState("PREMIUM");
   const [verificationNotes, setVerificationNotes] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const [startingIdentity, setStartingIdentity] = useState(false);
@@ -297,7 +297,7 @@ function VerifyPageInner() {
               onChange={(e) => setRequestedTier(e.target.value)}
               className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#d6aa55]/50 md:max-w-sm"
             >
-              {BUYER_TIERS.filter((t) => t.code !== "BASIC").map((tier) => (
+              {BUYER_TIERS.filter((t) => t.code !== "BASIC" && t.code !== "VERIFIED").map((tier) => (
                 <option key={tier.code} value={tier.code}>
                   {tier.name} — {formatTierLimit(tier.code)} limit
                 </option>
