@@ -51,7 +51,7 @@ function SellerPage() {
 
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"auctions" | "marketplace">(
-    searchParams.get("tab") === "marketplace" ? "marketplace" : "auctions",
+    searchParams?.get("tab") === "marketplace" ? "marketplace" : "auctions",
   );
 
   const [marketplaceListings, setMarketplaceListings] = useState<any[]>([]);
