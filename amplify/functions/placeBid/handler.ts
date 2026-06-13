@@ -221,7 +221,7 @@ for (const [name, val] of [
 
 const BID_COOLDOWN_MS = 3000;
 
-function getIncrement(amount: number): number {
+function defaultIncrement(amount: number): number {
   if (amount < 100) return 5;
   if (amount < 500) return 10;
   if (amount < 1000) return 25;
@@ -234,6 +234,10 @@ function getIncrement(amount: number): number {
   if (amount < 250000) return 5000;
   if (amount < 500000) return 10000;
   return 25000;
+}
+
+function getIncrement(amount: number, custom?: number | null): number {
+  return Math.max(custom || 0, defaultIncrement(amount));
 }
 
 function formatMoney(amount: number) {
@@ -582,6 +586,11 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       };
     }
 
+    const customIncrement: number | null =
+      typeof auctionOwnerCheck?.increment === "number" && auctionOwnerCheck.increment > 0
+        ? auctionOwnerCheck.increment
+        : null;
+
     const existingAuditLog = await getBidAuditLogDirect(bidRequestId);
 
     if (existingAuditLog) {
@@ -746,7 +755,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       }
 
       const currentPrice = moneyToNumber(state.currentPrice);
-      const minimumBid = currentPrice + getIncrement(currentPrice);
+      const minimumBid = currentPrice + getIncrement(currentPrice, customIncrement);
 
       if (maxBid < minimumBid) {
         const message = `Minimum bid is ${formatMoney(minimumBid)}`;
@@ -807,7 +816,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
         visiblePrice = Math.min(
           maxBid,
-          leaderMaxBid + getIncrement(leaderMaxBid),
+          leaderMaxBid + getIncrement(leaderMaxBid, customIncrement),
         );
       } else if (maxBid === leaderMaxBid) {
         newSecondUserId = bidderUserId;
@@ -819,7 +828,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         newSecondUserId = bidderUserId;
         newSecondMaxBid = Math.max(secondMaxBid, maxBid);
 
-        visiblePrice = Math.min(leaderMaxBid, maxBid + getIncrement(maxBid));
+        visiblePrice = Math.min(leaderMaxBid, maxBid + getIncrement(maxBid, customIncrement));
 
         proxyUserId = leaderUserId;
       }

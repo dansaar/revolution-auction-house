@@ -282,6 +282,8 @@ export default function SellAuctionContent() {
         taxRate: form.chargeTax ? 6.625 : 0,
         buyerPremiumRate: 18,
 
+        ...(form.increment ? { increment: Number(form.increment) } : {}),
+
         endsAt: new Date(form.endsAt).toISOString(),
         ...(scheduled ? {
           startsAt: new Date(startsAt).toISOString(),

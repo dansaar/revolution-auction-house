@@ -1205,6 +1205,24 @@ function SellerAuctionCard({
   const [shippingTracking, setShippingTracking] = useState("");
   const [savingShipping, setSavingShipping] = useState(false);
 
+  // EasyPost label flow
+  const [showRatesModal, setShowRatesModal] = useState(false);
+  const [ratesStep, setRatesStep] = useState<"form" | "rates" | "purchasing">("form");
+  const [ratesWeight, setRatesWeight] = useState("");
+  const [ratesLength, setRatesLength] = useState("");
+  const [ratesWidth, setRatesWidth] = useState("");
+  const [ratesHeight, setRatesHeight] = useState("");
+  const [ratesFromName, setRatesFromName] = useState("");
+  const [ratesFromStreet, setRatesFromStreet] = useState("");
+  const [ratesFromCity, setRatesFromCity] = useState("");
+  const [ratesFromState, setRatesFromState] = useState("");
+  const [ratesFromZip, setRatesFromZip] = useState("");
+  const [fetchingRates, setFetchingRates] = useState(false);
+  const [shipmentId, setShipmentId] = useState("");
+  const [rates, setRates] = useState<any[]>([]);
+  const [ratesError, setRatesError] = useState("");
+  const [purchasedLabel, setPurchasedLabel] = useState<{ trackingNumber: string; carrier: string; labelUrl: string } | null>(null);
+
   const [showEndAuctionModal, setShowEndAuctionModal] = useState(false);
   const [endingAuction, setEndingAuction] = useState(false);
 
@@ -1455,6 +1473,34 @@ function SellerAuctionCard({
                     </div>
                   )}
 
+                  {!auction.shippingLabelUrl && !auction.trackingNumber && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRatesStep("form");
+                        setRates([]);
+                        setRatesError("");
+                        setPurchasedLabel(null);
+                        setShipmentId("");
+                        setShowRatesModal(true);
+                      }}
+                      className="mt-4 w-full rounded-lg border border-[#d6aa55]/50 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                    >
+                      Get Rates & Print Label
+                    </button>
+                  )}
+
+                  {auction.shippingLabelUrl && (
+                    <a
+                      href={auction.shippingLabelUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                    >
+                      Print Label ↗
+                    </a>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => {
@@ -1462,11 +1508,11 @@ function SellerAuctionCard({
                       setShippingTracking(auction.trackingNumber || "");
                       setShowShippingModal(true);
                     }}
-                    className="mt-4 w-full rounded-lg border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                    className="mt-2 w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white"
                   >
                     {auction.trackingNumber
-                      ? "Update Shipping Info"
-                      : "Enter Shipping Info"}
+                      ? "Update Tracking Manually"
+                      : "Enter Tracking Manually"}
                   </button>
 
                   {auction.shippingStatus === "SHIPPED" && (
@@ -1623,6 +1669,32 @@ function SellerAuctionCard({
           </div>
         </div>
       )}
+
+      {showRatesModal && (
+        <EasyPostModal
+          itemId={auction.id}
+          itemType="AUCTION"
+          client={client}
+          step={ratesStep}
+          setStep={setRatesStep}
+          weight={ratesWeight} setWeight={setRatesWeight}
+          length={ratesLength} setLength={setRatesLength}
+          width={ratesWidth} setWidth={setRatesWidth}
+          height={ratesHeight} setHeight={setRatesHeight}
+          fromName={ratesFromName} setFromName={setRatesFromName}
+          fromStreet={ratesFromStreet} setFromStreet={setRatesFromStreet}
+          fromCity={ratesFromCity} setFromCity={setRatesFromCity}
+          fromState={ratesFromState} setFromState={setRatesFromState}
+          fromZip={ratesFromZip} setFromZip={setRatesFromZip}
+          fetchingRates={fetchingRates} setFetchingRates={setFetchingRates}
+          shipmentId={shipmentId} setShipmentId={setShipmentId}
+          rates={rates} setRates={setRates}
+          ratesError={ratesError} setRatesError={setRatesError}
+          purchasedLabel={purchasedLabel} setPurchasedLabel={setPurchasedLabel}
+          onClose={() => setShowRatesModal(false)}
+          onSuccess={() => { setShowRatesModal(false); window.location.reload(); }}
+        />
+      )}
       {showEndAuctionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
           <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-[#0b0c0e] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
@@ -1696,6 +1768,25 @@ function MarketplaceSection({
   const [shippingCarrier, setShippingCarrier] = useState("");
   const [shippingTracking, setShippingTracking] = useState("");
   const [savingShipping, setSavingShipping] = useState(false);
+
+  // EasyPost label flow
+  const [showRatesModal, setShowRatesModal] = useState(false);
+  const [ratesListingId, setRatesListingId] = useState("");
+  const [ratesStep, setRatesStep] = useState<"form" | "rates" | "purchasing">("form");
+  const [ratesWeight, setRatesWeight] = useState("");
+  const [ratesLength, setRatesLength] = useState("");
+  const [ratesWidth, setRatesWidth] = useState("");
+  const [ratesHeight, setRatesHeight] = useState("");
+  const [ratesFromName, setRatesFromName] = useState("");
+  const [ratesFromStreet, setRatesFromStreet] = useState("");
+  const [ratesFromCity, setRatesFromCity] = useState("");
+  const [ratesFromState, setRatesFromState] = useState("");
+  const [ratesFromZip, setRatesFromZip] = useState("");
+  const [fetchingRates, setFetchingRates] = useState(false);
+  const [shipmentId, setShipmentId] = useState("");
+  const [rates, setRates] = useState<any[]>([]);
+  const [ratesError, setRatesError] = useState("");
+  const [purchasedLabel, setPurchasedLabel] = useState<{ trackingNumber: string; carrier: string; labelUrl: string } | null>(null);
 
   return (
     <section className="mt-14">
@@ -1830,6 +1921,35 @@ function MarketplaceSection({
                         </div>
                       )}
 
+                      {!listing.shippingLabelUrl && !listing.trackingNumber && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRatesListingId(listing.id);
+                            setRatesStep("form");
+                            setRates([]);
+                            setRatesError("");
+                            setPurchasedLabel(null);
+                            setShipmentId("");
+                            setShowRatesModal(true);
+                          }}
+                          className="mt-4 w-full rounded border border-[#d6aa55]/50 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                        >
+                          Get Rates & Print Label
+                        </button>
+                      )}
+
+                      {listing.shippingLabelUrl && (
+                        <a
+                          href={listing.shippingLabelUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-4 flex w-full items-center justify-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                        >
+                          Print Label ↗
+                        </a>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => {
@@ -1838,11 +1958,11 @@ function MarketplaceSection({
                           setShippingTracking(listing.trackingNumber || "");
                           setShowShippingModal(true);
                         }}
-                        className="mt-4 w-full rounded border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+                        className="mt-2 w-full rounded border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white"
                       >
                         {listing.trackingNumber
-                          ? "Update Shipping Info"
-                          : "Enter Shipping Info"}
+                          ? "Update Tracking Manually"
+                          : "Enter Tracking Manually"}
                       </button>
 
                       {listing.shippingStatus === "SHIPPED" && (
@@ -2159,6 +2279,238 @@ function MarketplaceSection({
           </div>
         </div>
       )}
+
+      {showRatesModal && (
+        <EasyPostModal
+          itemId={ratesListingId}
+          itemType="LISTING"
+          client={client}
+          step={ratesStep}
+          setStep={setRatesStep}
+          weight={ratesWeight} setWeight={setRatesWeight}
+          length={ratesLength} setLength={setRatesLength}
+          width={ratesWidth} setWidth={setRatesWidth}
+          height={ratesHeight} setHeight={setRatesHeight}
+          fromName={ratesFromName} setFromName={setRatesFromName}
+          fromStreet={ratesFromStreet} setFromStreet={setRatesFromStreet}
+          fromCity={ratesFromCity} setFromCity={setRatesFromCity}
+          fromState={ratesFromState} setFromState={setRatesFromState}
+          fromZip={ratesFromZip} setFromZip={setRatesFromZip}
+          fetchingRates={fetchingRates} setFetchingRates={setFetchingRates}
+          shipmentId={shipmentId} setShipmentId={setShipmentId}
+          rates={rates} setRates={setRates}
+          ratesError={ratesError} setRatesError={setRatesError}
+          purchasedLabel={purchasedLabel} setPurchasedLabel={setPurchasedLabel}
+          onClose={() => setShowRatesModal(false)}
+          onSuccess={() => { setShowRatesModal(false); window.location.reload(); }}
+        />
+      )}
     </section>
+  );
+}
+
+function EasyPostModal({
+  itemId, itemType, client,
+  step, setStep,
+  weight, setWeight,
+  length, setLength,
+  width, setWidth,
+  height, setHeight,
+  fromName, setFromName,
+  fromStreet, setFromStreet,
+  fromCity, setFromCity,
+  fromState, setFromState,
+  fromZip, setFromZip,
+  fetchingRates, setFetchingRates,
+  shipmentId, setShipmentId,
+  rates, setRates,
+  ratesError, setRatesError,
+  purchasedLabel, setPurchasedLabel,
+  onClose, onSuccess,
+}: any) {
+  const [purchasing, setPurchasing] = useState(false);
+
+  async function handleGetRates() {
+    if (!weight) { toast.error("Enter package weight"); return; }
+    if (!fromName || !fromStreet || !fromCity || !fromState || !fromZip) {
+      toast.error("Fill in all ship-from address fields");
+      return;
+    }
+    setFetchingRates(true);
+    setRatesError("");
+    try {
+      const result = await client.mutations.getShippingRates(
+        {
+          itemId,
+          itemType,
+          weight: parseFloat(weight),
+          ...(length ? { length: parseFloat(length) } : {}),
+          ...(width ? { width: parseFloat(width) } : {}),
+          ...(height ? { height: parseFloat(height) } : {}),
+          fromName,
+          fromStreet1: fromStreet,
+          fromCity,
+          fromState,
+          fromZip,
+        },
+        { authMode: "userPool" } as any,
+      );
+      const data = (result as any).data;
+      if (data?.error) { setRatesError(data.error); return; }
+      const parsed = JSON.parse(data?.ratesJson || "[]");
+      setShipmentId(data?.shipmentId || "");
+      setRates(parsed);
+      setStep("rates");
+    } catch (err: any) {
+      setRatesError(err?.message || "Failed to get rates");
+    } finally {
+      setFetchingRates(false);
+    }
+  }
+
+  async function handlePurchase(rate: any) {
+    setPurchasing(true);
+    try {
+      const result = await client.mutations.purchaseShippingLabel(
+        { itemId, itemType, shipmentId, rateId: rate.id },
+        { authMode: "userPool" } as any,
+      );
+      const data = (result as any).data;
+      if (!data?.success) {
+        toast.error(data?.error || "Purchase failed");
+        return;
+      }
+      setPurchasedLabel({ trackingNumber: data.trackingNumber, carrier: data.carrier, labelUrl: data.labelUrl });
+      setStep("purchasing");
+    } catch (err: any) {
+      toast.error(err?.message || "Purchase failed");
+    } finally {
+      setPurchasing(false);
+    }
+  }
+
+  const inputCls = "w-full rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none placeholder:text-gray-600 focus:border-[#d6aa55]/50";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-8">
+      <div className="w-full max-w-lg rounded-2xl border border-[#d6aa55]/30 bg-[#0b0c0e] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
+        <div className="flex items-center justify-between">
+          <h3 className="font-serif text-2xl text-[#c0c0c0]">Shipping Label</h3>
+          <button type="button" onClick={onClose} className="text-gray-500 hover:text-white text-xl">✕</button>
+        </div>
+
+        {step === "form" && (
+          <>
+            <p className="mt-2 text-sm text-gray-400">Enter package details and your ship-from address to compare carrier rates.</p>
+
+            <div className="mt-5 space-y-4">
+              <div>
+                <div className="mb-2 text-[10px] uppercase tracking-[0.15em] text-gray-500">Package</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-[10px] text-gray-500">Weight (oz)*</label>
+                    <input value={weight} onChange={(e: any) => setWeight(e.target.value)} type="number" placeholder="e.g. 4" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] text-gray-500">Length (in)</label>
+                    <input value={length} onChange={(e: any) => setLength(e.target.value)} type="number" placeholder="Optional" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] text-gray-500">Width (in)</label>
+                    <input value={width} onChange={(e: any) => setWidth(e.target.value)} type="number" placeholder="Optional" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] text-gray-500">Height (in)</label>
+                    <input value={height} onChange={(e: any) => setHeight(e.target.value)} type="number" placeholder="Optional" className={inputCls} />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 text-[10px] uppercase tracking-[0.15em] text-gray-500">Ship From</div>
+                <div className="space-y-2">
+                  <input value={fromName} onChange={(e: any) => setFromName(e.target.value)} placeholder="Full name or company*" className={inputCls} />
+                  <input value={fromStreet} onChange={(e: any) => setFromStreet(e.target.value)} placeholder="Street address*" className={inputCls} />
+                  <div className="grid grid-cols-3 gap-2">
+                    <input value={fromCity} onChange={(e: any) => setFromCity(e.target.value)} placeholder="City*" className={inputCls} />
+                    <input value={fromState} onChange={(e: any) => setFromState(e.target.value)} placeholder="State*" maxLength={2} className={inputCls} />
+                    <input value={fromZip} onChange={(e: any) => setFromZip(e.target.value)} placeholder="ZIP*" className={inputCls} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {ratesError && <p className="mt-3 text-sm text-red-400">{ratesError}</p>}
+
+            <div className="mt-6 flex gap-3">
+              <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-white hover:bg-white/[0.06]">Cancel</button>
+              <button type="button" disabled={fetchingRates} onClick={handleGetRates} className="flex-1 rounded-xl border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909] disabled:opacity-50">
+                {fetchingRates ? "Getting rates…" : "Get Rates →"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === "rates" && (
+          <>
+            <p className="mt-2 text-sm text-gray-400">Select a shipping option. Label will be purchased immediately.</p>
+
+            {rates.length === 0 && <p className="mt-4 text-sm text-gray-500">No rates available for these dimensions.</p>}
+
+            <div className="mt-4 space-y-2 max-h-96 overflow-y-auto pr-1">
+              {rates.map((rate: any) => (
+                <div key={rate.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <div>
+                    <div className="font-semibold text-white">{rate.carrier} — {rate.service}</div>
+                    <div className="mt-0.5 text-xs text-gray-500">
+                      {rate.delivery_days ? `Est. ${rate.delivery_days} day${rate.delivery_days > 1 ? "s" : ""}` : "Estimated delivery varies"}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="font-semibold text-[#e7c77f]">${parseFloat(rate.rate).toFixed(2)}</div>
+                      <div className="text-[10px] text-gray-600">{rate.currency}</div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={purchasing}
+                      onClick={() => handlePurchase(rate)}
+                      className="rounded-lg border border-[#d6aa55]/40 bg-[#1a1408] px-3 py-1.5 text-xs font-semibold text-[#e7c77f] hover:bg-[#221909] disabled:opacity-50"
+                    >
+                      {purchasing ? "…" : "Buy"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button type="button" onClick={() => setStep("form")} className="mt-4 text-xs text-gray-500 hover:text-white">← Back</button>
+          </>
+        )}
+
+        {step === "purchasing" && purchasedLabel && (
+          <>
+            <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] p-5">
+              <div className="text-sm font-semibold text-emerald-300">Label purchased successfully</div>
+              <div className="mt-3 space-y-1 text-sm text-gray-300">
+                <div>Carrier: <span className="text-white">{purchasedLabel.carrier}</span></div>
+                <div>Tracking: <span className="font-mono text-white">{purchasedLabel.trackingNumber}</span></div>
+              </div>
+              {purchasedLabel.labelUrl && (
+                <a
+                  href={purchasedLabel.labelUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                >
+                  Print / Download Label ↗
+                </a>
+              )}
+            </div>
+            <button type="button" onClick={onSuccess} className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-white hover:bg-white/[0.06]">Done</button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

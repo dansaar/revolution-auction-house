@@ -11,6 +11,8 @@ import { submitVerificationRequest } from "../functions/submitVerificationReques
 import { getRevenueStats } from "../functions/getRevenueStats/resource";
 import { adminListInvoices } from "../functions/adminListInvoices/resource";
 import { saveSellerPrefs } from "../functions/saveSellerPrefs/resource";
+import { getShippingRates } from "../functions/getShippingRates/resource";
+import { purchaseShippingLabel } from "../functions/purchaseShippingLabel/resource";
 
 const schema = a
   .schema({
@@ -63,6 +65,9 @@ const schema = a
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
         startsAt: a.datetime(),
+        increment: a.integer(),
+        easypostShipmentId: a.string(),
+        shippingLabelUrl: a.string(),
       })
       .secondaryIndexes((index) => [
         index("sellerUserId").queryField("auctionsBySellerUserId"),
@@ -140,6 +145,8 @@ const schema = a
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
         lastOfferSmsAt: a.datetime(),
+        easypostShipmentId: a.string(),
+        shippingLabelUrl: a.string(),
       })
       .secondaryIndexes((index) => [
         index("sellerUserId").queryField("listingsBySellerUserId"),
@@ -507,6 +514,48 @@ const schema = a
       .returns(a.customType({ success: a.boolean() }))
       .authorization((allow) => [allow.authenticated()])
       .handler(a.handler.function(saveSellerPrefs)),
+
+    getShippingRates: a
+      .mutation()
+      .arguments({
+        itemId: a.string().required(),
+        itemType: a.string().required(),
+        weight: a.float().required(),
+        length: a.float(),
+        width: a.float(),
+        height: a.float(),
+        fromName: a.string().required(),
+        fromStreet1: a.string().required(),
+        fromCity: a.string().required(),
+        fromState: a.string().required(),
+        fromZip: a.string().required(),
+        fromPhone: a.string(),
+      })
+      .returns(a.customType({
+        shipmentId: a.string(),
+        ratesJson: a.string(),
+        error: a.string(),
+      }))
+      .authorization((allow) => [allow.group("Seller"), allow.group("Admin")])
+      .handler(a.handler.function(getShippingRates)),
+
+    purchaseShippingLabel: a
+      .mutation()
+      .arguments({
+        itemId: a.string().required(),
+        itemType: a.string().required(),
+        shipmentId: a.string().required(),
+        rateId: a.string().required(),
+      })
+      .returns(a.customType({
+        success: a.boolean(),
+        trackingNumber: a.string(),
+        carrier: a.string(),
+        labelUrl: a.string(),
+        error: a.string(),
+      }))
+      .authorization((allow) => [allow.group("Seller"), allow.group("Admin")])
+      .handler(a.handler.function(purchaseShippingLabel)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -521,6 +570,8 @@ const schema = a
     allow.resource(getRevenueStats),
     allow.resource(adminListInvoices),
     allow.resource(saveSellerPrefs),
+    allow.resource(getShippingRates),
+    allow.resource(purchaseShippingLabel),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

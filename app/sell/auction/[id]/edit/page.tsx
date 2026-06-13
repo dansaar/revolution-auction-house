@@ -35,6 +35,7 @@ export default function CreateAuctionPage() {
     endsAt: `${new Date().toISOString().split("T")[0]}T12:00`,
     startingPrice: "",
     reservePrice: "",
+    increment: "",
     chargeTax: true,
     taxRate: "6.625",
     buyerPremiumRate: "18",
@@ -122,6 +123,7 @@ export default function CreateAuctionPage() {
           image: auction.image || "",
           startingPrice: auction.price ? String(Number(String(auction.price).replace(/[$,]/g, ""))) : "",
           reservePrice: auction.reservePrice ? String(Number(String(auction.reservePrice).replace(/[$,]/g, ""))) : "",
+          increment: auction.increment ? String(auction.increment) : "",
           endsAt: auction.endsAt
             ? new Date(auction.endsAt).toISOString().slice(0, 16)
             : prev.endsAt,
@@ -276,6 +278,7 @@ export default function CreateAuctionPage() {
           reservePrice: form.reservePrice
             ? `$${Number(form.reservePrice).toLocaleString()}`
             : null,
+          increment: form.increment ? Number(form.increment) : null,
 
           chargeTax: form.chargeTax,
           taxRate: form.chargeTax ? 6.625 : 0,
@@ -625,6 +628,13 @@ export default function CreateAuctionPage() {
               label="Reserve Price ($)"
               value={form.reservePrice}
               onChange={(v) => update("reservePrice", v)}
+              type="number"
+              placeholder="Optional"
+            />
+            <Input
+              label="Bid Increment ($)"
+              value={form.increment}
+              onChange={(v) => update("increment", v)}
               type="number"
               placeholder="Optional"
             />
