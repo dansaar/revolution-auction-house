@@ -114,13 +114,14 @@ export default function SellerVerificationsPage() {
   useEffect(() => {
     async function init() {
       try {
-        const [seller, admin] = await Promise.all([isApprovedSeller(undefined), isAdminUser()]);
+        const user = await getCurrentUser();
+        const email = ((user as any).signInDetails?.loginId || "").toLowerCase();
+        setMyEmail(email);
+
+        const [seller, admin] = await Promise.all([isApprovedSeller(email), isAdminUser()]);
         if (!seller && !admin) return;
         setAllowed(true);
         setIsAdmin(admin);
-        const user = await getCurrentUser();
-        const email = (user as any).signInDetails?.loginId || "";
-        setMyEmail(email);
         await Promise.all([loadPending(), email ? loadMyNotifySettings(email) : Promise.resolve()]);
       } finally {
         setChecking(false);
