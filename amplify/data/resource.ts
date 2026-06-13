@@ -176,7 +176,7 @@ const schema = a
         read: a.boolean().default(false),
       })
       .secondaryIndexes((index) => [
-        index("sellerUserId").sortKeys(["createdAt"]).queryField("offersBySellerUserId"),
+        index("sellerUserId").queryField("offersBySellerUserId"),
       ])
       .authorization((allow) => [
         allow.ownerDefinedIn("buyerUserId"),
