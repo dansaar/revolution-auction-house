@@ -55,7 +55,7 @@ export const handler: Schema["notifySellerOfferSms"]["functionHandler"] = async 
     );
     const sellerProfile = sellerProfileResult.data as any;
 
-    const pref: string = sellerProfile?.notifyOffers ?? "email";
+    const pref: string = sellerProfile?.notifyOffers ?? "none";
     const phone: string = sellerProfile?.phoneNumber ?? "";
     const wantsSms = (pref === "sms" || pref === "both") && phone;
     const wantsEmail = (pref === "email" || pref === "both") && FROM_EMAIL;

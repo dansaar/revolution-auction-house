@@ -87,7 +87,7 @@ export const handler: Schema["submitVerificationRequest"]["functionHandler"] =
           const smsTo: string[] = [];
 
           for (const s of approvedSellers) {
-            const pref = (s as any).notifyVerifications ?? "email";
+            const pref = (s as any).notifyVerifications ?? "none";
             if ((pref === "email" || pref === "both") && s.email) emailTo.push(s.email);
             if ((pref === "sms" || pref === "both") && (s as any).phoneNumber) smsTo.push((s as any).phoneNumber);
           }

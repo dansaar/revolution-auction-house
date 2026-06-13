@@ -28,8 +28,8 @@ export default function SellerVerificationsPage() {
 
   // Notification settings
   const [myEmail, setMyEmail] = useState("");
-  const [notifyVerifPref, setNotifyVerifPref] = useState("email");
-  const [notifyOffersPref, setNotifyOffersPref] = useState("email");
+  const [notifyVerifPref, setNotifyVerifPref] = useState("none");
+  const [notifyOffersPref, setNotifyOffersPref] = useState("none");
   const [notifyPhone, setNotifyPhone] = useState("");
   const [savingNotify, setSavingNotify] = useState(false);
   const [notifySaved, setNotifySaved] = useState(false);

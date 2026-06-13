@@ -298,8 +298,8 @@ const schema = a
         revokedAt: a.datetime(),
 
         // Notification preferences
-        notifyVerifications: a.string().default("email"), // "email" | "sms" | "both" | "none"
-        notifyOffers: a.string().default("email"),        // "email" | "sms" | "both" | "none"
+        notifyVerifications: a.string().default("none"), // "email" | "sms" | "both" | "none"
+        notifyOffers: a.string().default("none"),        // "email" | "sms" | "both" | "none"
         phoneNumber: a.string(),
       })
       .identifier(["email"])
