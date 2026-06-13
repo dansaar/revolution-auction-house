@@ -101,7 +101,9 @@ export default function SellerVerificationsPage() {
         } as any,
         { authMode: "userPool" } as any,
       );
-      if ((result as any).data?.success === false) throw new Error("Save failed");
+      const errors = (result as any).errors;
+      if (errors?.length) throw new Error(errors[0].message);
+      if ((result as any).data?.success === false) throw new Error("Unauthorized — seller profile not found");
       setNotifySaved(true);
       setTimeout(() => setNotifySaved(false), 3000);
     } catch (err: any) {

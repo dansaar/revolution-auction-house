@@ -19,17 +19,34 @@ export const handler: Schema["saveSellerPrefs"]["functionHandler"] = async (
 
   const identity = event.identity as any;
   const claims = identity?.claims ?? {};
-  const groups: string[] = claims["cognito:groups"] ?? [];
-  const isSeller = groups.includes("Seller");
+
+  const rawGroups = claims["cognito:groups"];
+  const groups: string[] = Array.isArray(rawGroups)
+    ? rawGroups
+    : typeof rawGroups === "string"
+      ? rawGroups.split(",").map((s: string) => s.trim())
+      : [];
+
   const isAdmin = groups.includes("Admin");
 
-  if (!isSeller && !isAdmin) {
+  const callerEmail = String(claims.email || "").toLowerCase();
+  console.log("saveSellerPrefs: callerEmail", callerEmail, "isAdmin", isAdmin, "groups", groups);
+
+  if (!callerEmail) {
+    console.warn("saveSellerPrefs: missing email claim");
     return { success: false };
   }
 
-  const callerEmail = String(claims.email || "").toLowerCase();
-  if (!callerEmail) {
-    return { success: false };
+  // Verify caller is an approved seller (same pattern as reviewBuyerVerification)
+  if (!isAdmin) {
+    const sellerResult = await client.models.SellerProfile.get(
+      { email: callerEmail },
+      { authMode: "iam" } as any,
+    );
+    if (!sellerResult.data || sellerResult.data.status !== "APPROVED") {
+      console.warn("saveSellerPrefs: no approved SellerProfile for", callerEmail);
+      return { success: false };
+    }
   }
 
   const VALID_PREFS = ["email", "sms", "both", "none"];
@@ -47,5 +64,6 @@ export const handler: Schema["saveSellerPrefs"]["functionHandler"] = async (
     { authMode: "iam" } as any,
   );
 
+  console.log("saveSellerPrefs: updated", { callerEmail, safeVerif, safeOffers });
   return { success: true };
 };
