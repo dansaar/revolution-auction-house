@@ -337,6 +337,8 @@ export default function SellerPage() {
     (l) => l.status === "SOLD" || l.sold,
   );
 
+  const pendingOfferCount = offers.filter((o: any) => o.status === "PENDING").length;
+
   function formatInvoiceAmount(value: string | number | null | undefined) {
     const amount = Number(String(value || "0").replace(/[$,]/g, ""));
 
@@ -429,12 +431,17 @@ export default function SellerPage() {
           <button
             type="button"
             onClick={() => setActiveTab("marketplace")}
-            className={`w-36 group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
+            className={`w-36 group relative rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
               activeTab === "marketplace"
                 ? "border-[#d6aa55]/60 bg-[#1a1408]"
                 : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
             }`}
           >
+            {pendingOfferCount > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-black">
+                {pendingOfferCount}
+              </span>
+            )}
             <Tag className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
             <div className="text-lg font-bold text-white">Marketplace</div>
           </button>

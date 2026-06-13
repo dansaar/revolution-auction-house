@@ -93,15 +93,15 @@ export default function SellerVerificationsPage() {
     if (savingNotify || !myEmail) return;
     setSavingNotify(true);
     try {
-      await client.models.SellerProfile.update(
+      const result = await client.mutations.saveSellerPrefs(
         {
-          email: myEmail,
           notifyVerifications: notifyVerifPref,
           notifyOffers: notifyOffersPref,
           phoneNumber: notifyPhone || null,
         } as any,
         { authMode: "userPool" } as any,
       );
+      if ((result as any).data?.success === false) throw new Error("Save failed");
       setNotifySaved(true);
       setTimeout(() => setNotifySaved(false), 3000);
     } catch (err: any) {

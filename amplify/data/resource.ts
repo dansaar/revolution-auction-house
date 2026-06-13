@@ -10,6 +10,7 @@ import { autoVerifyBuyer } from "../functions/autoVerifyBuyer/resource";
 import { submitVerificationRequest } from "../functions/submitVerificationRequest/resource";
 import { getRevenueStats } from "../functions/getRevenueStats/resource";
 import { adminListInvoices } from "../functions/adminListInvoices/resource";
+import { saveSellerPrefs } from "../functions/saveSellerPrefs/resource";
 
 const schema = a
   .schema({
@@ -495,6 +496,17 @@ const schema = a
       }))
       .authorization((allow) => [allow.group("Admin")])
       .handler(a.handler.function(adminListInvoices)),
+
+    saveSellerPrefs: a
+      .mutation()
+      .arguments({
+        notifyVerifications: a.string(),
+        notifyOffers: a.string(),
+        phoneNumber: a.string(),
+      })
+      .returns(a.customType({ success: a.boolean() }))
+      .authorization((allow) => [allow.authenticated()])
+      .handler(a.handler.function(saveSellerPrefs)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -508,6 +520,7 @@ const schema = a
     allow.resource(submitVerificationRequest),
     allow.resource(getRevenueStats),
     allow.resource(adminListInvoices),
+    allow.resource(saveSellerPrefs),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;
