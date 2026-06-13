@@ -1,6 +1,7 @@
 import "./globals.css";
 import Providers from "./providers";
 import Header from "./components/Header";
+import SellerNotificationBanner from "./components/SellerNotificationBanner";
 import AmplifyProvider from "./amplify-provider";
 import { Toaster } from "sonner";
 
@@ -20,6 +21,7 @@ export default function RootLayout({
         <AmplifyProvider />
         <Providers>
           <Header />
+          <SellerNotificationBanner />
 
           {children}
 

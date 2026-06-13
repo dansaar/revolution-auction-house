@@ -64,7 +64,7 @@ export const handler: Schema["notifySellerOfferSms"]["functionHandler"] = async 
       return { sent: false };
     }
 
-    const link = `${SITE_URL}/seller/listings/${listingId}`;
+    const link = `${SITE_URL}/seller?tab=marketplace`;
     const tasks: Promise<any>[] = [];
 
     if (wantsSms) {
