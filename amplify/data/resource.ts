@@ -247,8 +247,8 @@ const schema = a
 
         displayName: a.string(),
 
-        verificationTier: a.string().default("BASIC").authorization((allow) => [allow.group("Admin"), allow.group("Seller").to(["read"])]),
-        bidLimit: a.integer().default(1000).authorization((allow) => [allow.group("Admin"), allow.group("Seller").to(["read"])]),
+        verificationTier: a.string().default("BASIC").authorization((allow) => [allow.group("Admin"), allow.group("Seller").to(["read"]), allow.ownerDefinedIn("userId").to(["read"])]),
+        bidLimit: a.integer().default(1000).authorization((allow) => [allow.group("Admin"), allow.group("Seller").to(["read"]), allow.ownerDefinedIn("userId").to(["read"])]),
 
         status: a.string().default("APPROVED").authorization((allow) => [
           allow.group("Admin"),
