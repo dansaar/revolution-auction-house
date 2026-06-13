@@ -21,16 +21,17 @@ export default function SellerNotificationBanner() {
 
   const fetchCounts = useCallback(async (sub: string, admin: boolean) => {
     async function getOfferCount() {
-      // Try GSI first (fast, indexed); fall back to filtered list scan
-      try {
-        const gsiRes = await (client.models.Offer as any).offersBySellerUserId(
-          { sellerUserId: sub },
-          { filter: { status: { eq: "PENDING" } }, authMode: "userPool", limit: 1000 },
-        );
-        if (gsiRes && !gsiRes.errors?.length) return gsiRes.data?.length ?? 0;
-      } catch { /* GSI not deployed yet — fall through */ }
+      // Admins see all pending offers site-wide — skip GSI (which only covers their own sub)
+      if (!admin) {
+        try {
+          const gsiRes = await (client.models.Offer as any).offersBySellerUserId(
+            { sellerUserId: sub },
+            { filter: { status: { eq: "PENDING" } }, authMode: "userPool", limit: 1000 },
+          );
+          if (gsiRes && !gsiRes.errors?.length) return gsiRes.data?.length ?? 0;
+        } catch { /* GSI not deployed yet — fall through to list scan */ }
+      }
 
-      // Fall back to list scan
       const listRes = await client.models.Offer.list({
         filter: admin
           ? { status: { eq: "PENDING" } }
