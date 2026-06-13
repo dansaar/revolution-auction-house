@@ -15,7 +15,7 @@ const client = generateClient<Schema>();
 export const handler: Schema["saveSellerPrefs"]["functionHandler"] = async (
   event,
 ) => {
-  const { notifyVerifications, notifyOffers, phoneNumber } = event.arguments;
+  const { notifyVerifications, notifyOffers, phoneNumber, shipFromName, shipFromStreet1, shipFromStreet2, shipFromCity, shipFromState, shipFromZip, shipFromPhone } = event.arguments;
 
   const identity = event.identity as any;
   const claims = identity?.claims ?? {};
@@ -73,6 +73,13 @@ export const handler: Schema["saveSellerPrefs"]["functionHandler"] = async (
       notifyVerifications: safeVerif,
       notifyOffers: safeOffers,
       phoneNumber: safePhone,
+      ...(shipFromName !== undefined ? { shipFromName: shipFromName?.trim() || null } : {}),
+      ...(shipFromStreet1 !== undefined ? { shipFromStreet1: shipFromStreet1?.trim() || null } : {}),
+      ...(shipFromStreet2 !== undefined ? { shipFromStreet2: shipFromStreet2?.trim() || null } : {}),
+      ...(shipFromCity !== undefined ? { shipFromCity: shipFromCity?.trim() || null } : {}),
+      ...(shipFromState !== undefined ? { shipFromState: shipFromState?.trim() || null } : {}),
+      ...(shipFromZip !== undefined ? { shipFromZip: shipFromZip?.trim() || null } : {}),
+      ...(shipFromPhone !== undefined ? { shipFromPhone: shipFromPhone?.trim() || null } : {}),
     },
     { authMode: "iam" } as any,
   );

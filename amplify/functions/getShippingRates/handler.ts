@@ -13,7 +13,7 @@ const client = generateClient<Schema>();
 const EASYPOST_API_KEY = (env as any).EASYPOST_API_KEY || "";
 
 export const handler: Schema["getShippingRates"]["functionHandler"] = async (event) => {
-  const { itemId, itemType, weight, length, width, height, fromName, fromStreet1, fromCity, fromState, fromZip, fromPhone } = event.arguments;
+  const { itemId, itemType, weight, length, width, height, fromName, fromStreet1, fromStreet2, fromCity, fromState, fromZip, fromPhone } = event.arguments;
 
   const identity = event.identity as any;
   const callerSub = String(identity?.sub || identity?.claims?.sub || "");
@@ -83,6 +83,10 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
     const ep = new EasyPost(EASYPOST_API_KEY);
 
     const shipment = await (ep.Shipment as any).create({
+      options: {
+        label_format: "PDF",
+        label_size: "4x6",
+      },
       to_address: {
         name: toAddress.name,
         street1: toAddress.street1,
@@ -95,6 +99,7 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
       from_address: {
         name: fromName,
         street1: fromStreet1,
+        street2: fromStreet2 || "",
         city: fromCity,
         state: fromState,
         zip: fromZip,

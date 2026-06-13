@@ -308,6 +308,15 @@ const schema = a
         notifyVerifications: a.string().default("none"), // "email" | "sms" | "both" | "none"
         notifyOffers: a.string().default("none"),        // "email" | "sms" | "both" | "none"
         phoneNumber: a.string(),
+
+        // Ship-from address for label generation
+        shipFromName: a.string(),
+        shipFromStreet1: a.string(),
+        shipFromStreet2: a.string(),
+        shipFromCity: a.string(),
+        shipFromState: a.string(),
+        shipFromZip: a.string(),
+        shipFromPhone: a.string(),
       })
       .identifier(["email"])
       .authorization((allow) => [
@@ -510,6 +519,13 @@ const schema = a
         notifyVerifications: a.string(),
         notifyOffers: a.string(),
         phoneNumber: a.string(),
+        shipFromName: a.string(),
+        shipFromStreet1: a.string(),
+        shipFromStreet2: a.string(),
+        shipFromCity: a.string(),
+        shipFromState: a.string(),
+        shipFromZip: a.string(),
+        shipFromPhone: a.string(),
       })
       .returns(a.customType({ success: a.boolean() }))
       .authorization((allow) => [allow.authenticated()])
@@ -526,6 +542,7 @@ const schema = a
         height: a.float(),
         fromName: a.string().required(),
         fromStreet1: a.string().required(),
+        fromStreet2: a.string(),
         fromCity: a.string().required(),
         fromState: a.string().required(),
         fromZip: a.string().required(),

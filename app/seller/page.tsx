@@ -13,6 +13,7 @@ import { moneyToNumber } from "@/lib/money";
 import { isAdminUser } from "@/lib/sellers";
 import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import printJS from "print-js";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
   const c = carrier.toLowerCase();
@@ -61,6 +62,7 @@ function SellerPage() {
   const [offers, setOffers] = useState<any[]>([]);
   const [buyerRequests, setBuyerRequests] = useState<any[]>([]);
   const [buyerProfiles, setBuyerProfiles] = useState<any[]>([]);
+  const [savedShipFrom, setSavedShipFrom] = useState<{ name: string; street1: string; street2: string; city: string; state: string; zip: string; phone: string } | null>(null);
 
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -101,6 +103,23 @@ function SellerPage() {
         setSellerEmail(email);
         setSellerUserId(userId);
         setIsAdmin(await isAdminUser());
+
+        // Load saved ship-from address
+        try {
+          const spResult = await client.models.SellerProfile.get({ email }, { authMode: "userPool" } as any);
+          const sp = spResult.data as any;
+          if (sp?.shipFromStreet1) {
+            setSavedShipFrom({
+              name: sp.shipFromName || "",
+              street1: sp.shipFromStreet1 || "",
+              street2: sp.shipFromStreet2 || "",
+              city: sp.shipFromCity || "",
+              state: sp.shipFromState || "",
+              zip: sp.shipFromZip || "",
+              phone: sp.shipFromPhone || "",
+            });
+          }
+        } catch { /* non-fatal */ }
 
         const session = await fetchAuthSession({ forceRefresh: false });
         const sellerSub = (session.tokens?.idToken?.payload?.sub as string) || userId;
@@ -551,6 +570,7 @@ function SellerPage() {
               onViewInvoice={viewInvoicePdf}
               onDownloadInvoice={downloadInvoicePdf}
               formatInvoiceAmount={formatInvoiceAmount}
+              savedShipFrom={savedShipFrom}
             />
 
             <AuctionSection
@@ -563,6 +583,7 @@ function SellerPage() {
               onViewInvoice={viewInvoicePdf}
               onDownloadInvoice={downloadInvoicePdf}
               formatInvoiceAmount={formatInvoiceAmount}
+              savedShipFrom={savedShipFrom}
             />
 
             <AuctionSection
@@ -575,6 +596,7 @@ function SellerPage() {
               onViewInvoice={viewInvoicePdf}
               onDownloadInvoice={downloadInvoicePdf}
               formatInvoiceAmount={formatInvoiceAmount}
+              savedShipFrom={savedShipFrom}
             />
 
             <AuctionSection
@@ -587,6 +609,7 @@ function SellerPage() {
               onViewInvoice={viewInvoicePdf}
               onDownloadInvoice={downloadInvoicePdf}
               formatInvoiceAmount={formatInvoiceAmount}
+              savedShipFrom={savedShipFrom}
             />
           </>
         )}
@@ -611,6 +634,7 @@ function SellerPage() {
             />
 
             <MarketplaceSection
+              savedShipFrom={savedShipFrom}
               title="Pending Payment"
               listings={pendingPaymentListings}
               client={client}
@@ -622,6 +646,7 @@ function SellerPage() {
             />
 
             <MarketplaceSection
+              savedShipFrom={savedShipFrom}
               title="Sold Listings"
               listings={soldListings}
               client={client}
@@ -702,6 +727,7 @@ function AuctionSection({
   onViewInvoice,
   onDownloadInvoice,
   formatInvoiceAmount,
+  savedShipFrom,
 }: any) {
   return (
     <section className="mt-12">
@@ -718,6 +744,7 @@ function AuctionSection({
               client={client}
               sellerEmail={sellerEmail}
               sellerUserId={sellerUserId}
+              savedShipFrom={savedShipFrom ?? null}
               invoice={invoices?.find(
                 (invoice: any) =>
                   String(invoice.auctionId) === String(auction.id),
@@ -1176,6 +1203,7 @@ function SellerAuctionCard({
   client,
   sellerEmail,
   sellerUserId,
+  savedShipFrom,
   invoice,
   onViewInvoice,
   onDownloadInvoice,
@@ -1214,9 +1242,11 @@ function SellerAuctionCard({
   const [ratesHeight, setRatesHeight] = useState("");
   const [ratesFromName, setRatesFromName] = useState("");
   const [ratesFromStreet, setRatesFromStreet] = useState("");
+  const [ratesFromStreet2, setRatesFromStreet2] = useState("");
   const [ratesFromCity, setRatesFromCity] = useState("");
   const [ratesFromState, setRatesFromState] = useState("");
   const [ratesFromZip, setRatesFromZip] = useState("");
+  const [ratesFromPhone, setRatesFromPhone] = useState("");
   const [fetchingRates, setFetchingRates] = useState(false);
   const [shipmentId, setShipmentId] = useState("");
   const [rates, setRates] = useState<any[]>([]);
@@ -1482,6 +1512,15 @@ function SellerAuctionCard({
                         setRatesError("");
                         setPurchasedLabel(null);
                         setShipmentId("");
+                        if (savedShipFrom) {
+                          setRatesFromName(savedShipFrom.name);
+                          setRatesFromStreet(savedShipFrom.street1);
+                          setRatesFromStreet2(savedShipFrom.street2);
+                          setRatesFromCity(savedShipFrom.city);
+                          setRatesFromState(savedShipFrom.state);
+                          setRatesFromZip(savedShipFrom.zip);
+                          setRatesFromPhone(savedShipFrom.phone);
+                        }
                         setShowRatesModal(true);
                       }}
                       className="mt-4 w-full rounded-lg border border-[#d6aa55]/50 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
@@ -1491,14 +1530,13 @@ function SellerAuctionCard({
                   )}
 
                   {auction.shippingLabelUrl && (
-                    <a
-                      href={auction.shippingLabelUrl}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => printJS({ printable: auction.shippingLabelUrl!, type: "pdf", showModal: true })}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
                     >
-                      Print Label ↗
-                    </a>
+                      Print Label
+                    </button>
                   )}
 
                   <button
@@ -1683,9 +1721,11 @@ function SellerAuctionCard({
           height={ratesHeight} setHeight={setRatesHeight}
           fromName={ratesFromName} setFromName={setRatesFromName}
           fromStreet={ratesFromStreet} setFromStreet={setRatesFromStreet}
+          fromStreet2={ratesFromStreet2} setFromStreet2={setRatesFromStreet2}
           fromCity={ratesFromCity} setFromCity={setRatesFromCity}
           fromState={ratesFromState} setFromState={setRatesFromState}
           fromZip={ratesFromZip} setFromZip={setRatesFromZip}
+          fromPhone={ratesFromPhone} setFromPhone={setRatesFromPhone}
           fetchingRates={fetchingRates} setFetchingRates={setFetchingRates}
           shipmentId={shipmentId} setShipmentId={setShipmentId}
           rates={rates} setRates={setRates}
@@ -1762,6 +1802,7 @@ function MarketplaceSection({
   onViewInvoice,
   onDownloadInvoice,
   formatInvoiceAmount,
+  savedShipFrom,
 }: any) {
   const [showShippingModal, setShowShippingModal] = useState(false);
   const [selectedListing, setSelectedListing] = useState<any>(null);
@@ -1779,9 +1820,11 @@ function MarketplaceSection({
   const [ratesHeight, setRatesHeight] = useState("");
   const [ratesFromName, setRatesFromName] = useState("");
   const [ratesFromStreet, setRatesFromStreet] = useState("");
+  const [ratesFromStreet2, setRatesFromStreet2] = useState("");
   const [ratesFromCity, setRatesFromCity] = useState("");
   const [ratesFromState, setRatesFromState] = useState("");
   const [ratesFromZip, setRatesFromZip] = useState("");
+  const [ratesFromPhone, setRatesFromPhone] = useState("");
   const [fetchingRates, setFetchingRates] = useState(false);
   const [shipmentId, setShipmentId] = useState("");
   const [rates, setRates] = useState<any[]>([]);
@@ -1931,6 +1974,14 @@ function MarketplaceSection({
                             setRatesError("");
                             setPurchasedLabel(null);
                             setShipmentId("");
+                            if (savedShipFrom) {
+                              setRatesFromName(savedShipFrom.name);
+                              setRatesFromStreet(savedShipFrom.street1);
+                              setRatesFromCity(savedShipFrom.city);
+                              setRatesFromState(savedShipFrom.state);
+                              setRatesFromZip(savedShipFrom.zip);
+                              setRatesFromPhone(savedShipFrom.phone);
+                            }
                             setShowRatesModal(true);
                           }}
                           className="mt-4 w-full rounded border border-[#d6aa55]/50 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
@@ -1940,14 +1991,13 @@ function MarketplaceSection({
                       )}
 
                       {listing.shippingLabelUrl && (
-                        <a
-                          href={listing.shippingLabelUrl}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => printJS({ printable: listing.shippingLabelUrl!, type: "pdf", showModal: true })}
                           className="mt-4 flex w-full items-center justify-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
                         >
-                          Print Label ↗
-                        </a>
+                          Print Label
+                        </button>
                       )}
 
                       <button
@@ -2293,9 +2343,11 @@ function MarketplaceSection({
           height={ratesHeight} setHeight={setRatesHeight}
           fromName={ratesFromName} setFromName={setRatesFromName}
           fromStreet={ratesFromStreet} setFromStreet={setRatesFromStreet}
+          fromStreet2={ratesFromStreet2} setFromStreet2={setRatesFromStreet2}
           fromCity={ratesFromCity} setFromCity={setRatesFromCity}
           fromState={ratesFromState} setFromState={setRatesFromState}
           fromZip={ratesFromZip} setFromZip={setRatesFromZip}
+          fromPhone={ratesFromPhone} setFromPhone={setRatesFromPhone}
           fetchingRates={fetchingRates} setFetchingRates={setFetchingRates}
           shipmentId={shipmentId} setShipmentId={setShipmentId}
           rates={rates} setRates={setRates}
@@ -2318,9 +2370,11 @@ function EasyPostModal({
   height, setHeight,
   fromName, setFromName,
   fromStreet, setFromStreet,
+  fromStreet2, setFromStreet2,
   fromCity, setFromCity,
   fromState, setFromState,
   fromZip, setFromZip,
+  fromPhone, setFromPhone,
   fetchingRates, setFetchingRates,
   shipmentId, setShipmentId,
   rates, setRates,
@@ -2329,6 +2383,7 @@ function EasyPostModal({
   onClose, onSuccess,
 }: any) {
   const [purchasing, setPurchasing] = useState(false);
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
 
   async function handleGetRates() {
     if (!weight) { toast.error("Enter package weight"); return; }
@@ -2339,6 +2394,12 @@ function EasyPostModal({
     setFetchingRates(true);
     setRatesError("");
     try {
+      if (saveAsDefault) {
+        client.mutations.saveSellerPrefs(
+          { shipFromName: fromName, shipFromStreet1: fromStreet, shipFromStreet2: fromStreet2 || null, shipFromCity: fromCity, shipFromState: fromState, shipFromZip: fromZip, shipFromPhone: fromPhone || null },
+          { authMode: "userPool" } as any,
+        ).catch(() => { /* non-fatal */ });
+      }
       const result = await client.mutations.getShippingRates(
         {
           itemId,
@@ -2349,9 +2410,11 @@ function EasyPostModal({
           ...(height ? { height: parseFloat(height) } : {}),
           fromName,
           fromStreet1: fromStreet,
+          ...(fromStreet2 ? { fromStreet2 } : {}),
           fromCity,
           fromState,
           fromZip,
+          ...(fromPhone ? { fromPhone } : {}),
         },
         { authMode: "userPool" } as any,
       );
@@ -2431,18 +2494,30 @@ function EasyPostModal({
                 <div className="space-y-2">
                   <input value={fromName} onChange={(e: any) => setFromName(e.target.value)} placeholder="Full name or company*" className={inputCls} />
                   <input value={fromStreet} onChange={(e: any) => setFromStreet(e.target.value)} placeholder="Street address*" className={inputCls} />
+                  <input value={fromStreet2} onChange={(e: any) => setFromStreet2(e.target.value)} placeholder="Apt, Suite, Unit (optional)" className={inputCls} />
                   <div className="grid grid-cols-3 gap-2">
                     <input value={fromCity} onChange={(e: any) => setFromCity(e.target.value)} placeholder="City*" className={inputCls} />
                     <input value={fromState} onChange={(e: any) => setFromState(e.target.value)} placeholder="State*" maxLength={2} className={inputCls} />
                     <input value={fromZip} onChange={(e: any) => setFromZip(e.target.value)} placeholder="ZIP*" className={inputCls} />
                   </div>
+                  <input value={fromPhone} onChange={(e: any) => setFromPhone(e.target.value)} placeholder="Phone number (required by UPS/FedEx)" type="tel" className={inputCls} />
                 </div>
               </div>
             </div>
 
             {ratesError && <p className="mt-3 text-sm text-red-400">{ratesError}</p>}
 
-            <div className="mt-6 flex gap-3">
+            <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-gray-400 hover:text-white">
+              <input
+                type="checkbox"
+                checked={saveAsDefault}
+                onChange={(e: any) => setSaveAsDefault(e.target.checked)}
+                className="h-4 w-4 accent-[#d6aa55]"
+              />
+              Save as my default ship-from address
+            </label>
+
+            <div className="mt-4 flex gap-3">
               <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-white hover:bg-white/[0.06]">Cancel</button>
               <button type="button" disabled={fetchingRates} onClick={handleGetRates} className="flex-1 rounded-xl border border-[#d6aa55]/30 bg-[#1a1408] px-4 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909] disabled:opacity-50">
                 {fetchingRates ? "Getting rates…" : "Get Rates →"}
@@ -2497,14 +2572,13 @@ function EasyPostModal({
                 <div>Tracking: <span className="font-mono text-white">{purchasedLabel.trackingNumber}</span></div>
               </div>
               {purchasedLabel.labelUrl && (
-                <a
-                  href={purchasedLabel.labelUrl}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={() => printJS({ printable: purchasedLabel.labelUrl!, type: "pdf", showModal: true })}
                   className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
                 >
-                  Print / Download Label ↗
-                </a>
+                  Print Label
+                </button>
               )}
             </div>
             <button type="button" onClick={onSuccess} className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-white hover:bg-white/[0.06]">Done</button>
