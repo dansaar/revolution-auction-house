@@ -32,15 +32,22 @@ export const handler: Schema["reviewBuyerVerification"]["functionHandler"] =
     const isAdmin = groups.includes("Admin");
 
     if (!isAdmin) {
-      const callerEmail = String(claims.email || "").toLowerCase();
+      // Access tokens don't carry email — resolve it from BuyerProfile by sub
+      const callerSub = String(identity?.sub || claims.sub || "");
+      const buyerLookup = await client.models.BuyerProfile.get(
+        { userId: callerSub },
+        { authMode: "iam" } as any,
+      );
+      const callerEmail = (buyerLookup.data?.email || "").toLowerCase();
 
       if (!callerEmail) {
         return { success: false, message: "Unauthorized" };
       }
 
-      const sellerResult = await client.models.SellerProfile.get({
-        email: callerEmail,
-      });
+      const sellerResult = await client.models.SellerProfile.get(
+        { email: callerEmail },
+        { authMode: "iam" } as any,
+      );
 
       if (!sellerResult.data || sellerResult.data.status !== "APPROVED") {
         return { success: false, message: "Unauthorized" };
