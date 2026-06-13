@@ -28,7 +28,8 @@ const TIER_LIMITS: Record<string, number> = {
 export const handler: Schema["autoVerifyBuyer"]["functionHandler"] = async (
   event,
 ) => {
-  const { email, stripeSessionId } = event.arguments;
+  const { stripeSessionId } = event.arguments;
+  const email = (event.arguments.email || "").toLowerCase();
 
   if (!email) {
     console.warn("autoVerifyBuyer: missing email", { stripeSessionId });

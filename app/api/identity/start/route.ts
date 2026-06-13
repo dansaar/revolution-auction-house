@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
   try {
     const { payload } = await jwtVerify(authHeader.slice(7), JWKS);
-    buyerEmail = (payload.email as string) || "";
+    buyerEmail = ((payload.email as string) || "").toLowerCase();
     buyerUserId = (payload.sub as string) || "";
   } catch {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
