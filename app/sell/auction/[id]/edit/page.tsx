@@ -33,6 +33,8 @@ export default function CreateAuctionPage() {
     provenance: "",
     image: "",
     endsAt: `${new Date().toISOString().split("T")[0]}T12:00`,
+    startingPrice: "",
+    reservePrice: "",
     chargeTax: true,
     taxRate: "6.625",
     buyerPremiumRate: "18",
@@ -118,6 +120,11 @@ export default function CreateAuctionPage() {
           population: auction.population || "",
           provenance: auction.provenance || "",
           image: auction.image || "",
+          startingPrice: auction.price ? String(Number(String(auction.price).replace(/[$,]/g, ""))) : "",
+          reservePrice: auction.reservePrice ? String(Number(String(auction.reservePrice).replace(/[$,]/g, ""))) : "",
+          endsAt: auction.endsAt
+            ? new Date(auction.endsAt).toISOString().slice(0, 16)
+            : prev.endsAt,
           chargeTax: Boolean(auction.chargeTax),
           taxRate: String(auction.taxRate || 6.625),
           buyerPremiumRate: String(auction.buyerPremiumRate || 18),
@@ -264,6 +271,11 @@ export default function CreateAuctionPage() {
           cardNumber: form.cardNumber,
           population: form.population,
           provenance: form.provenance,
+
+          price: form.startingPrice ? `$${Number(form.startingPrice).toLocaleString()}` : undefined,
+          reservePrice: form.reservePrice
+            ? `$${Number(form.reservePrice).toLocaleString()}`
+            : null,
 
           chargeTax: form.chargeTax,
           taxRate: form.chargeTax ? 6.625 : 0,
@@ -599,6 +611,23 @@ export default function CreateAuctionPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <Input
+              label="Starting Price ($)"
+              value={form.startingPrice}
+              onChange={(v) => update("startingPrice", v)}
+              type="number"
+              placeholder="0"
+            />
+            <Input
+              label="Reserve Price ($)"
+              value={form.reservePrice}
+              onChange={(v) => update("reservePrice", v)}
+              type="number"
+              placeholder="Optional"
+            />
           </div>
 
           <div>
