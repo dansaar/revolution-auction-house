@@ -157,7 +157,7 @@ export async function GET(
 
     doc.text(
       `Paid At: ${
-        invoice.paidAt ? new Date(invoice.paidAt).toLocaleString() : "-"
+        invoice.paidAt ? new Date(invoice.paidAt).toLocaleString("en-US", { timeZone: "America/New_York" }) : "-"
       }`,
       20,
       82,

@@ -96,7 +96,7 @@ function SellerPage() {
       try {
         const user = await getCurrentUser();
 
-        const email = (user.signInDetails?.loginId || user.username || "").toLowerCase();
+        const email = user.signInDetails?.loginId || user.username || "";
         const userId = user.userId || user.username || "";
 
         setSellerEmail(email);

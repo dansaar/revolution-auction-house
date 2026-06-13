@@ -154,7 +154,7 @@ export default function BuyerInvoicesPage() {
                     <p className="mt-2 text-sm text-gray-400">
                       Paid:{" "}
                       {invoice.paidAt
-                        ? new Date(invoice.paidAt).toLocaleString()
+                        ? new Date(invoice.paidAt).toLocaleString("en-US", { timeZone: "America/New_York" })
                         : "—"}
                     </p>
 

@@ -290,7 +290,7 @@ export default function MarketplaceListingPage() {
         { authMode: "userPool" } as any,
       ).catch(() => {});
 
-      alert("Offer submitted successfully!");
+      alert(`Offer submitted! The seller (${listing.sellerEmail}) will review your offer and respond.`);
       setOfferAmount("");
     } catch (err) {
       console.error(err);
