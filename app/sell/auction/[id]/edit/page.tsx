@@ -33,7 +33,7 @@ export default function CreateAuctionPage() {
     provenance: "",
     image: "",
     endsAt: `${new Date().toISOString().split("T")[0]}T12:00`,
-    chargeTax: false,
+    chargeTax: true,
     taxRate: "6.625",
     buyerPremiumRate: "18",
   });

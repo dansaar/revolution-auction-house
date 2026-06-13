@@ -24,7 +24,7 @@ export default function CreateListingPage() {
     condition: "",
     description: "",
     status: "ACTIVE",
-    chargeTax: false,
+    chargeTax: true,
     taxRate: "6.625",
   });
 

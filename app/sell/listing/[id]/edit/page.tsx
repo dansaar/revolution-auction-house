@@ -39,7 +39,7 @@ export default function EditListingPage() {
     condition: "",
     description: "",
     status: "ACTIVE",
-    chargeTax: false,
+    chargeTax: true,
     taxRate: "6.625",
   });
 
