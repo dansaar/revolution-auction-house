@@ -2,7 +2,8 @@
 
 import "@/lib/amplifyclient";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
@@ -31,7 +32,15 @@ function trackingUrl(carrier: string, trackingNumber: string) {
   return "";
 }
 
-export default function SellerPage() {
+export default function SellerPageWrapper() {
+  return (
+    <Suspense>
+      <SellerPage />
+    </Suspense>
+  );
+}
+
+function SellerPage() {
   const clientRef = React.useRef(generateClient<Schema>());
   const client = clientRef.current;
   const [auctions, setAuctions] = useState<any[]>([]);
@@ -40,8 +49,9 @@ export default function SellerPage() {
   const [sellerUserId, setSellerUserId] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
 
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"auctions" | "marketplace">(
-    "auctions",
+    searchParams.get("tab") === "marketplace" ? "marketplace" : "auctions",
   );
 
   const [marketplaceListings, setMarketplaceListings] = useState<any[]>([]);
