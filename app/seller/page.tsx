@@ -13,7 +13,6 @@ import { moneyToNumber } from "@/lib/money";
 import { isAdminUser } from "@/lib/sellers";
 import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import printJS from "print-js";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
   const c = carrier.toLowerCase();
@@ -1532,7 +1531,7 @@ function SellerAuctionCard({
                   {auction.shippingLabelUrl && (
                     <button
                       type="button"
-                      onClick={() => printJS({ printable: auction.shippingLabelUrl!, type: "pdf", showModal: true })}
+                      onClick={async () => { const pjs = (await import("print-js")).default; pjs({ printable: auction.shippingLabelUrl!, type: "pdf", showModal: true }); }}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
                     >
                       Print Label
@@ -1993,7 +1992,7 @@ function MarketplaceSection({
                       {listing.shippingLabelUrl && (
                         <button
                           type="button"
-                          onClick={() => printJS({ printable: listing.shippingLabelUrl!, type: "pdf", showModal: true })}
+                          onClick={async () => { const pjs = (await import("print-js")).default; pjs({ printable: listing.shippingLabelUrl!, type: "pdf", showModal: true }); }}
                           className="mt-4 flex w-full items-center justify-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
                         >
                           Print Label
@@ -2574,7 +2573,7 @@ function EasyPostModal({
               {purchasedLabel.labelUrl && (
                 <button
                   type="button"
-                  onClick={() => printJS({ printable: purchasedLabel.labelUrl!, type: "pdf", showModal: true })}
+                  onClick={async () => { const pjs = (await import("print-js")).default; pjs({ printable: purchasedLabel.labelUrl!, type: "pdf", showModal: true }); }}
                   className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
                 >
                   Print Label
