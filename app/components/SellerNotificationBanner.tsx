@@ -16,17 +16,20 @@ const POLL_MS = 30_000;
 export default function SellerNotificationBanner() {
   const [pendingOffers, setPendingOffers] = useState(0);
   const [pendingVerifications, setPendingVerifications] = useState(0);
+  const [sellerEmail, setSellerEmail] = useState("");
   const [ready, setReady] = useState(false);
 
   const fetchCounts = useCallback(async (sub: string, admin: boolean) => {
     const [offerRes, verifRes] = await Promise.allSettled([
-      client.models.Offer.list({
-        // Admins see all pending offers site-wide; sellers see only their own
-        filter: admin
-          ? { status: { eq: "PENDING" } }
-          : { sellerUserId: { eq: sub }, status: { eq: "PENDING" } },
-        authMode: "userPool",
-      } as any),
+      admin
+        ? client.models.Offer.list({
+            filter: { status: { eq: "PENDING" } },
+            authMode: "userPool",
+          } as any)
+        : (client.models.Offer as any).offersBySellerUserId(
+            { sellerUserId: sub },
+            { filter: { status: { eq: "PENDING" } }, authMode: "userPool", limit: 500 },
+          ),
       client.models.BuyerProfile.list({
         filter: { status: { eq: "PENDING_REVIEW" } },
         authMode: "userPool",
@@ -50,6 +53,8 @@ export default function SellerNotificationBanner() {
         const email = ((user as any).signInDetails?.loginId || "").toLowerCase();
         const [seller, admin] = await Promise.all([isApprovedSeller(email), isAdminUser()]);
         if (!seller && !admin) return;
+
+        setSellerEmail(email);
 
         const session = await fetchAuthSession({ forceRefresh: false });
         const sub = (session.tokens?.idToken?.payload?.sub as string) || "";
@@ -77,6 +82,9 @@ export default function SellerNotificationBanner() {
               {pendingOffers}
             </span>
             {pendingOffers === 1 ? "1 pending offer" : `${pendingOffers} pending offers`}
+            {sellerEmail && (
+              <span className="text-amber-500/70 text-xs">· {sellerEmail}</span>
+            )}
           </span>
         )}
         {pendingOffers > 0 && pendingVerifications > 0 && (

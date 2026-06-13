@@ -175,6 +175,9 @@ const schema = a
         status: a.string().default("PENDING"),
         read: a.boolean().default(false),
       })
+      .secondaryIndexes((index) => [
+        index("sellerUserId").sortKeys(["createdAt"]).queryField("offersBySellerUserId"),
+      ])
       .authorization((allow) => [
         allow.ownerDefinedIn("buyerUserId"),
         allow.ownerDefinedIn("sellerUserId").to(["read", "update", "delete"]),
