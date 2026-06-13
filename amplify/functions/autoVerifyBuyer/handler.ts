@@ -5,6 +5,7 @@ import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
 import { env } from "$amplify/env/autoVerifyBuyer";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import Stripe from "stripe";
 
 const { resourceConfig, libraryOptions } =
   await getAmplifyDataClientConfig(env);
@@ -13,6 +14,8 @@ Amplify.configure(resourceConfig, libraryOptions);
 
 const client = generateClient<Schema>();
 const snsClient = new SNSClient({});
+
+const STRIPE_SECRET_KEY = (env as any).STRIPE_SECRET_KEY || "";
 
 const TIER_LIMITS: Record<string, number> = {
   BASIC: 1_000,
@@ -25,17 +28,28 @@ const TIER_LIMITS: Record<string, number> = {
 export const handler: Schema["autoVerifyBuyer"]["functionHandler"] = async (
   event,
 ) => {
-  const { email, stripeSessionId, webhookToken } = event.arguments;
-
-  const expectedToken = (env as any).AUTO_VERIFY_TOKEN || "";
-
-  if (!expectedToken || webhookToken !== expectedToken) {
-    console.warn("autoVerifyBuyer: invalid token", { stripeSessionId });
-    return { success: false };
-  }
+  const { email, stripeSessionId } = event.arguments;
 
   if (!email) {
     console.warn("autoVerifyBuyer: missing email", { stripeSessionId });
+    return { success: false };
+  }
+
+  if (!STRIPE_SECRET_KEY) {
+    console.error("autoVerifyBuyer: STRIPE_SECRET_KEY not set");
+    return { success: false };
+  }
+
+  // Verify the session status directly with Stripe — this is the security gate
+  try {
+    const stripe = new Stripe(STRIPE_SECRET_KEY);
+    const session = await stripe.identity.verificationSessions.retrieve(stripeSessionId);
+    if (session.status !== "verified") {
+      console.warn("autoVerifyBuyer: session not verified", { stripeSessionId, status: session.status });
+      return { success: false };
+    }
+  } catch (err) {
+    console.error("autoVerifyBuyer: Stripe session check failed", { stripeSessionId, err });
     return { success: false };
   }
 

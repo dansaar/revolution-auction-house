@@ -138,12 +138,10 @@ const manageSellerGroupCfn = backend.manageSellerGroup.resources.lambda.node
 
 manageSellerGroupCfn.addPropertyOverride("Environment.Variables.USER_POOL_ID", userPool.userPoolId);
 
-// AUTO_VERIFY_TOKEN is a shared secret between the Next.js webhook handler and this Lambda.
-// Set the actual value in Amplify console environment variables (never commit it).
 const autoVerifyBuyerCfn = backend.autoVerifyBuyer.resources.lambda.node
   .defaultChild as CfnFunction;
 
 autoVerifyBuyerCfn.addPropertyOverride(
-  "Environment.Variables.AUTO_VERIFY_TOKEN",
-  process.env.AUTO_VERIFY_TOKEN || "",
+  "Environment.Variables.STRIPE_SECRET_KEY",
+  process.env.STRIPE_SECRET_KEY || "",
 );

@@ -92,15 +92,8 @@ export async function POST(request: Request) {
           break;
         }
 
-        const token = process.env.AUTO_VERIFY_TOKEN || "";
-
-        if (!token) {
-          console.error("WEBHOOK identity.verified: AUTO_VERIFY_TOKEN not set");
-          break;
-        }
-
         const result = await client.mutations.autoVerifyBuyer(
-          { email: buyerEmail, stripeSessionId: session.id, webhookToken: token },
+          { email: buyerEmail, stripeSessionId: session.id, webhookToken: "unused" },
           { authMode: "apiKey" } as any,
         );
 
