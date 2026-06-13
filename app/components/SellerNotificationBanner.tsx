@@ -20,28 +20,37 @@ export default function SellerNotificationBanner() {
   const [ready, setReady] = useState(false);
 
   const fetchCounts = useCallback(async (sub: string, admin: boolean) => {
-    const [offerRes, verifRes] = await Promise.allSettled([
-      admin
-        ? client.models.Offer.list({
-            filter: { status: { eq: "PENDING" } },
-            authMode: "userPool",
-          } as any)
-        : (client.models.Offer as any).offersBySellerUserId(
-            { sellerUserId: sub },
-            { filter: { status: { eq: "PENDING" } }, authMode: "userPool", limit: 500 },
-          ),
+    async function getOfferCount() {
+      // Try GSI first (fast, indexed); fall back to filtered list scan
+      try {
+        const gsiRes = await (client.models.Offer as any).offersBySellerUserId(
+          { sellerUserId: sub },
+          { filter: { status: { eq: "PENDING" } }, authMode: "userPool", limit: 1000 },
+        );
+        if (gsiRes && !gsiRes.errors?.length) return gsiRes.data?.length ?? 0;
+      } catch { /* GSI not deployed yet — fall through */ }
+
+      // Fall back to list scan
+      const listRes = await client.models.Offer.list({
+        filter: admin
+          ? { status: { eq: "PENDING" } }
+          : { sellerUserId: { eq: sub }, status: { eq: "PENDING" } },
+        authMode: "userPool",
+        limit: 500,
+      } as any);
+      return listRes.data?.length ?? 0;
+    }
+
+    const [offerCount, verifRes] = await Promise.allSettled([
+      getOfferCount(),
       client.models.BuyerProfile.list({
         filter: { status: { eq: "PENDING_REVIEW" } },
         authMode: "userPool",
       } as any),
     ]);
 
-    if (offerRes.status === "fulfilled") {
-      setPendingOffers(offerRes.value.data?.length ?? 0);
-    }
-    if (verifRes.status === "fulfilled") {
-      setPendingVerifications(verifRes.value.data?.length ?? 0);
-    }
+    if (offerCount.status === "fulfilled") setPendingOffers(offerCount.value);
+    if (verifRes.status === "fulfilled") setPendingVerifications(verifRes.value.data?.length ?? 0);
   }, []);
 
   useEffect(() => {
@@ -50,7 +59,8 @@ export default function SellerNotificationBanner() {
     async function init() {
       try {
         const user = await getCurrentUser();
-        const email = ((user as any).signInDetails?.loginId || "").toLowerCase();
+        // username is a reliable fallback when signInDetails.loginId is absent
+        const email = ((user as any).signInDetails?.loginId || user.username || "").toLowerCase();
         const [seller, admin] = await Promise.all([isApprovedSeller(email), isAdminUser()]);
         if (!seller && !admin) return;
 
