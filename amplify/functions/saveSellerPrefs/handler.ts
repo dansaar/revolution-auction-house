@@ -29,15 +29,28 @@ export const handler: Schema["saveSellerPrefs"]["functionHandler"] = async (
 
   const isAdmin = groups.includes("Admin");
 
-  const callerEmail = String(claims.email || "").toLowerCase();
-  console.log("saveSellerPrefs: callerEmail", callerEmail, "isAdmin", isAdmin, "groups", groups);
+  // Access tokens don't include email — look it up from BuyerProfile by sub
+  const callerSub = String(identity?.sub || claims.sub || "");
+  console.log("saveSellerPrefs: sub", callerSub, "isAdmin", isAdmin);
 
-  if (!callerEmail) {
-    console.warn("saveSellerPrefs: missing email claim");
+  if (!callerSub) {
+    console.warn("saveSellerPrefs: missing sub");
     return { success: false };
   }
 
-  // Verify caller is an approved seller (same pattern as reviewBuyerVerification)
+  const buyerResult = await client.models.BuyerProfile.get(
+    { userId: callerSub },
+    { authMode: "iam" } as any,
+  );
+  const callerEmail = (buyerResult.data?.email || "").toLowerCase();
+  console.log("saveSellerPrefs: callerEmail from BuyerProfile", callerEmail);
+
+  if (!callerEmail) {
+    console.warn("saveSellerPrefs: no BuyerProfile found for sub", callerSub);
+    return { success: false };
+  }
+
+  // Verify caller is an approved seller (admins skip this check)
   if (!isAdmin) {
     const sellerResult = await client.models.SellerProfile.get(
       { email: callerEmail },
