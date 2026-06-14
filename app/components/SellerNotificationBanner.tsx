@@ -7,7 +7,7 @@ import Link from "next/link";
 import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import { isApprovedSeller, isAdminUser } from "@/lib/sellers";
+import { isApprovedSeller } from "@/lib/sellers";
 
 const client = generateClient<Schema>();
 
@@ -32,14 +32,18 @@ export default function SellerNotificationBanner() {
         } catch { /* GSI not deployed yet — fall through to list scan */ }
       }
 
-      const listRes = await client.models.Offer.list({
-        filter: admin
-          ? { status: { eq: "PENDING" } }
-          : { sellerUserId: { eq: sub }, status: { eq: "PENDING" } },
-        authMode: "userPool",
-        limit: 500,
-      } as any);
-      return listRes.data?.length ?? 0;
+      try {
+        const listRes = await client.models.Offer.list({
+          filter: admin
+            ? { status: { eq: "PENDING" } }
+            : { sellerUserId: { eq: sub }, status: { eq: "PENDING" } },
+          authMode: "userPool",
+          limit: 500,
+        } as any);
+        return listRes.data?.length ?? 0;
+      } catch {
+        return 0;
+      }
     }
 
     const [offerCount, verifRes] = await Promise.allSettled([
@@ -62,13 +66,17 @@ export default function SellerNotificationBanner() {
         const user = await getCurrentUser();
         // username is a reliable fallback when signInDetails.loginId is absent
         const email = ((user as any).signInDetails?.loginId || user.username || "").toLowerCase();
-        const [seller, admin] = await Promise.all([isApprovedSeller(email), isAdminUser()]);
-        if (!seller && !admin) return;
+
+        // Force-refresh the token so group membership is always current
+        const session = await fetchAuthSession({ forceRefresh: true });
+        const groups = (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) ?? [];
+        const admin = groups.includes("Admin");
+        const sub = (session.tokens?.idToken?.payload?.sub as string) || "";
+
+        const seller = admin || await isApprovedSeller(email);
+        if (!seller) return;
 
         setSellerEmail(email);
-
-        const session = await fetchAuthSession({ forceRefresh: false });
-        const sub = (session.tokens?.idToken?.payload?.sub as string) || "";
 
         setReady(true);
         await fetchCounts(sub, admin);
