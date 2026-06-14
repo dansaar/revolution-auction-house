@@ -14,6 +14,38 @@ import { isAdminUser } from "@/lib/sellers";
 import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
+// Print a shipping label robustly. EasyPost labels are usually PNG; print-js
+// with the wrong type (or a cross-origin PDF that blocks CORS) fails silently,
+// leaving the button in place with no feedback. Detect the type, and if
+// auto-print fails, fall back to opening the label in a new tab.
+async function printLabel(url?: string | null) {
+  if (!url) {
+    toast.error("No label file available.");
+    return;
+  }
+
+  const path = url.toLowerCase().split("?")[0];
+  const isPdf = path.endsWith(".pdf");
+
+  const openInTab = () => {
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast.message("Opened the label in a new tab — use your browser to print.");
+  };
+
+  try {
+    const pjs = (await import("print-js")).default;
+    pjs({
+      printable: url,
+      type: isPdf ? "pdf" : "image",
+      showModal: true,
+      onError: openInTab,
+    } as any);
+    toast.success("Opening print dialog…");
+  } catch {
+    openInTab();
+  }
+}
+
 function trackingUrl(carrier: string, trackingNumber: string) {
   const c = carrier.toLowerCase();
 
@@ -1531,7 +1563,7 @@ function SellerAuctionCard({
                   {auction.shippingLabelUrl && (
                     <button
                       type="button"
-                      onClick={async () => { const pjs = (await import("print-js")).default; pjs({ printable: auction.shippingLabelUrl!, type: "pdf", showModal: true }); }}
+                      onClick={() => printLabel(auction.shippingLabelUrl)}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
                     >
                       Print Label
@@ -1992,7 +2024,7 @@ function MarketplaceSection({
                       {listing.shippingLabelUrl && (
                         <button
                           type="button"
-                          onClick={async () => { const pjs = (await import("print-js")).default; pjs({ printable: listing.shippingLabelUrl!, type: "pdf", showModal: true }); }}
+                          onClick={() => printLabel(listing.shippingLabelUrl)}
                           className="mt-4 flex w-full items-center justify-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
                         >
                           Print Label
@@ -2573,7 +2605,7 @@ function EasyPostModal({
               {purchasedLabel.labelUrl && (
                 <button
                   type="button"
-                  onClick={async () => { const pjs = (await import("print-js")).default; pjs({ printable: purchasedLabel.labelUrl!, type: "pdf", showModal: true }); }}
+                  onClick={() => printLabel(purchasedLabel.labelUrl)}
                   className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
                 >
                   Print Label
