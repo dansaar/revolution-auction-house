@@ -15,47 +15,42 @@ const POLL_MS = 30_000;
 
 export default function SellerNotificationBanner() {
   const [pendingOffers, setPendingOffers] = useState(0);
+  const [offerSellerEmails, setOfferSellerEmails] = useState<string[]>([]);
   const [pendingVerifications, setPendingVerifications] = useState(0);
-  const [sellerEmail, setSellerEmail] = useState("");
   const [ready, setReady] = useState(false);
 
-  const fetchCounts = useCallback(async (sub: string, admin: boolean) => {
-    async function getOfferCount() {
-      // Admins see all pending offers site-wide — skip GSI (which only covers their own sub)
-      if (!admin) {
-        try {
-          const gsiRes = await (client.models.Offer as any).offersBySellerUserId(
-            { sellerUserId: sub },
-            { filter: { status: { eq: "PENDING" } }, authMode: "userPool", limit: 1000 },
-          );
-          if (gsiRes && !gsiRes.errors?.length) return gsiRes.data?.length ?? 0;
-        } catch { /* GSI not deployed yet — fall through to list scan */ }
-      }
-
+  const fetchCounts = useCallback(async () => {
+    async function getOffers(): Promise<any[]> {
+      // All approved sellers and admins see all pending offers site-wide
       try {
-        const listRes = await client.models.Offer.list({
-          filter: admin
-            ? { status: { eq: "PENDING" } }
-            : { sellerUserId: { eq: sub }, status: { eq: "PENDING" } },
+        const res = await client.models.Offer.list({
+          filter: { status: { eq: "PENDING" } },
           authMode: "userPool",
           limit: 500,
         } as any);
-        return listRes.data?.length ?? 0;
-      } catch {
-        return 0;
-      }
+        return res.data ?? [];
+      } catch { return []; }
     }
 
-    const [offerCount, verifRes] = await Promise.allSettled([
-      getOfferCount(),
+    const [offersResult, verifRes] = await Promise.allSettled([
+      getOffers(),
       client.models.BuyerProfile.list({
         filter: { status: { eq: "PENDING_REVIEW" } },
         authMode: "userPool",
       } as any),
     ]);
 
-    if (offerCount.status === "fulfilled") setPendingOffers(offerCount.value);
-    if (verifRes.status === "fulfilled") setPendingVerifications(verifRes.value.data?.length ?? 0);
+    if (offersResult.status === "fulfilled") {
+      const offers = offersResult.value;
+      setPendingOffers(offers.length);
+      const emails = [...new Set(
+        offers.map((o: any) => o.sellerEmail).filter(Boolean)
+      )] as string[];
+      setOfferSellerEmails(emails);
+    }
+    if (verifRes.status === "fulfilled") {
+      setPendingVerifications(verifRes.value.data?.length ?? 0);
+    }
   }, []);
 
   useEffect(() => {
@@ -64,23 +59,18 @@ export default function SellerNotificationBanner() {
     async function init() {
       try {
         const user = await getCurrentUser();
-        // username is a reliable fallback when signInDetails.loginId is absent
         const email = ((user as any).signInDetails?.loginId || user.username || "").toLowerCase();
 
-        // Force-refresh the token so group membership is always current
         const session = await fetchAuthSession({ forceRefresh: true });
         const groups = (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) ?? [];
         const admin = groups.includes("Admin");
-        const sub = (session.tokens?.idToken?.payload?.sub as string) || "";
 
         const seller = admin || await isApprovedSeller(email);
         if (!seller) return;
 
-        setSellerEmail(email);
-
         setReady(true);
-        await fetchCounts(sub, admin);
-        interval = setInterval(() => fetchCounts(sub, admin), POLL_MS);
+        await fetchCounts();
+        interval = setInterval(() => fetchCounts(), POLL_MS);
       } catch {
         // not signed in — skip silently
       }
@@ -101,8 +91,10 @@ export default function SellerNotificationBanner() {
               {pendingOffers}
             </span>
             {pendingOffers === 1 ? "1 pending offer" : `${pendingOffers} pending offers`}
-            {sellerEmail && (
-              <span className="text-amber-500/70 text-xs">· {sellerEmail}</span>
+            {offerSellerEmails.length > 0 && (
+              <span className="text-amber-500/70 text-xs">
+                · {offerSellerEmails.join(", ")}
+              </span>
             )}
           </span>
         )}
