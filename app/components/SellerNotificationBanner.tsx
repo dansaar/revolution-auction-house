@@ -7,7 +7,8 @@ import Link from "next/link";
 import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import { adminGraphQL, isAdminUser, isApprovedSeller } from "@/lib/sellers";
+import { isAdminUser, isApprovedSeller } from "@/lib/sellers";
+import outputs from "@/amplify_outputs.json";
 
 const client = generateClient<Schema>();
 
@@ -22,16 +23,25 @@ export default function SellerNotificationBanner() {
   const fetchCounts = useCallback(async () => {
     async function getOffers(): Promise<any[]> {
       try {
-        // Use raw GraphQL fetch to bypass Amplify client's auto-owner filter injection.
-        // Amplify v6 with ownerDefinedIn silently filters list results by the current
-        // user's sub, so admins see 0 records even though AppSync group auth allows all.
-        const result = await adminGraphQL(`
-          query BannerPendingOffers {
-            listOffers(filter: { status: { eq: "PENDING" } }, limit: 500) {
-              items { id sellerEmail status }
-            }
-          }
-        `);
+        // Always use a fresh token (forceRefresh:true) so AppSync sees the current
+        // Cognito groups. A stale cached token may lack the Admin group, causing
+        // AppSync to silently apply the owner filter and return only the user's own offers.
+        const session = await fetchAuthSession({ forceRefresh: true });
+        const token = session.tokens?.idToken?.toString();
+        if (!token) return [];
+
+        const res = await fetch((outputs as any).data.url as string, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: token },
+          body: JSON.stringify({
+            query: `query BannerPendingOffers {
+              listOffers(filter: { status: { eq: "PENDING" } }, limit: 500) {
+                items { id sellerEmail status }
+              }
+            }`,
+          }),
+        });
+        const result = await res.json();
         const items = result?.data?.listOffers?.items;
         if (!Array.isArray(items)) {
           console.error("[Banner] unexpected listOffers response:", result);
