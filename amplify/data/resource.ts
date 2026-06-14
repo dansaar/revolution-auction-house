@@ -181,7 +181,7 @@ const schema = a
       .authorization((allow) => [
         allow.ownerDefinedIn("buyerUserId"),
         allow.ownerDefinedIn("sellerUserId").to(["read", "update", "delete"]),
-        allow.group("Sellers").to(["read"]),
+        allow.group("Seller").to(["read"]),
         allow.group("Admin"),
       ]),
 
