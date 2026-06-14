@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
+import outputs from "@/amplify_outputs.json";
 
 // Maps EasyPost tracker statuses to our internal shippingStatus values
 const STATUS_MAP: Record<string, string> = {
@@ -47,97 +48,46 @@ export async function POST(request: NextRequest) {
 
   const trackingCode: string = tracker.tracking_code;
   const epStatus: string = tracker.status || "unknown";
-  const newStatus = STATUS_MAP[epStatus] || "SHIPPED";
 
-  // Only update DB when status advances to something meaningful
+  // Only act on statuses we map to a meaningful shippingStatus.
   if (!STATUS_MAP[epStatus]) {
     return NextResponse.json({ ok: true });
   }
+  const newStatus = STATUS_MAP[epStatus];
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-  const apiKey = process.env.AMPLIFY_API_KEY || "";
+  // Use the build-fresh AppSync endpoint + public API key (no stale env vars).
+  // The privileged DB write happens inside the updateShippingByTracking Lambda,
+  // which is gated by the shared secret below — so the public key can't spoof it.
+  const apiUrl = (outputs as any).data?.url as string;
+  const apiKey = (outputs as any).data?.api_key as string;
+  const secret = process.env.EASYPOST_WEBHOOK_SECRET || "";
 
-  if (!apiUrl || !apiKey) {
-    console.warn("EASYPOST_WEBHOOK: missing API URL or key, skipping DB update");
+  if (!secret) {
+    console.warn("EASYPOST_WEBHOOK: EASYPOST_WEBHOOK_SECRET unset, skipping DB update");
     return NextResponse.json({ ok: true });
   }
 
-  // GraphQL calls to update Auction and MarketplaceListing by tracking number
-  const updateAuctionQuery = /* GraphQL */ `
-    query FindAuctionByTracking($filter: ModelAuctionFilterInput) {
-      listAuctions(filter: $filter) {
-        items { id shippingStatus }
-      }
-    }
-  `;
-
   try {
-    // Search Auctions for this tracking number
-    const auctionSearch = await fetch(apiUrl, {
+    const res = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": apiKey },
       body: JSON.stringify({
-        query: updateAuctionQuery,
-        variables: { filter: { trackingNumber: { eq: trackingCode } } },
-      }),
-    });
-    const auctionData = await auctionSearch.json();
-    const auctions = auctionData?.data?.listAuctions?.items || [];
-
-    for (const auction of auctions) {
-      if (shouldAdvance(auction.shippingStatus, newStatus)) {
-        const updates: Record<string, any> = { id: auction.id, shippingStatus: newStatus };
-        if (newStatus === "DELIVERED") updates.deliveredAt = new Date().toISOString();
-        await fetch(apiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-api-key": apiKey },
-          body: JSON.stringify({
-            query: `mutation UpdateAuction($input: UpdateAuctionInput!) { updateAuction(input: $input) { id } }`,
-            variables: { input: updates },
-          }),
-        });
-      }
-    }
-
-    // Search MarketplaceListings for this tracking number
-    const listingSearch = await fetch(apiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
-      body: JSON.stringify({
-        query: `query FindListingByTracking($filter: ModelMarketplaceListingFilterInput) {
-          listMarketplaceListings(filter: $filter) { items { id shippingStatus } }
+        query: `mutation UpdateShipping($trackingCode: String!, $status: String!, $secret: String!) {
+          updateShippingByTracking(trackingCode: $trackingCode, status: $status, secret: $secret) {
+            updated
+            message
+          }
         }`,
-        variables: { filter: { trackingNumber: { eq: trackingCode } } },
+        variables: { trackingCode, status: newStatus, secret },
       }),
     });
-    const listingData = await listingSearch.json();
-    const listings = listingData?.data?.listMarketplaceListings?.items || [];
-
-    for (const listing of listings) {
-      if (shouldAdvance(listing.shippingStatus, newStatus)) {
-        const updates: Record<string, any> = { id: listing.id, shippingStatus: newStatus };
-        if (newStatus === "DELIVERED") updates.deliveredAt = new Date().toISOString();
-        await fetch(apiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-api-key": apiKey },
-          body: JSON.stringify({
-            query: `mutation UpdateMarketplaceListing($input: UpdateMarketplaceListingInput!) { updateMarketplaceListing(input: $input) { id } }`,
-            variables: { input: updates },
-          }),
-        });
-      }
+    const data = await res.json();
+    if (data?.errors) {
+      console.error("EASYPOST_WEBHOOK_GQL_ERROR", JSON.stringify(data.errors));
     }
   } catch (err) {
     console.error("EASYPOST_WEBHOOK_ERROR", err);
   }
 
   return NextResponse.json({ ok: true });
-}
-
-const STATUS_ORDER = ["PAID", "SHIPPED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"];
-
-function shouldAdvance(current: string | null | undefined, next: string): boolean {
-  const currentIdx = STATUS_ORDER.indexOf(current || "PAID");
-  const nextIdx = STATUS_ORDER.indexOf(next);
-  return nextIdx > currentIdx;
 }

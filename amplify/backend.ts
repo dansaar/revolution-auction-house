@@ -16,6 +16,7 @@ import { adminListInvoices } from "./functions/adminListInvoices/resource";
 import { saveSellerPrefs } from "./functions/saveSellerPrefs/resource";
 import { getShippingRates } from "./functions/getShippingRates/resource";
 import { purchaseShippingLabel } from "./functions/purchaseShippingLabel/resource";
+import { updateShippingByTracking } from "./functions/updateShippingByTracking/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
@@ -37,6 +38,7 @@ const backend = defineBackend({
   saveSellerPrefs,
   getShippingRates,
   purchaseShippingLabel,
+  updateShippingByTracking,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];
@@ -161,3 +163,12 @@ getShippingRatesCfn.addPropertyOverride("Environment.Variables.EASYPOST_API_KEY"
 const purchaseShippingLabelCfn = backend.purchaseShippingLabel.resources.lambda.node
   .defaultChild as CfnFunction;
 purchaseShippingLabelCfn.addPropertyOverride("Environment.Variables.EASYPOST_API_KEY", EASYPOST_API_KEY);
+
+// Shared secret guarding the tracking-webhook mutation (same value the
+// /api/easypost/webhook route uses to verify EasyPost + call the mutation).
+const updateShippingByTrackingCfn = backend.updateShippingByTracking.resources.lambda.node
+  .defaultChild as CfnFunction;
+updateShippingByTrackingCfn.addPropertyOverride(
+  "Environment.Variables.WEBHOOK_SECRET",
+  process.env.EASYPOST_WEBHOOK_SECRET || "",
+);

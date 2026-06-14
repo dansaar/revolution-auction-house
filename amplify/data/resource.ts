@@ -13,6 +13,7 @@ import { adminListInvoices } from "../functions/adminListInvoices/resource";
 import { saveSellerPrefs } from "../functions/saveSellerPrefs/resource";
 import { getShippingRates } from "../functions/getShippingRates/resource";
 import { purchaseShippingLabel } from "../functions/purchaseShippingLabel/resource";
+import { updateShippingByTracking } from "../functions/updateShippingByTracking/resource";
 
 const schema = a
   .schema({
@@ -594,6 +595,23 @@ const schema = a
       }))
       .authorization((allow) => [allow.group("Seller"), allow.group("Admin")])
       .handler(a.handler.function(purchaseShippingLabel)),
+
+    // Called by the EasyPost tracking webhook to advance shippingStatus by
+    // tracking number. Public apiKey so the webhook route can reach it, but the
+    // Lambda requires a shared secret so it can't be spoofed.
+    updateShippingByTracking: a
+      .mutation()
+      .arguments({
+        trackingCode: a.string().required(),
+        status: a.string().required(),
+        secret: a.string().required(),
+      })
+      .returns(a.customType({
+        updated: a.integer(),
+        message: a.string(),
+      }))
+      .authorization((allow) => [allow.publicApiKey()])
+      .handler(a.handler.function(updateShippingByTracking)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -610,6 +628,7 @@ const schema = a
     allow.resource(saveSellerPrefs),
     allow.resource(getShippingRates),
     allow.resource(purchaseShippingLabel),
+    allow.resource(updateShippingByTracking),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;
