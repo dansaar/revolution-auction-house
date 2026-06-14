@@ -324,8 +324,11 @@ const schema = a
       })
       .identifier(["email"])
       .authorization((allow) => [
+        // Email is the lookup key/contact data only — not an auth identity.
+        // Reads are open to any authenticated user (needed for seller lookups);
+        // writes go through the Admin panel (Admin group) and the saveSellerPrefs
+        // Lambda (IAM), so no case-sensitive email-identity rule is needed.
         allow.authenticated().to(["read"]),
-        allow.ownerDefinedIn("email").identityClaim("email").to(["read", "update"]),
         allow.group("Admin"),
       ]),
 
@@ -414,9 +417,11 @@ const schema = a
         index("buyerUserId").queryField("invoicesByBuyer"),
       ])
       .authorization((allow) => [
+        // Identity/authorization is keyed off the Cognito sub (buyer/seller
+        // userId), never email. Email remains only as display/contact data and
+        // for the legacy invoicesBySellerEmail lookup index.
         allow.ownerDefinedIn("buyerUserId"),
         allow.ownerDefinedIn("sellerUserId"),
-        allow.ownerDefinedIn("sellerEmail").identityClaim("email"),
         allow.group("Admin"),
       ]),
 
