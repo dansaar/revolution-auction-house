@@ -619,7 +619,11 @@ export const data = defineData({
   authorizationModes: {
     defaultAuthorizationMode: "userPool",
     apiKeyAuthorizationMode: {
-      expiresInDays: 30,
+      // Public reads (homepage live ticker, auction/marketplace listings) use
+      // this key. It rotates on backend deploy; a longer TTL avoids it silently
+      // expiring (max 365). Regenerate amplify_outputs.json after each backend
+      // deploy so the committed key/introspection stays in sync.
+      expiresInDays: 365,
     },
   },
 });
