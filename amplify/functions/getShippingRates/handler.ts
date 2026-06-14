@@ -98,9 +98,21 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
       return { shipmentId: null, ratesJson: null, error: "No shipping address on file for this buyer" };
     }
 
-    // Carriers require a phone on both ends; fall back to the seller's number
-    // for the recipient if the buyer has none on file.
-    const recipientPhone = toAddress.phone || fromPhone || "";
+    // Carriers want phone numbers as plain digits. Normalize, and require the
+    // sender phone (UPS/FedEx reject shipments without it). Fall back to the
+    // sender's number for the recipient if the buyer has none on file.
+    const digits = (v?: string | null) => (v || "").replace(/\D/g, "");
+    const senderPhone = digits(fromPhone);
+
+    if (!senderPhone) {
+      return {
+        shipmentId: null,
+        ratesJson: null,
+        error: "Enter a ship-from phone number (carriers require it).",
+      };
+    }
+
+    const recipientPhone = digits(toAddress.phone) || senderPhone;
 
     const ep = new EasyPost(EASYPOST_API_KEY);
 
@@ -127,7 +139,7 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
         state: fromState,
         zip: fromZip,
         country: "US",
-        phone: fromPhone || "",
+        phone: senderPhone,
       },
       parcel: {
         weight: weight,

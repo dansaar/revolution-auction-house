@@ -16,9 +16,10 @@ import { toast } from "sonner";
 
 // Print a shipping label straight to a printer (not a webpage). We fetch the PDF
 // through our same-origin proxy (/api/shipping-label) — avoiding the S3 CORS block
-// — turn it into a blob URL, and hand it to print-js, which loads the PDF, waits
-// for it to render, then opens the native print dialog. Returns true once the
-// dialog was triggered.
+// — turn it into a blob URL, and load it into an OFF-SCREEN but real-sized iframe.
+// The real size matters: Chrome's built-in PDF viewer renders nothing in a 0×0 or
+// display:none frame, which is why earlier attempts printed blank pages. After the
+// PDF has had a moment to render we call print() on the iframe directly.
 async function printLabel(url?: string | null): Promise<boolean> {
   if (!url) {
     toast.error("No label file available.");
@@ -42,34 +43,57 @@ async function printLabel(url?: string | null): Promise<boolean> {
 
   return new Promise<boolean>((resolve) => {
     let settled = false;
-    const finish = (ok: boolean) => {
+    const finish = (ok: boolean, iframe?: HTMLIFrameElement) => {
       if (settled) return;
       settled = true;
-      // Revoke the blob URL after the dialog has had time to use it.
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+      setTimeout(() => {
+        iframe?.remove();
+        URL.revokeObjectURL(blobUrl);
+      }, 60_000);
       resolve(ok);
     };
 
-    import("print-js")
-      .then(({ default: pjs }) => {
-        pjs({
-          printable: blobUrl,
-          type: "pdf",
-          onError: () => {
-            window.open(blobUrl, "_blank", "noopener,noreferrer");
-            toast.message("Opened the label in a new tab — print from there (4×6).");
-            finish(false);
-          },
-          onPrintDialogClose: () => finish(true),
-        } as any);
-        toast.success("Opening print dialog… set paper to 4×6 if prompted.");
-        // print-js doesn't reliably fire onPrintDialogClose on every browser.
-        setTimeout(() => finish(true), 2000);
-      })
-      .catch(() => {
-        window.open(blobUrl, "_blank", "noopener,noreferrer");
-        finish(false);
-      });
+    const openTab = (iframe?: HTMLIFrameElement) => {
+      window.open(blobUrl, "_blank", "noopener,noreferrer");
+      toast.message("Opened the label in a new tab — print from there (4×6).");
+      finish(false, iframe);
+    };
+
+    const iframe = document.createElement("iframe");
+    // Off-screen, but with genuine dimensions so the PDF actually renders.
+    iframe.style.position = "fixed";
+    iframe.style.left = "-10000px";
+    iframe.style.top = "0";
+    iframe.style.width = "800px";
+    iframe.style.height = "1120px";
+    iframe.style.border = "0";
+    iframe.setAttribute("aria-hidden", "true");
+
+    iframe.onload = () => {
+      // Give the embedded PDF viewer a beat to paint before printing.
+      setTimeout(() => {
+        try {
+          const win = iframe.contentWindow;
+          if (!win) throw new Error("no iframe window");
+          win.focus();
+          win.print();
+          toast.success("Opening print dialog… set paper to 4×6 if prompted.");
+          finish(true, iframe);
+        } catch {
+          openTab(iframe);
+        }
+      }, 800);
+    };
+
+    iframe.onerror = () => openTab(iframe);
+
+    // Safety net if the iframe never loads.
+    setTimeout(() => {
+      if (!settled) openTab(iframe);
+    }, 10_000);
+
+    iframe.src = blobUrl;
+    document.body.appendChild(iframe);
   });
 }
 
