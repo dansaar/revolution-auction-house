@@ -259,6 +259,7 @@ export async function POST(req: Request) {
         customer_email: buyerEmail || undefined,
         line_items: lineItems,
         shipping_address_collection: { allowed_countries: ["US"] },
+        phone_number_collection: { enabled: true },
         metadata: {
           buyerEmail: buyerEmail || "",
           buyerSub: buyerSub || "",
@@ -313,6 +314,7 @@ export async function POST(req: Request) {
         customer_email: buyerEmail || undefined,
         line_items: buildAuctionLineItems(title, amounts),
         shipping_address_collection: { allowed_countries: ["US"] },
+        phone_number_collection: { enabled: true },
         metadata: {
           auctionId,
           buyerEmail: buyerEmail || "",
@@ -370,6 +372,7 @@ export async function POST(req: Request) {
         customer_email: buyerEmail || undefined,
         line_items: buildListingLineItems(title, amounts),
         shipping_address_collection: { allowed_countries: ["US"] },
+        phone_number_collection: { enabled: true },
         metadata: {
           listingId,
           buyerEmail: buyerEmail || "",

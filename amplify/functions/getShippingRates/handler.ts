@@ -28,9 +28,11 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
     // Verify the caller owns the item
     let toAddress: { name: string; street1: string; street2?: string; city: string; state: string; zip: string; country: string; phone?: string } | null = null;
 
-    // Look up the buyer's phone from their profile so the recipient address has a
-    // contact number (UPS/FedEx require a phone on both addresses).
+    // Recipient phone for the label (UPS/FedEx require one on both addresses).
+    // Prefer the phone Stripe collected at checkout (stored on the invoice),
+    // then fall back to the buyer's profile phone.
     async function buyerPhoneFor(invoice: any): Promise<string> {
+      if (invoice?.shippingPhone) return invoice.shippingPhone as string;
       const buyerUserId = invoice?.buyerUserId;
       if (!buyerUserId) return "";
       try {

@@ -94,8 +94,12 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
     // Fall back to billing address when no separate shipping was collected
     const shippingAddress = shippingObj?.address || session.customer_details?.address || null;
     const shippingName = shippingObj?.name || session.customer_details?.name || "";
+    // Phone collected by Stripe Checkout (phone_number_collection) — used as the
+    // recipient phone for shipping labels (UPS/FedEx require it).
+    const shippingPhone = (session.customer_details as any)?.phone || "";
     const shippingFields = shippingAddress ? {
       shippingName,
+      shippingPhone,
       shippingLine1:   shippingAddress.line1 || "",
       shippingLine2:   shippingAddress.line2 || "",
       shippingCity:    shippingAddress.city || "",

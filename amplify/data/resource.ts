@@ -399,6 +399,7 @@ const schema = a
     paidAt: a.datetime(),
 
     shippingName: a.string(),
+    shippingPhone: a.string(),
     shippingLine1: a.string(),
     shippingLine2: a.string(),
     shippingCity: a.string(),
