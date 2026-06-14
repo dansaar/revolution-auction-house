@@ -14,7 +14,18 @@
     "user_verification_types": [
       "email"
     ],
-    "groups": ["Admin", "Seller"],
+    "groups": [
+      {
+        "Admin": {
+          "precedence": 0
+        }
+      },
+      {
+        "Seller": {
+          "precedence": 1
+        }
+      }
+    ],
     "mfa_configuration": "NONE",
     "password_policy": {
       "min_length": 8,
@@ -26,9 +37,9 @@
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://gty72gpz3za6npqpjjkhz6kg4i.appsync-api.us-east-1.amazonaws.com/graphql",
+    "url": "https://w4lprwywgbdg5nbd7hzw7tbavq.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_region": "us-east-1",
-    "api_key": "da2-xj2p5h4zo5a7foh2fws3ym5wgi",
+    "api_key": "da2-tktz3ums5bdktpkjeodnyaaexa",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
     "authorization_types": [
       "API_KEY",
@@ -191,6 +202,27 @@
               "isRequired": false,
               "attributes": []
             },
+            "sellerUserId": {
+              "name": "sellerUserId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sellerPublicId": {
+              "name": "sellerPublicId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sellerDisplayName": {
+              "name": "sellerDisplayName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "paid": {
               "name": "paid",
               "isArray": false,
@@ -209,6 +241,27 @@
               "name": "stripeSessionId",
               "isArray": false,
               "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "chargeTax": {
+              "name": "chargeTax",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "taxRate": {
+              "name": "taxRate",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "buyerPremiumRate": {
+              "name": "buyerPremiumRate",
+              "isArray": false,
+              "type": "Float",
               "isRequired": false,
               "attributes": []
             },
@@ -303,6 +356,34 @@
               "isRequired": false,
               "attributes": []
             },
+            "startsAt": {
+              "name": "startsAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "increment": {
+              "name": "increment",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "easypostShipmentId": {
+              "name": "easypostShipmentId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingLabelUrl": {
+              "name": "shippingLabelUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "createdAt": {
               "name": "createdAt",
               "isArray": false,
@@ -328,6 +409,16 @@
               "properties": {}
             },
             {
+              "type": "key",
+              "properties": {
+                "name": "auctionsBySellerUserId",
+                "queryField": "auctionsBySellerUserId",
+                "fields": [
+                  "sellerUserId"
+                ]
+              }
+            },
+            {
               "type": "auth",
               "properties": {
                 "rules": [
@@ -335,14 +426,37 @@
                     "allow": "public",
                     "provider": "apiKey",
                     "operations": [
-                      "create",
-                      "update",
-                      "delete",
                       "read"
                     ]
                   },
                   {
-                    "allow": "private",
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "create"
+                    ],
+                    "groups": [
+                      "Seller"
+                    ]
+                  },
+                  {
+                    "provider": "userPools",
+                    "ownerField": "sellerUserId",
+                    "allow": "owner",
+                    "operations": [
+                      "read",
+                      "update"
+                    ],
+                    "identityClaim": "cognito:username"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "Admin"
+                    ],
                     "operations": [
                       "create",
                       "update",
@@ -494,14 +608,22 @@
                     "allow": "public",
                     "provider": "apiKey",
                     "operations": [
-                      "create",
-                      "update",
-                      "delete",
                       "read"
                     ]
                   },
                   {
                     "allow": "private",
+                    "operations": [
+                      "create"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "Admin"
+                    ],
                     "operations": [
                       "create",
                       "update",
@@ -680,6 +802,20 @@
               "isRequired": false,
               "attributes": []
             },
+            "chargeTax": {
+              "name": "chargeTax",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "taxRate": {
+              "name": "taxRate",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
             "sellerUserId": {
               "name": "sellerUserId",
               "isArray": false,
@@ -696,6 +832,13 @@
             },
             "sellerEmail": {
               "name": "sellerEmail",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sellerPublicId": {
+              "name": "sellerPublicId",
               "isArray": false,
               "type": "String",
               "isRequired": false,
@@ -736,6 +879,27 @@
               "isRequired": false,
               "attributes": []
             },
+            "lastOfferSmsAt": {
+              "name": "lastOfferSmsAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "easypostShipmentId": {
+              "name": "easypostShipmentId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingLabelUrl": {
+              "name": "shippingLabelUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "createdAt": {
               "name": "createdAt",
               "isArray": false,
@@ -761,6 +925,16 @@
               "properties": {}
             },
             {
+              "type": "key",
+              "properties": {
+                "name": "marketplaceListingsBySellerUserId",
+                "queryField": "listingsBySellerUserId",
+                "fields": [
+                  "sellerUserId"
+                ]
+              }
+            },
+            {
               "type": "auth",
               "properties": {
                 "rules": [
@@ -768,14 +942,37 @@
                     "allow": "public",
                     "provider": "apiKey",
                     "operations": [
-                      "create",
-                      "update",
-                      "delete",
                       "read"
                     ]
                   },
                   {
-                    "allow": "private",
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "create"
+                    ],
+                    "groups": [
+                      "Seller"
+                    ]
+                  },
+                  {
+                    "provider": "userPools",
+                    "ownerField": "sellerUserId",
+                    "allow": "owner",
+                    "operations": [
+                      "read",
+                      "update"
+                    ],
+                    "identityClaim": "cognito:username"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "Admin"
+                    ],
                     "operations": [
                       "create",
                       "update",
@@ -898,11 +1095,60 @@
               "properties": {}
             },
             {
+              "type": "key",
+              "properties": {
+                "name": "offersBySellerUserId",
+                "queryField": "offersBySellerUserId",
+                "fields": [
+                  "sellerUserId"
+                ]
+              }
+            },
+            {
               "type": "auth",
               "properties": {
                 "rules": [
                   {
-                    "allow": "private",
+                    "provider": "userPools",
+                    "ownerField": "buyerUserId",
+                    "allow": "owner",
+                    "identityClaim": "cognito:username",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  },
+                  {
+                    "provider": "userPools",
+                    "ownerField": "sellerUserId",
+                    "allow": "owner",
+                    "operations": [
+                      "read",
+                      "update",
+                      "delete"
+                    ],
+                    "identityClaim": "cognito:username"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read"
+                    ],
+                    "groups": [
+                      "Seller"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "Admin"
+                    ],
                     "operations": [
                       "create",
                       "update",
@@ -1043,14 +1289,16 @@
                     "allow": "public",
                     "provider": "apiKey",
                     "operations": [
-                      "create",
-                      "update",
-                      "delete",
                       "read"
                     ]
                   },
                   {
-                    "allow": "private",
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "Admin"
+                    ],
                     "operations": [
                       "create",
                       "update",
@@ -1065,6 +1313,604 @@
           "primaryKeyInfo": {
             "isCustomPrimaryKey": false,
             "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "BidAuditLog": {
+          "name": "BidAuditLog",
+          "fields": {
+            "bidRequestId": {
+              "name": "bidRequestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "auctionId": {
+              "name": "auctionId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "bidderUserId": {
+              "name": "bidderUserId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "bidderEmail": {
+              "name": "bidderEmail",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "bidderName": {
+              "name": "bidderName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "requestedMaxBid": {
+              "name": "requestedMaxBid",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "accepted": {
+              "name": "accepted",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "rejectionReason": {
+              "name": "rejectionReason",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "previousPrice": {
+              "name": "previousPrice",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "newPrice": {
+              "name": "newPrice",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "previousLeaderUserId": {
+              "name": "previousLeaderUserId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "newLeaderUserId": {
+              "name": "newLeaderUserId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "buyerTier": {
+              "name": "buyerTier",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "buyerBidLimit": {
+              "name": "buyerBidLimit",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "attemptCount": {
+              "name": "attemptCount",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "resultMessage": {
+              "name": "resultMessage",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "BidAuditLogs",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "bidRequestId"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "bidAuditLogsByAuctionIdAndCreatedAt",
+                "queryField": "bidAuditByAuction",
+                "fields": [
+                  "auctionId",
+                  "createdAt"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "bidAuditLogsByBidderUserIdAndCreatedAt",
+                "queryField": "bidAuditByBidder",
+                "fields": [
+                  "bidderUserId",
+                  "createdAt"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read"
+                    ],
+                    "groups": [
+                      "Admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "bidRequestId",
+            "sortKeyFieldNames": []
+          }
+        },
+        "BuyerProfile": {
+          "name": "BuyerProfile",
+          "fields": {
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "displayName": {
+              "name": "displayName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "verificationTier": {
+              "name": "verificationTier",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "bidLimit": {
+              "name": "bidLimit",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lastSeenAt": {
+              "name": "lastSeenAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lastSeenPage": {
+              "name": "lastSeenPage",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "phoneNumber": {
+              "name": "phoneNumber",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "smsOptIn": {
+              "name": "smsOptIn",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "notifyOutbid": {
+              "name": "notifyOutbid",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "notifyWon": {
+              "name": "notifyWon",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "notifyWatchlist": {
+              "name": "notifyWatchlist",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "requestedTier": {
+              "name": "requestedTier",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "requestedLimit": {
+              "name": "requestedLimit",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "verificationNotes": {
+              "name": "verificationNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "reviewedBy": {
+              "name": "reviewedBy",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "reviewedAt": {
+              "name": "reviewedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "BuyerProfiles",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "userId"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "buyerProfilesByEmail",
+                "queryField": "buyerProfileByEmail",
+                "fields": [
+                  "email"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "userId",
+                    "allow": "owner",
+                    "identityClaim": "cognito:username",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "Admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "userId",
+            "sortKeyFieldNames": []
+          }
+        },
+        "SellerProfile": {
+          "name": "SellerProfile",
+          "fields": {
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "displayName": {
+              "name": "displayName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "approvedBy": {
+              "name": "approvedBy",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "approvedAt": {
+              "name": "approvedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "revokedBy": {
+              "name": "revokedBy",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "revokedAt": {
+              "name": "revokedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "notifyVerifications": {
+              "name": "notifyVerifications",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "notifyOffers": {
+              "name": "notifyOffers",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "phoneNumber": {
+              "name": "phoneNumber",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shipFromName": {
+              "name": "shipFromName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shipFromStreet1": {
+              "name": "shipFromStreet1",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shipFromStreet2": {
+              "name": "shipFromStreet2",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shipFromCity": {
+              "name": "shipFromCity",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shipFromState": {
+              "name": "shipFromState",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shipFromZip": {
+              "name": "shipFromZip",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shipFromPhone": {
+              "name": "shipFromPhone",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "SellerProfiles",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "email"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "Admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "email",
             "sortKeyFieldNames": []
           }
         },
@@ -1110,7 +1956,14 @@
               "name": "userEmail",
               "isArray": false,
               "type": "String",
-              "isRequired": true,
+              "isRequired": false,
+              "attributes": []
+            },
+            "userSub": {
+              "name": "userSub",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
               "attributes": []
             },
             "createdAt": {
@@ -1138,11 +1991,38 @@
               "properties": {}
             },
             {
+              "type": "key",
+              "properties": {
+                "name": "watchlistItemsByAuctionId",
+                "queryField": "watchlistByAuction",
+                "fields": [
+                  "auctionId"
+                ]
+              }
+            },
+            {
               "type": "auth",
               "properties": {
                 "rules": [
                   {
-                    "allow": "private",
+                    "provider": "userPools",
+                    "ownerField": "userSub",
+                    "allow": "owner",
+                    "identityClaim": "cognito:username",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "Admin"
+                    ],
                     "operations": [
                       "create",
                       "update",
@@ -1205,8 +2085,43 @@
               "isRequired": false,
               "attributes": []
             },
+            "buyerUserId": {
+              "name": "buyerUserId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "sellerEmail": {
               "name": "sellerEmail",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sellerUserId": {
+              "name": "sellerUserId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "subtotal": {
+              "name": "subtotal",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "buyerPremium": {
+              "name": "buyerPremium",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "tax": {
+              "name": "tax",
               "isArray": false,
               "type": "String",
               "isRequired": false,
@@ -1240,6 +2155,62 @@
               "isRequired": false,
               "attributes": []
             },
+            "shippingName": {
+              "name": "shippingName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingPhone": {
+              "name": "shippingPhone",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingLine1": {
+              "name": "shippingLine1",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingLine2": {
+              "name": "shippingLine2",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingCity": {
+              "name": "shippingCity",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingState": {
+              "name": "shippingState",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingZip": {
+              "name": "shippingZip",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingCountry": {
+              "name": "shippingCountry",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "createdAt": {
               "name": "createdAt",
               "isArray": false,
@@ -1265,12 +2236,44 @@
               "properties": {}
             },
             {
+              "type": "key",
+              "properties": {
+                "name": "invoicesByBuyerUserId",
+                "queryField": "invoicesByBuyer",
+                "fields": [
+                  "buyerUserId"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "invoicesBySellerEmail",
+                "queryField": "invoicesBySellerEmail",
+                "fields": [
+                  "sellerEmail"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "invoicesBySellerUserId",
+                "queryField": "invoicesBySellerUserId",
+                "fields": [
+                  "sellerUserId"
+                ]
+              }
+            },
+            {
               "type": "auth",
               "properties": {
                 "rules": [
                   {
-                    "allow": "public",
-                    "provider": "apiKey",
+                    "provider": "userPools",
+                    "ownerField": "buyerUserId",
+                    "allow": "owner",
+                    "identityClaim": "cognito:username",
                     "operations": [
                       "create",
                       "update",
@@ -1279,7 +2282,24 @@
                     ]
                   },
                   {
-                    "allow": "private",
+                    "provider": "userPools",
+                    "ownerField": "sellerUserId",
+                    "allow": "owner",
+                    "identityClaim": "cognito:username",
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "Admin"
+                    ],
                     "operations": [
                       "create",
                       "update",
@@ -1358,6 +2378,275 @@
               "attributes": []
             }
           }
+        },
+        "VerifyPaymentReturnType": {
+          "name": "VerifyPaymentReturnType",
+          "fields": {
+            "paid": {
+              "name": "paid",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "type": {
+              "name": "type",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "itemCount": {
+              "name": "itemCount",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "auctionId": {
+              "name": "auctionId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "listingId": {
+              "name": "listingId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "error": {
+              "name": "error",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "ReviewBuyerVerificationReturnType": {
+          "name": "ReviewBuyerVerificationReturnType",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "message": {
+              "name": "message",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "ManageSellerGroupReturnType": {
+          "name": "ManageSellerGroupReturnType",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "message": {
+              "name": "message",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "NotifySellerOfferSmsReturnType": {
+          "name": "NotifySellerOfferSmsReturnType",
+          "fields": {
+            "sent": {
+              "name": "sent",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "AutoVerifyBuyerReturnType": {
+          "name": "AutoVerifyBuyerReturnType",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "SubmitVerificationRequestReturnType": {
+          "name": "SubmitVerificationRequestReturnType",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "message": {
+              "name": "message",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "GetRevenueStatsReturnType": {
+          "name": "GetRevenueStatsReturnType",
+          "fields": {
+            "statsJson": {
+              "name": "statsJson",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "recentJson": {
+              "name": "recentJson",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "AdminListInvoicesReturnType": {
+          "name": "AdminListInvoicesReturnType",
+          "fields": {
+            "invoicesJson": {
+              "name": "invoicesJson",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "SaveSellerPrefsReturnType": {
+          "name": "SaveSellerPrefsReturnType",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "GetShippingRatesReturnType": {
+          "name": "GetShippingRatesReturnType",
+          "fields": {
+            "shipmentId": {
+              "name": "shipmentId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "ratesJson": {
+              "name": "ratesJson",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "error": {
+              "name": "error",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "PurchaseShippingLabelReturnType": {
+          "name": "PurchaseShippingLabelReturnType",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "trackingNumber": {
+              "name": "trackingNumber",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "carrier": {
+              "name": "carrier",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "labelUrl": {
+              "name": "labelUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "error": {
+              "name": "error",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        }
+      },
+      "queries": {
+        "getRevenueStats": {
+          "name": "getRevenueStats",
+          "isArray": false,
+          "type": {
+            "nonModel": "GetRevenueStatsReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "startDate": {
+              "name": "startDate",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "endDate": {
+              "name": "endDate",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "adminListInvoices": {
+          "name": "adminListInvoices",
+          "isArray": false,
+          "type": {
+            "nonModel": "AdminListInvoicesReturnType"
+          },
+          "isRequired": false
         }
       },
       "mutations": {
@@ -1380,6 +2669,12 @@
               "isArray": false,
               "type": "Int",
               "isRequired": true
+            },
+            "bidRequestId": {
+              "name": "bidRequestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
             }
           }
         },
@@ -1398,17 +2693,401 @@
               "isRequired": true
             }
           }
+        },
+        "verifyPayment": {
+          "name": "verifyPayment",
+          "isArray": false,
+          "type": {
+            "nonModel": "VerifyPaymentReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "sessionId": {
+              "name": "sessionId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        },
+        "reviewBuyerVerification": {
+          "name": "reviewBuyerVerification",
+          "isArray": false,
+          "type": {
+            "nonModel": "ReviewBuyerVerificationReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "approved": {
+              "name": "approved",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true
+            },
+            "tier": {
+              "name": "tier",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "manageSellerGroup": {
+          "name": "manageSellerGroup",
+          "isArray": false,
+          "type": {
+            "nonModel": "ManageSellerGroupReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "action": {
+              "name": "action",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        },
+        "notifySellerOfferSms": {
+          "name": "notifySellerOfferSms",
+          "isArray": false,
+          "type": {
+            "nonModel": "NotifySellerOfferSmsReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "sellerEmail": {
+              "name": "sellerEmail",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "listingId": {
+              "name": "listingId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "listingTitle": {
+              "name": "listingTitle",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "offerAmount": {
+              "name": "offerAmount",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        },
+        "autoVerifyBuyer": {
+          "name": "autoVerifyBuyer",
+          "isArray": false,
+          "type": {
+            "nonModel": "AutoVerifyBuyerReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "stripeSessionId": {
+              "name": "stripeSessionId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "webhookToken": {
+              "name": "webhookToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        },
+        "submitVerificationRequest": {
+          "name": "submitVerificationRequest",
+          "isArray": false,
+          "type": {
+            "nonModel": "SubmitVerificationRequestReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "requestedTier": {
+              "name": "requestedTier",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "verificationNotes": {
+              "name": "verificationNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "saveSellerPrefs": {
+          "name": "saveSellerPrefs",
+          "isArray": false,
+          "type": {
+            "nonModel": "SaveSellerPrefsReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "notifyVerifications": {
+              "name": "notifyVerifications",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "notifyOffers": {
+              "name": "notifyOffers",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "phoneNumber": {
+              "name": "phoneNumber",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "shipFromName": {
+              "name": "shipFromName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "shipFromStreet1": {
+              "name": "shipFromStreet1",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "shipFromStreet2": {
+              "name": "shipFromStreet2",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "shipFromCity": {
+              "name": "shipFromCity",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "shipFromState": {
+              "name": "shipFromState",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "shipFromZip": {
+              "name": "shipFromZip",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "shipFromPhone": {
+              "name": "shipFromPhone",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "getShippingRates": {
+          "name": "getShippingRates",
+          "isArray": false,
+          "type": {
+            "nonModel": "GetShippingRatesReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "itemId": {
+              "name": "itemId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "itemType": {
+              "name": "itemType",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "weight": {
+              "name": "weight",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": true
+            },
+            "length": {
+              "name": "length",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false
+            },
+            "width": {
+              "name": "width",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false
+            },
+            "height": {
+              "name": "height",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false
+            },
+            "fromName": {
+              "name": "fromName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "fromStreet1": {
+              "name": "fromStreet1",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "fromStreet2": {
+              "name": "fromStreet2",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "fromCity": {
+              "name": "fromCity",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "fromState": {
+              "name": "fromState",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "fromZip": {
+              "name": "fromZip",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "fromPhone": {
+              "name": "fromPhone",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "toName": {
+              "name": "toName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "toStreet1": {
+              "name": "toStreet1",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "toStreet2": {
+              "name": "toStreet2",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "toCity": {
+              "name": "toCity",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "toState": {
+              "name": "toState",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "toZip": {
+              "name": "toZip",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "toPhone": {
+              "name": "toPhone",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "purchaseShippingLabel": {
+          "name": "purchaseShippingLabel",
+          "isArray": false,
+          "type": {
+            "nonModel": "PurchaseShippingLabelReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "itemId": {
+              "name": "itemId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "itemType": {
+              "name": "itemType",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "shipmentId": {
+              "name": "shipmentId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "rateId": {
+              "name": "rateId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
         }
       }
     }
   },
   "storage": {
     "aws_region": "us-east-1",
-    "bucket_name": "amplify-revolutionauction-auctionimagesbucket957d5-wapzdsrc9qji",
+    "bucket_name": "amplify-d1rzof879gvtc-mai-auctionimagesbucket957d5-fmo5wpze2m7d",
     "buckets": [
       {
         "name": "auctionImages",
-        "bucket_name": "amplify-revolutionauction-auctionimagesbucket957d5-wapzdsrc9qji",
+        "bucket_name": "amplify-d1rzof879gvtc-mai-auctionimagesbucket957d5-fmo5wpze2m7d",
         "aws_region": "us-east-1",
         "paths": {
           "auction-images/*": {
@@ -1421,6 +3100,18 @@
               "list",
               "write",
               "delete"
+            ],
+            "groupsAdmin": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ],
+            "groupsSeller": [
+              "get",
+              "list",
+              "write",
+              "delete"
             ]
           },
           "marketplace-images/*": {
@@ -1429,6 +3120,18 @@
               "list"
             ],
             "authenticated": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ],
+            "groupsAdmin": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ],
+            "groupsSeller": [
               "get",
               "list",
               "write",
