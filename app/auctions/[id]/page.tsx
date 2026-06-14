@@ -429,11 +429,6 @@ export default function LiveAuctionPage() {
 
         if (isOutbid) {
           setFlashOutbid(true);
-
-          const audio = new Audio("/outbid.mp3");
-          audio.volume = 0.35;
-          audio.play().catch(() => {});
-
           setTimeout(() => setFlashOutbid(false), 2000);
         }
 
@@ -520,10 +515,6 @@ export default function LiveAuctionPage() {
     if (!hasBid || isWinning) return;
 
     setFlashOutbid(true);
-
-    const audio = new Audio("/outbid.mp3");
-    audio.volume = 0.35;
-    audio.play().catch(() => {});
 
     const t = setTimeout(() => setFlashOutbid(false), 2000);
 
