@@ -13,6 +13,7 @@ import { moneyToNumber } from "@/lib/money";
 import { isAdminUser } from "@/lib/sellers";
 import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { DashboardFilterBar, matchesSearch } from "@/app/components/DashboardFilters";
 
 // Print a shipping label straight to a printer (not a webpage). We fetch the PDF
 // through our same-origin proxy (/api/shipping-label) — avoiding the S3 CORS block
@@ -162,6 +163,8 @@ function SellerPage() {
   const [activeTab, setActiveTab] = useState<"auctions" | "marketplace">(
     searchParams?.get("tab") === "marketplace" ? "marketplace" : "auctions",
   );
+  const [auctionSearch, setAuctionSearch] = useState("");
+  const bySearch = (arr: any[]) => arr.filter((a: any) => matchesSearch(a.title, auctionSearch));
 
   const [marketplaceListings, setMarketplaceListings] = useState<any[]>([]);
 
@@ -705,12 +708,20 @@ function SellerPage() {
             />
 
             {scheduledAuctions.length > 0 && (
-              <ScheduledAuctionsSection auctions={scheduledAuctions} client={client} />
+              <ScheduledAuctionsSection auctions={bySearch(scheduledAuctions)} client={client} />
+            )}
+
+            {auctions.length > 0 && (
+              <DashboardFilterBar
+                search={auctionSearch}
+                setSearch={setAuctionSearch}
+                placeholder="Search auctions…"
+              />
             )}
 
             <AuctionSection
               title="Live Auctions"
-              auctions={liveAuctions}
+              auctions={bySearch(liveAuctions)}
               client={client}
               sellerEmail={sellerEmail}
               sellerUserId={sellerUserId}
@@ -723,7 +734,7 @@ function SellerPage() {
 
             <AuctionSection
               title="Ending Soon"
-              auctions={endingSoon}
+              auctions={bySearch(endingSoon)}
               client={client}
               sellerEmail={sellerEmail}
               sellerUserId={sellerUserId}
@@ -736,7 +747,7 @@ function SellerPage() {
 
             <AuctionSection
               title="Ended Auctions"
-              auctions={endedAuctions}
+              auctions={bySearch(endedAuctions)}
               client={client}
               sellerEmail={sellerEmail}
               sellerUserId={sellerUserId}
@@ -749,7 +760,7 @@ function SellerPage() {
 
             <AuctionSection
               title="Unsold Auctions"
-              auctions={unsoldAuctions}
+              auctions={bySearch(unsoldAuctions)}
               client={client}
               sellerEmail={sellerEmail}
               sellerUserId={sellerUserId}
@@ -1979,6 +1990,23 @@ function MarketplaceSection({
   const [ratesError, setRatesError] = useState("");
   const [purchasedLabel, setPurchasedLabel] = useState<{ trackingNumber: string; carrier: string; labelUrl: string } | null>(null);
 
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  const listingStatus = (l: any) =>
+    l.status === "SOLD" || l.sold
+      ? "SOLD"
+      : l.status === "OFFER_PENDING"
+        ? "OFFER_PENDING"
+        : l.status === "OFFER_ACCEPTED"
+          ? "OFFER_ACCEPTED"
+          : "ACTIVE";
+
+  const filteredListings = (listings as any[]).filter((l: any) => {
+    if (statusFilter !== "ALL" && listingStatus(l) !== statusFilter) return false;
+    return matchesSearch(l.title, search);
+  });
+
   return (
     <section className="mt-14">
       <div className="mb-5 flex items-center justify-between">
@@ -1992,11 +2020,30 @@ function MarketplaceSection({
         </Link>
       </div>
 
+      {listings.length > 0 && (
+        <DashboardFilterBar
+          search={search}
+          setSearch={setSearch}
+          status={statusFilter}
+          setStatus={setStatusFilter}
+          options={[
+            { value: "ALL", label: "All" },
+            { value: "ACTIVE", label: "Active" },
+            { value: "OFFER_PENDING", label: "Offer Pending" },
+            { value: "OFFER_ACCEPTED", label: "Pending Payment" },
+            { value: "SOLD", label: "Sold" },
+          ]}
+          placeholder="Search listings…"
+        />
+      )}
+
       {listings.length === 0 ? (
         <p className="text-gray-500">No marketplace listings.</p>
+      ) : filteredListings.length === 0 ? (
+        <p className="text-gray-500">No listings match your filters.</p>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {listings.map((listing: any) => {
+          {filteredListings.map((listing: any) => {
             const invoice = invoices?.find(
               (invoice: any) =>
                 String(invoice.listingId) === String(listing.id),

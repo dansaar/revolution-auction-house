@@ -23,6 +23,7 @@ import { cdnUrl } from "@/lib/cdn";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 import { isAdminUser } from "@/lib/sellers";
 import { getTier } from "@/lib/tiers";
+import { DashboardFilterBar, matchesSearch } from "@/app/components/DashboardFilters";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
   const c = carrier.toLowerCase();
@@ -118,6 +119,11 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<"auctions" | "marketplace">(
     "auctions",
   );
+  const [buyerSearch, setBuyerSearch] = useState("");
+  // Resolve an auction's title by id (bids don't carry the title directly).
+  const auctionTitleById = (id: any) =>
+    auctions.find((a: any) => String(a.id) === String(id))?.title || "";
+  const bidMatches = (bid: any) => matchesSearch(auctionTitleById(bid.auctionId), buyerSearch);
 
   const userKey = user?.signInDetails?.loginId || user?.username || "";
   const userKeyLower = userKey.toLowerCase();
@@ -893,21 +899,29 @@ export default function DashboardPage() {
         <section className="mt-12 grid gap-8 lg:grid-cols-2">
           {activeTab === "auctions" && (
             <>
+              <div className="lg:col-span-2">
+                <DashboardFilterBar
+                  search={buyerSearch}
+                  setSearch={setBuyerSearch}
+                  placeholder="Search your auctions…"
+                />
+              </div>
+
               <Panel title="My Active / Winning Bids">
-                {myWinningBids.length === 0 ? (
+                {myWinningBids.filter(bidMatches).length === 0 ? (
                   <Empty text="No leading bids yet." />
                 ) : (
-                  myWinningBids.map((bid: any) => (
+                  myWinningBids.filter(bidMatches).map((bid: any) => (
                     <BidRow key={bid.auctionId} bid={bid} auctions={auctions} />
                   ))
                 )}
               </Panel>
 
               <Panel title="Outbid (Live)">
-                {outbidLive.length === 0 ? (
+                {outbidLive.filter(bidMatches).length === 0 ? (
                   <Empty text="No live outbid auctions." />
                 ) : (
-                  outbidLive.map((bid: any) => (
+                  outbidLive.filter(bidMatches).map((bid: any) => (
                     <BidRow
                       key={bid.auctionId}
                       bid={bid}
@@ -919,10 +933,12 @@ export default function DashboardPage() {
               </Panel>
 
               <Panel title="Watchlist">
-                {activeWatchlist.length === 0 ? (
+                {activeWatchlist.filter((item: any) => matchesSearch(auctionTitleById(item.auctionId), buyerSearch)).length === 0 ? (
                   <Empty text="No live watched auctions." />
                 ) : (
-                  activeWatchlist.map((item: any) => {
+                  activeWatchlist
+                    .filter((item: any) => matchesSearch(auctionTitleById(item.auctionId), buyerSearch))
+                    .map((item: any) => {
                     const auction = auctions.find(
                       (a: any) => String(a.id) === String(item.auctionId),
                     );
@@ -1006,10 +1022,10 @@ export default function DashboardPage() {
               </Panel>
 
               <Panel title="Unpaid Wins">
-                {unpaidWins.length === 0 ? (
+                {unpaidWins.filter(bidMatches).length === 0 ? (
                   <Empty text="No unpaid wins." />
                 ) : (
-                  unpaidWins.map((bid: any) => (
+                  unpaidWins.filter(bidMatches).map((bid: any) => (
                     <BidRow
                       key={bid.auctionId}
                       bid={bid}
@@ -1022,10 +1038,10 @@ export default function DashboardPage() {
               </Panel>
 
               <Panel title="Paid Wins">
-                {paidWins.length === 0 ? (
+                {paidWins.filter(bidMatches).length === 0 ? (
                   <Empty text="No paid wins yet." />
                 ) : (
-                  paidWins.map((bid: any) => (
+                  paidWins.filter(bidMatches).map((bid: any) => (
                     <BidRow
                       key={bid.auctionId}
                       bid={bid}
@@ -1044,10 +1060,12 @@ export default function DashboardPage() {
               </Panel>
 
               <Panel title="Lost Auctions">
-                {lostAuctions.length === 0 ? (
+                {lostAuctions.filter((a: any) => matchesSearch(a.title, buyerSearch)).length === 0 ? (
                   <Empty text="No lost auctions." />
                 ) : (
-                  lostAuctions.map((auction: any) => (
+                  lostAuctions
+                    .filter((a: any) => matchesSearch(a.title, buyerSearch))
+                    .map((auction: any) => (
                     <LostAuctionRow key={auction.id} auction={auction} />
                   ))
                 )}
@@ -1057,11 +1075,21 @@ export default function DashboardPage() {
 
           {activeTab === "marketplace" && (
             <>
+              <div className="lg:col-span-2">
+                <DashboardFilterBar
+                  search={buyerSearch}
+                  setSearch={setBuyerSearch}
+                  placeholder="Search your purchases & offers…"
+                />
+              </div>
+
               <Panel title="Marketplace Purchases">
-                {marketplacePurchases.length === 0 ? (
+                {marketplacePurchases.filter((l: any) => matchesSearch(l.title, buyerSearch)).length === 0 ? (
                   <Empty text="No marketplace purchases yet." />
                 ) : (
-                  marketplacePurchases.map((listing: any) => (
+                  marketplacePurchases
+                    .filter((l: any) => matchesSearch(l.title, buyerSearch))
+                    .map((listing: any) => (
                     <MarketplacePurchaseRow
                       key={listing.id}
                       listing={listing}
@@ -1078,10 +1106,12 @@ export default function DashboardPage() {
               </Panel>
 
               <Panel title="Accepted Marketplace Offers">
-                {acceptedOffers.length === 0 ? (
+                {acceptedOffers.filter((l: any) => matchesSearch(l.title, buyerSearch)).length === 0 ? (
                   <Empty text="No accepted marketplace offers." />
                 ) : (
-                  acceptedOffers.map((listing: any) => (
+                  acceptedOffers
+                    .filter((l: any) => matchesSearch(l.title, buyerSearch))
+                    .map((listing: any) => (
                     <AcceptedMarketplaceRow
                       key={listing.id}
                       listing={listing}
