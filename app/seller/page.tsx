@@ -14,36 +14,62 @@ import { isAdminUser } from "@/lib/sellers";
 import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
-// Print a shipping label robustly. EasyPost labels are usually PNG; print-js
-// with the wrong type (or a cross-origin PDF that blocks CORS) fails silently,
-// leaving the button in place with no feedback. Detect the type, and if
-// auto-print fails, fall back to opening the label in a new tab.
-async function printLabel(url?: string | null) {
+// Print a shipping label straight to a printer (not a webpage). EasyPost label
+// URLs are cross-origin, which blocks the fetch print-js needs to print a PDF —
+// so we route through our same-origin proxy (/api/shipping-label) and let
+// print-js open the OS print dialog directly. Returns true once the print
+// dialog was triggered so the caller can disable the button.
+async function printLabel(url?: string | null): Promise<boolean> {
   if (!url) {
     toast.error("No label file available.");
-    return;
+    return false;
   }
 
   const path = url.toLowerCase().split("?")[0];
   const isPdf = path.endsWith(".pdf");
+  const proxied = `/api/shipping-label?url=${encodeURIComponent(url)}`;
 
-  const openInTab = () => {
-    window.open(url, "_blank", "noopener,noreferrer");
-    toast.message("Opened the label in a new tab — use your browser to print.");
-  };
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const done = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      resolve(ok);
+    };
 
-  try {
-    const pjs = (await import("print-js")).default;
-    pjs({
-      printable: url,
-      type: isPdf ? "pdf" : "image",
-      showModal: true,
-      onError: openInTab,
-    } as any);
-    toast.success("Opening print dialog…");
-  } catch {
-    openInTab();
+    import("print-js")
+      .then(({ default: pjs }) => {
+        pjs({
+          printable: proxied,
+          type: isPdf ? "pdf" : "image",
+          showModal: true,
+          onError: () => {
+            toast.error("Couldn't reach the printer. Try again.");
+            done(false);
+          },
+          onPrintDialogClose: () => done(true),
+        } as any);
+        // print-js doesn't always fire a "loaded" callback for images; assume
+        // the dialog opened shortly after invocation.
+        setTimeout(() => done(true), 1500);
+      })
+      .catch(() => {
+        toast.error("Print failed. Try again.");
+        done(false);
+      });
+  });
+}
+
+// Open an already-purchased label in the browser's PDF viewer (new tab).
+// Routed through the same-origin proxy so it renders inline instead of
+// downloading, and so cross-origin labels load reliably.
+function viewLabel(url?: string | null) {
+  if (!url) {
+    toast.error("No label file available.");
+    return;
   }
+  const proxied = `/api/shipping-label?url=${encodeURIComponent(url)}`;
+  window.open(proxied, "_blank", "noopener,noreferrer");
 }
 
 function trackingUrl(carrier: string, trackingNumber: string) {
@@ -1563,10 +1589,10 @@ function SellerAuctionCard({
                   {auction.shippingLabelUrl && (
                     <button
                       type="button"
-                      onClick={() => printLabel(auction.shippingLabelUrl)}
+                      onClick={() => viewLabel(auction.shippingLabelUrl)}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
                     >
-                      Print Label
+                      View Label
                     </button>
                   )}
 
@@ -2024,10 +2050,10 @@ function MarketplaceSection({
                       {listing.shippingLabelUrl && (
                         <button
                           type="button"
-                          onClick={() => printLabel(listing.shippingLabelUrl)}
+                          onClick={() => viewLabel(listing.shippingLabelUrl)}
                           className="mt-4 flex w-full items-center justify-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
                         >
-                          Print Label
+                          View Label
                         </button>
                       )}
 
@@ -2415,6 +2441,8 @@ function EasyPostModal({
 }: any) {
   const [purchasing, setPurchasing] = useState(false);
   const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [printed, setPrinted] = useState(false);
 
   async function handleGetRates() {
     if (!weight) { toast.error("Enter package weight"); return; }
@@ -2605,10 +2633,16 @@ function EasyPostModal({
               {purchasedLabel.labelUrl && (
                 <button
                   type="button"
-                  onClick={() => printLabel(purchasedLabel.labelUrl)}
-                  className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                  disabled={printing || printed}
+                  onClick={async () => {
+                    setPrinting(true);
+                    const ok = await printLabel(purchasedLabel.labelUrl);
+                    setPrinting(false);
+                    if (ok) setPrinted(true);
+                  }}
+                  className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50 disabled:hover:bg-emerald-500/10"
                 >
-                  Print Label
+                  {printing ? "Sending to printer…" : printed ? "Sent to printer ✓" : "Print Label"}
                 </button>
               )}
             </div>
