@@ -5,21 +5,22 @@ import { NextResponse } from "next/server";
 // to print a PDF directly to a printer, so they otherwise fall back to opening
 // a webpage. Serving the bytes from our own origin lets print-js print directly.
 
-// Allowlist of hosts we'll proxy from (prevents this becoming an open SSRF proxy).
-const ALLOWED_HOST_SUFFIXES = [
-  ".easypost.com",
-  "easypost-files.s3.amazonaws.com",
-  ".s3.amazonaws.com", // easypost-files.s3-<region>.amazonaws.com
-];
-
+// Strict allowlist of EasyPost label hosts. Must be exact matches (or the
+// EasyPost-owned suffix / the easypost-files S3 bucket across regions) so this
+// can't be abused as an SSRF proxy to internal hosts (e.g. cloud metadata or
+// the ECS task-role credentials endpoint).
 function isAllowed(url: URL): boolean {
   if (url.protocol !== "https:") return false;
   const host = url.hostname.toLowerCase();
-  return (
-    host === "easypost.com" ||
-    ALLOWED_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix)) ||
-    host.includes("easypost")
-  );
+
+  // *.easypost.com (and the apex)
+  if (host === "easypost.com" || host.endsWith(".easypost.com")) return true;
+
+  // EasyPost's label bucket: easypost-files.s3.amazonaws.com or
+  // easypost-files.s3-<region>.amazonaws.com / easypost-files.s3.<region>.amazonaws.com
+  if (/^easypost-files\.s3([.-][a-z0-9-]+)?\.amazonaws\.com$/.test(host)) return true;
+
+  return false;
 }
 
 export async function GET(request: Request) {
