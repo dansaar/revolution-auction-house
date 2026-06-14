@@ -243,14 +243,21 @@ function SellerPage() {
           ),
         ];
         async function fetchInvoicesAllCases(): Promise<any[]> {
-          const results = await Promise.allSettled(
-            emailVariants.map((e) =>
+          const queries: Promise<any>[] = [
+            // Primary: by seller sub (stable, no email-case issues).
+            (client.models.Invoice as any).invoicesBySellerUserId(
+              { sellerUserId: sellerSub },
+              { authMode: "userPool", limit: 500 },
+            ),
+            // Backward-compat: older invoices keyed only by email.
+            ...emailVariants.map((e) =>
               (client.models.Invoice as any).invoicesBySellerEmail(
                 { sellerEmail: e },
                 { authMode: "userPool", limit: 500 },
               ),
             ),
-          );
+          ];
+          const results = await Promise.allSettled(queries);
           const byId = new Map<string, any>();
           for (const r of results) {
             if (r.status === "fulfilled") {

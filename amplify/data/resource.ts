@@ -388,6 +388,7 @@ const schema = a
     buyerEmail: a.string(),
     buyerUserId: a.string(),
     sellerEmail: a.string(),
+    sellerUserId: a.string(),
 
     subtotal: a.string(),
     buyerPremium: a.string(),
@@ -409,10 +410,12 @@ const schema = a
   })
       .secondaryIndexes((index) => [
         index("sellerEmail").queryField("invoicesBySellerEmail"),
+        index("sellerUserId").queryField("invoicesBySellerUserId"),
         index("buyerUserId").queryField("invoicesByBuyer"),
       ])
       .authorization((allow) => [
         allow.ownerDefinedIn("buyerUserId"),
+        allow.ownerDefinedIn("sellerUserId"),
         allow.ownerDefinedIn("sellerEmail").identityClaim("email"),
         allow.group("Admin"),
       ]),
