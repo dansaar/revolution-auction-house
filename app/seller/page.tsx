@@ -242,21 +242,30 @@ function SellerPage() {
             [email, tokenEmail, email.toLowerCase(), tokenEmail.toLowerCase()].filter(Boolean),
           ),
         ];
+        const isAdminViewer =
+          ((session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) || []).includes("Admin");
+
         async function fetchInvoicesAllCases(): Promise<any[]> {
-          const queries: Promise<any>[] = [
-            // Primary: by seller sub (stable, no email-case issues).
-            (client.models.Invoice as any).invoicesBySellerUserId(
-              { sellerUserId: sellerSub },
-              { authMode: "userPool", limit: 500 },
-            ),
-            // Backward-compat: older invoices keyed only by email.
-            ...emailVariants.map((e) =>
-              (client.models.Invoice as any).invoicesBySellerEmail(
-                { sellerEmail: e },
-                { authMode: "userPool", limit: 500 },
-              ),
-            ),
-          ];
+          const queries: Promise<any>[] = isAdminViewer
+            ? [
+                // Admins see all listings site-wide, so they need every invoice
+                // (not just their own) to match cards. Admin group can read all.
+                client.models.Invoice.list({ authMode: "userPool", limit: 2000 } as any),
+              ]
+            : [
+                // Primary: by seller sub (stable, no email-case issues).
+                (client.models.Invoice as any).invoicesBySellerUserId(
+                  { sellerUserId: sellerSub },
+                  { authMode: "userPool", limit: 500 },
+                ),
+                // Backward-compat: older invoices keyed only by email.
+                ...emailVariants.map((e) =>
+                  (client.models.Invoice as any).invoicesBySellerEmail(
+                    { sellerEmail: e },
+                    { authMode: "userPool", limit: 500 },
+                  ),
+                ),
+              ];
           const results = await Promise.allSettled(queries);
           const byId = new Map<string, any>();
           for (const r of results) {
