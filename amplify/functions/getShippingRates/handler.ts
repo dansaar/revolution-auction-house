@@ -12,6 +12,20 @@ Amplify.configure(resourceConfig, libraryOptions);
 const client = generateClient<Schema>();
 const EASYPOST_API_KEY = (env as any).EASYPOST_API_KEY || "";
 
+// EasyPost puts the actionable detail in err.errors[] (field-level messages).
+function easypostError(err: any): string {
+  const parts: string[] = [];
+  if (err?.message) parts.push(String(err.message));
+  const sub = err?.errors || err?.error?.errors;
+  if (Array.isArray(sub)) {
+    for (const e of sub) {
+      const f = e?.field ? `${e.field}: ` : "";
+      if (e?.message || e?.field) parts.push(`${f}${e?.message || ""}`);
+    }
+  }
+  return [...new Set(parts.filter(Boolean))].join(" — ") || "Failed to get rates";
+}
+
 export const handler: Schema["getShippingRates"]["functionHandler"] = async (event) => {
   const { itemId, itemType, weight, length, width, height, fromName, fromStreet1, fromStreet2, fromCity, fromState, fromZip, fromPhone } = event.arguments;
 
@@ -170,7 +184,7 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
       error: null,
     };
   } catch (err: any) {
-    console.error("GET_SHIPPING_RATES_ERROR", err);
-    return { shipmentId: null, ratesJson: null, error: err?.message || "Failed to get rates" };
+    console.error("GET_SHIPPING_RATES_ERROR", JSON.stringify(err?.errors || err?.message || err));
+    return { shipmentId: null, ratesJson: null, error: easypostError(err) };
   }
 };

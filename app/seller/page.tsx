@@ -231,12 +231,37 @@ function SellerPage() {
 
         const session = await fetchAuthSession({ forceRefresh: false });
         const sellerSub = (session.tokens?.idToken?.payload?.sub as string) || userId;
+        const tokenEmail = (session.tokens?.idToken?.payload?.email as string) || "";
+
+        // The seller's invoices may be stored under different email casings
+        // (the login id, the token email claim, or a historical lowercased
+        // value). The GSI is exact-match, so query every variant and merge,
+        // otherwise the sold card can't find its invoice (no Paid Total / buttons).
+        const emailVariants = [
+          ...new Set(
+            [email, tokenEmail, email.toLowerCase(), tokenEmail.toLowerCase()].filter(Boolean),
+          ),
+        ];
+        async function fetchInvoicesAllCases(): Promise<any[]> {
+          const results = await Promise.allSettled(
+            emailVariants.map((e) =>
+              (client.models.Invoice as any).invoicesBySellerEmail(
+                { sellerEmail: e },
+                { authMode: "userPool", limit: 500 },
+              ),
+            ),
+          );
+          const byId = new Map<string, any>();
+          for (const r of results) {
+            if (r.status === "fulfilled") {
+              for (const inv of r.value.data || []) byId.set(inv.id, inv);
+            }
+          }
+          return [...byId.values()];
+        }
 
         const [invoiceResult, offerResult, buyerRequestResult, buyerProfileResult] = await Promise.allSettled([
-          (client.models.Invoice as any).invoicesBySellerEmail(
-            { sellerEmail: email },
-            { authMode: "userPool", limit: 500 },
-          ),
+          fetchInvoicesAllCases(),
           client.models.Offer.list({
             filter: { sellerUserId: { eq: sellerSub } },
             authMode: "userPool",
@@ -252,8 +277,7 @@ function SellerPage() {
         ]);
 
         if (invoiceResult.status === "fulfilled") {
-          if (invoiceResult.value.errors) console.error("Invoice query errors:", invoiceResult.value.errors);
-          setInvoices(invoiceResult.value.data || []);
+          setInvoices(invoiceResult.value || []);
         }
         if (offerResult.status === "fulfilled") setOffers(offerResult.value.data || []);
         if (buyerRequestResult.status === "fulfilled") setBuyerRequests(buyerRequestResult.value.data || []);
