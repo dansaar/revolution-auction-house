@@ -58,12 +58,25 @@ export default function SellerNotificationBanner() {
 
     async function init() {
       try {
-        const user = await getCurrentUser();
-        const email = ((user as any).signInDetails?.loginId || user.username || "").toLowerCase();
+        await getCurrentUser(); // confirms user is signed in
+      } catch {
+        return; // not signed in
+      }
 
-        const session = await fetchAuthSession({ forceRefresh: true });
-        const groups = (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) ?? [];
+      try {
+        // Try fresh token first; fall back to cached if refresh fails
+        let session;
+        try {
+          session = await fetchAuthSession({ forceRefresh: true });
+        } catch {
+          session = await fetchAuthSession({ forceRefresh: false });
+        }
+
+        const payload = session.tokens?.idToken?.payload ?? {};
+        const groups = (payload["cognito:groups"] as string[]) ?? [];
         const admin = groups.includes("Admin");
+        // Prefer the email claim from the token over signInDetails
+        const email = ((payload["email"] as string) || "").toLowerCase();
 
         const seller = admin || await isApprovedSeller(email);
         if (!seller) return;
@@ -72,7 +85,7 @@ export default function SellerNotificationBanner() {
         await fetchCounts();
         interval = setInterval(() => fetchCounts(), POLL_MS);
       } catch {
-        // not signed in — skip silently
+        // unexpected error — skip silently
       }
     }
 
