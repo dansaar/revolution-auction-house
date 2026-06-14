@@ -14,12 +14,11 @@ import { isAdminUser } from "@/lib/sellers";
 import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
-// Print a shipping label straight to a printer (not a webpage). EasyPost label
-// URLs are cross-origin (print-js's PDF fetch is CORS-blocked by S3), so we load
-// the label through our same-origin proxy (/api/shipping-label) in a hidden
-// iframe and call print() on it directly. Same-origin means contentWindow.print()
-// is allowed, so the native OS print dialog opens with no intermediate web page.
-// Returns true once the print dialog was triggered.
+// Print a shipping label straight to a printer (not a webpage). We fetch the PDF
+// through our same-origin proxy (/api/shipping-label) — avoiding the S3 CORS block
+// — turn it into a blob URL, and hand it to print-js, which loads the PDF, waits
+// for it to render, then opens the native print dialog. Returns true once the
+// dialog was triggered.
 async function printLabel(url?: string | null): Promise<boolean> {
   if (!url) {
     toast.error("No label file available.");
@@ -28,58 +27,49 @@ async function printLabel(url?: string | null): Promise<boolean> {
 
   const proxied = `/api/shipping-label?url=${encodeURIComponent(url)}`;
 
+  let blobUrl = "";
+  try {
+    const res = await fetch(proxied);
+    if (!res.ok) throw new Error(`label fetch failed: ${res.status}`);
+    const blob = await res.blob();
+    blobUrl = URL.createObjectURL(blob);
+  } catch {
+    // Couldn't fetch the bytes — open the label so the user can still print it.
+    window.open(proxied, "_blank", "noopener,noreferrer");
+    toast.message("Opened the label in a new tab — print from there (4×6).");
+    return false;
+  }
+
   return new Promise<boolean>((resolve) => {
     let settled = false;
     const finish = (ok: boolean) => {
       if (settled) return;
       settled = true;
+      // Revoke the blob URL after the dialog has had time to use it.
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
       resolve(ok);
     };
 
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    iframe.setAttribute("aria-hidden", "true");
-
-    const cleanup = () => {
-      setTimeout(() => iframe.remove(), 60_000);
-    };
-
-    const fallbackToTab = () => {
-      window.open(proxied, "_blank", "noopener,noreferrer");
-      toast.message("Opened the label in a new tab — print from there (4×6).");
-      iframe.remove();
-      finish(false);
-    };
-
-    iframe.onload = () => {
-      try {
-        const win = iframe.contentWindow;
-        if (!win) throw new Error("no iframe window");
-        win.focus();
-        win.print();
+    import("print-js")
+      .then(({ default: pjs }) => {
+        pjs({
+          printable: blobUrl,
+          type: "pdf",
+          onError: () => {
+            window.open(blobUrl, "_blank", "noopener,noreferrer");
+            toast.message("Opened the label in a new tab — print from there (4×6).");
+            finish(false);
+          },
+          onPrintDialogClose: () => finish(true),
+        } as any);
         toast.success("Opening print dialog… set paper to 4×6 if prompted.");
-        finish(true);
-        cleanup();
-      } catch {
-        // Some browsers block printing a PDF embedded in an iframe — open a tab.
-        fallbackToTab();
-      }
-    };
-
-    iframe.onerror = fallbackToTab;
-
-    // Safety net: if the iframe never loads, fall back.
-    setTimeout(() => {
-      if (!settled) fallbackToTab();
-    }, 8000);
-
-    iframe.src = proxied;
-    document.body.appendChild(iframe);
+        // print-js doesn't reliably fire onPrintDialogClose on every browser.
+        setTimeout(() => finish(true), 2000);
+      })
+      .catch(() => {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+        finish(false);
+      });
   });
 }
 

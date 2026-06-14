@@ -26,7 +26,23 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
     }
 
     // Verify the caller owns the item
-    let toAddress: { name: string; street1: string; street2?: string; city: string; state: string; zip: string; country: string } | null = null;
+    let toAddress: { name: string; street1: string; street2?: string; city: string; state: string; zip: string; country: string; phone?: string } | null = null;
+
+    // Look up the buyer's phone from their profile so the recipient address has a
+    // contact number (UPS/FedEx require a phone on both addresses).
+    async function buyerPhoneFor(invoice: any): Promise<string> {
+      const buyerUserId = invoice?.buyerUserId;
+      if (!buyerUserId) return "";
+      try {
+        const profile = await client.models.BuyerProfile.get(
+          { userId: buyerUserId },
+          { authMode: "iam" } as any,
+        );
+        return ((profile.data as any)?.phoneNumber as string) || "";
+      } catch {
+        return "";
+      }
+    }
 
     if (itemType === "AUCTION") {
       const result = await client.models.Auction.get({ id: itemId }, { authMode: "iam" } as any);
@@ -49,6 +65,7 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
           state: invoice.shippingState || "",
           zip: invoice.shippingZip || "",
           country: invoice.shippingCountry || "US",
+          phone: await buyerPhoneFor(invoice),
         };
       }
     } else {
@@ -72,6 +89,7 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
           state: invoice.shippingState || "",
           zip: invoice.shippingZip || "",
           country: invoice.shippingCountry || "US",
+          phone: await buyerPhoneFor(invoice),
         };
       }
     }
@@ -79,6 +97,10 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
     if (!toAddress) {
       return { shipmentId: null, ratesJson: null, error: "No shipping address on file for this buyer" };
     }
+
+    // Carriers require a phone on both ends; fall back to the seller's number
+    // for the recipient if the buyer has none on file.
+    const recipientPhone = toAddress.phone || fromPhone || "";
 
     const ep = new EasyPost(EASYPOST_API_KEY);
 
@@ -95,6 +117,7 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
         state: toAddress.state,
         zip: toAddress.zip,
         country: toAddress.country,
+        phone: recipientPhone,
       },
       from_address: {
         name: fromName,
