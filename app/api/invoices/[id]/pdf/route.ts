@@ -103,11 +103,14 @@ export async function GET(
     }
 
     const currentEmail = String(payload.email || "").toLowerCase();
+    const groups = (payload["cognito:groups"] as string[]) || [];
+    const isAdmin = groups.includes("Admin");
 
     const sellerEmail = String(invoice.sellerEmail || "").toLowerCase();
     const buyerEmail = String(invoice.buyerEmail || "").toLowerCase();
 
-    const canView = currentEmail === sellerEmail || currentEmail === buyerEmail;
+    const canView =
+      isAdmin || currentEmail === sellerEmail || currentEmail === buyerEmail;
 
     if (!canView) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
