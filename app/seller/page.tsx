@@ -2527,10 +2527,26 @@ function EasyPostModal({
   const [printing, setPrinting] = useState(false);
   const [printed, setPrinted] = useState(false);
 
+  // Optional manual recipient address — used when the buyer has none on file
+  // (or to override it). If left blank, the backend uses the invoice address.
+  const [toName, setToName] = useState("");
+  const [toStreet, setToStreet] = useState("");
+  const [toStreet2, setToStreet2] = useState("");
+  const [toCity, setToCity] = useState("");
+  const [toState, setToState] = useState("");
+  const [toZip, setToZip] = useState("");
+  const [toPhone, setToPhone] = useState("");
+  const manualTo = !!(toName || toStreet || toCity || toState || toZip);
+
   async function handleGetRates() {
     if (!weight) { toast.error("Enter package weight"); return; }
     if (!fromName || !fromStreet || !fromCity || !fromState || !fromZip) {
       toast.error("Fill in all ship-from address fields");
+      return;
+    }
+    // If the seller started a manual Ship To, require the core fields.
+    if (manualTo && (!toName || !toStreet || !toCity || !toState || !toZip)) {
+      toast.error("Fill in all Ship To fields (name, street, city, state, ZIP)");
       return;
     }
     setFetchingRates(true);
@@ -2557,6 +2573,17 @@ function EasyPostModal({
           fromState,
           fromZip,
           ...(fromPhone ? { fromPhone } : {}),
+          ...(manualTo
+            ? {
+                toName,
+                toStreet1: toStreet,
+                ...(toStreet2 ? { toStreet2 } : {}),
+                toCity,
+                toState,
+                toZip,
+                ...(toPhone ? { toPhone } : {}),
+              }
+            : {}),
         },
         { authMode: "userPool" } as any,
       );
@@ -2643,6 +2670,23 @@ function EasyPostModal({
                     <input value={fromZip} onChange={(e: any) => setFromZip(e.target.value)} placeholder="ZIP*" className={inputCls} />
                   </div>
                   <input value={fromPhone} onChange={(e: any) => setFromPhone(e.target.value)} placeholder="Phone number (required by UPS/FedEx)" type="tel" className={inputCls} />
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 text-[10px] uppercase tracking-[0.15em] text-gray-500">
+                  Ship To <span className="normal-case tracking-normal text-gray-600">— optional, overrides the address on file</span>
+                </div>
+                <div className="space-y-2">
+                  <input value={toName} onChange={(e: any) => setToName(e.target.value)} placeholder="Recipient full name" className={inputCls} />
+                  <input value={toStreet} onChange={(e: any) => setToStreet(e.target.value)} placeholder="Street address" className={inputCls} />
+                  <input value={toStreet2} onChange={(e: any) => setToStreet2(e.target.value)} placeholder="Apt, Suite, Unit (optional)" className={inputCls} />
+                  <div className="grid grid-cols-3 gap-2">
+                    <input value={toCity} onChange={(e: any) => setToCity(e.target.value)} placeholder="City" className={inputCls} />
+                    <input value={toState} onChange={(e: any) => setToState(e.target.value)} placeholder="State" maxLength={2} className={inputCls} />
+                    <input value={toZip} onChange={(e: any) => setToZip(e.target.value)} placeholder="ZIP" className={inputCls} />
+                  </div>
+                  <input value={toPhone} onChange={(e: any) => setToPhone(e.target.value)} placeholder="Recipient phone (optional)" type="tel" className={inputCls} />
                 </div>
               </div>
             </div>

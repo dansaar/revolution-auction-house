@@ -560,6 +560,14 @@ const schema = a
         fromState: a.string().required(),
         fromZip: a.string().required(),
         fromPhone: a.string(),
+        // Optional manual recipient address; overrides the invoice address.
+        toName: a.string(),
+        toStreet1: a.string(),
+        toStreet2: a.string(),
+        toCity: a.string(),
+        toState: a.string(),
+        toZip: a.string(),
+        toPhone: a.string(),
       })
       .returns(a.customType({
         shipmentId: a.string(),

@@ -27,7 +27,7 @@ function easypostError(err: any): string {
 }
 
 export const handler: Schema["getShippingRates"]["functionHandler"] = async (event) => {
-  const { itemId, itemType, weight, length, width, height, fromName, fromStreet1, fromStreet2, fromCity, fromState, fromZip, fromPhone } = event.arguments;
+  const { itemId, itemType, weight, length, width, height, fromName, fromStreet1, fromStreet2, fromCity, fromState, fromZip, fromPhone, toName, toStreet1, toStreet2, toCity, toState, toZip, toPhone } = event.arguments;
 
   const identity = event.identity as any;
   const callerSub = String(identity?.sub || identity?.claims?.sub || "");
@@ -108,6 +108,21 @@ export const handler: Schema["getShippingRates"]["functionHandler"] = async (eve
           phone: await buyerPhoneFor(invoice),
         };
       }
+    }
+
+    // A manual recipient address (entered in the modal) overrides whatever is
+    // on the invoice — used when the buyer has no shipping address on file.
+    if (toStreet1) {
+      toAddress = {
+        name: toName || toAddress?.name || "",
+        street1: toStreet1,
+        street2: toStreet2 || undefined,
+        city: toCity || "",
+        state: toState || "",
+        zip: toZip || "",
+        country: "US",
+        phone: toPhone || toAddress?.phone || "",
+      };
     }
 
     if (!toAddress) {
