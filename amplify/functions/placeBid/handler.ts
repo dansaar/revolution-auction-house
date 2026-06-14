@@ -7,6 +7,7 @@ import { env } from "$amplify/env/placeBid";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
+  BatchGetCommand,
   GetCommand,
   PutCommand,
   UpdateCommand,
@@ -150,6 +151,28 @@ async function sendWatchlistNotification({
   if (sends.length > 0) await Promise.all(sends);
 }
 
+// Cap how many watchers a single bid will notify, and how many notification
+// sends run concurrently, so a heavily-watched item can't blow Lambda time or
+// SES/SNS throughput limits. Tune as needed.
+const MAX_WATCHERS_NOTIFIED = 2000;
+const WATCHER_SEND_CONCURRENCY = 25;
+
+// Run an async mapper over items with a bounded number in flight at once.
+async function mapWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+) {
+  let index = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (index < items.length) {
+      const current = items[index++];
+      await worker(current);
+    }
+  });
+  await Promise.all(runners);
+}
+
 async function notifyWatchers({
   auctionId,
   auctionTitle,
@@ -162,42 +185,66 @@ async function notifyWatchers({
   excludeUserIds: Set<string>;
 }) {
   try {
-    const watchlistResult = await (client.models.WatchlistItem as any).watchlistByAuction(
-      { auctionId },
-      { authMode: "iam", limit: 100 } as any,
-    );
-    const watchers: any[] = watchlistResult?.data || [];
+    // 1. Page through all watchers for this auction (the GSI query is capped per
+    //    page, so follow nextToken until exhausted or we hit the cap).
+    const watcherSubs = new Map<string, string | undefined>(); // sub -> email
+    let nextToken: string | undefined;
 
-    await Promise.all(
-      watchers.map(async (item: any) => {
-        const watcherSub = item.userSub as string | undefined;
-        const watcherEmail = item.userEmail as string | undefined;
-        if (!watcherSub || excludeUserIds.has(watcherSub)) return;
+    do {
+      const page: any = await (client.models.WatchlistItem as any).watchlistByAuction(
+        { auctionId },
+        { authMode: "iam", limit: 200, nextToken } as any,
+      );
+      for (const item of page?.data || []) {
+        const sub = item.userSub as string | undefined;
+        if (!sub || excludeUserIds.has(sub) || watcherSubs.has(sub)) continue;
+        watcherSubs.set(sub, item.userEmail as string | undefined);
+      }
+      nextToken = page?.nextToken;
+    } while (nextToken && watcherSubs.size < MAX_WATCHERS_NOTIFIED);
 
-        try {
-          const profileResult = await dynamoClient.send(
-            new GetCommand({
-              TableName: BUYER_PROFILE_TABLE_NAME,
-              Key: { userId: watcherSub },
-            }),
-          );
-          const profile = profileResult.Item;
-          const notifyWatchlist = (profile?.notifyWatchlist as string) || "none";
-          if (!notifyWatchlist || notifyWatchlist === "none") return;
+    const subs = [...watcherSubs.keys()].slice(0, MAX_WATCHERS_NOTIFIED);
+    if (subs.length === 0) return;
 
-          await sendWatchlistNotification({
-            to: watcherEmail || (profile?.email as string) || "",
-            phone: profile?.phoneNumber as string | null,
-            notifyWatchlist,
-            auctionTitle,
-            auctionId,
-            newPrice,
-          });
-        } catch {
-          // individual watcher failure is non-fatal
+    // 2. Batch-read buyer profiles (DynamoDB BatchGet allows 100 keys/request).
+    const profiles = new Map<string, any>();
+    for (let i = 0; i < subs.length; i += 100) {
+      const chunk = subs.slice(i, i + 100);
+      let keys = chunk.map((userId) => ({ userId }));
+      // BatchGet may return UnprocessedKeys; retry those a few times.
+      for (let attempt = 0; attempt < 4 && keys.length > 0; attempt++) {
+        const res = await dynamoClient.send(
+          new BatchGetCommand({
+            RequestItems: { [BUYER_PROFILE_TABLE_NAME]: { Keys: keys } },
+          }),
+        );
+        for (const item of res.Responses?.[BUYER_PROFILE_TABLE_NAME] || []) {
+          profiles.set(item.userId as string, item);
         }
-      }),
-    );
+        const unprocessed = res.UnprocessedKeys?.[BUYER_PROFILE_TABLE_NAME]?.Keys;
+        keys = (unprocessed as { userId: string }[] | undefined) || [];
+        if (keys.length > 0) await new Promise((r) => setTimeout(r, 50 * (attempt + 1)));
+      }
+    }
+
+    // 3. Fan out notifications with bounded concurrency.
+    await mapWithConcurrency(subs, WATCHER_SEND_CONCURRENCY, async (sub) => {
+      const profile = profiles.get(sub);
+      const notifyWatchlist = (profile?.notifyWatchlist as string) || "none";
+      if (!notifyWatchlist || notifyWatchlist === "none") return;
+      try {
+        await sendWatchlistNotification({
+          to: watcherSubs.get(sub) || (profile?.email as string) || "",
+          phone: profile?.phoneNumber as string | null,
+          notifyWatchlist,
+          auctionTitle,
+          auctionId,
+          newPrice,
+        });
+      } catch {
+        // individual watcher failure is non-fatal
+      }
+    });
   } catch (err) {
     console.warn("NOTIFY_WATCHERS_FAILED", err);
   }
@@ -220,6 +267,19 @@ for (const [name, val] of [
 }
 
 const BID_COOLDOWN_MS = 3000;
+
+// Optimistic-concurrency retry tuning. Under a hot auction many bids contend on
+// the single AuctionState version, so we retry the compare-and-set a number of
+// times with jittered backoff to avoid a synchronized retry storm.
+const MAX_BID_ATTEMPTS = 8;
+const RETRY_BASE_MS = 60;
+const RETRY_MAX_MS = 600;
+
+function retryDelayMs(attempt: number): number {
+  // Exponential backoff capped at RETRY_MAX_MS, with full jitter.
+  const ceiling = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** attempt);
+  return Math.floor(Math.random() * ceiling);
+}
 
 function defaultIncrement(amount: number): number {
   if (amount < 100) return 5;
@@ -663,7 +723,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       }
     }
 
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < MAX_BID_ATTEMPTS; attempt++) {
       let state = await getAuctionStateDirect(auctionId);
 
       if (!state) {
@@ -880,7 +940,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
           currentPrice,
         });
 
-        if (attempt === 4) {
+        if (attempt === MAX_BID_ATTEMPTS - 1) {
           const message = "High bidding activity. Please retry.";
 
           console.error("PLACE_BID_RETRY_EXHAUSTED", {
@@ -920,7 +980,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         }
 
         await new Promise((resolve) =>
-          setTimeout(resolve, 100 + attempt * 100),
+          setTimeout(resolve, retryDelayMs(attempt)),
         );
 
         continue;
