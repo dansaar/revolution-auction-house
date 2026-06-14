@@ -28,6 +28,20 @@ async function printLabel(url?: string | null): Promise<boolean> {
 
   const proxied = `/api/shipping-label?url=${encodeURIComponent(url)}`;
 
+  // Safari can't print a PDF embedded in a hidden/off-screen iframe (WebKit
+  // prints blank), so open the label in a new tab where its PDF viewer renders
+  // it; the user prints with ⌘P. This must run BEFORE any await — Safari blocks
+  // window.open that isn't synchronous with the click gesture.
+  const isSafari =
+    typeof navigator !== "undefined" &&
+    /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+
+  if (isSafari) {
+    window.open(proxied, "_blank", "noopener,noreferrer");
+    toast.message("Label opened in a new tab — press ⌘P to print (set paper to 4×6).");
+    return true;
+  }
+
   let blobUrl = "";
   try {
     const res = await fetch(proxied);
