@@ -2356,35 +2356,37 @@ function MarketplaceSection({
                       </button>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await client.models.MarketplaceListing.update(
-                            { id: listing.id, featured: !listing.featured },
-                            { authMode: "userPool" } as any,
-                          );
-                          toast.success(listing.featured ? "Removed from featured" : "Marked as featured");
-                          setMarketplaceListings((prev: any[]) =>
-                            prev.map((item: any) =>
-                              item.id === listing.id
-                                ? { ...item, featured: !item.featured }
-                                : item,
-                            ),
-                          );
-                        } catch (err) {
-                          console.error(err);
-                          toast.error("Failed to update");
-                        }
-                      }}
-                      className={`w-full rounded border px-4 py-2 text-sm transition ${
-                        listing.featured
-                          ? "border-[#d6aa55]/40 bg-[#d6aa55]/10 text-[#e7c77f] hover:bg-[#d6aa55]/20"
-                          : "border-white/10 bg-white/[0.03] text-gray-400 hover:border-[#d6aa55]/30 hover:text-[#e7c77f]"
-                      }`}
-                    >
-                      {listing.featured ? "★ Featured" : "★ Feature"}
-                    </button>
+                    {!listing.sold && listing.status !== "SOLD" && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await client.models.MarketplaceListing.update(
+                              { id: listing.id, featured: !listing.featured },
+                              { authMode: "userPool" } as any,
+                            );
+                            toast.success(listing.featured ? "Removed from featured" : "Marked as featured");
+                            setMarketplaceListings((prev: any[]) =>
+                              prev.map((item: any) =>
+                                item.id === listing.id
+                                  ? { ...item, featured: !item.featured }
+                                  : item,
+                              ),
+                            );
+                          } catch (err) {
+                            console.error(err);
+                            toast.error("Failed to update");
+                          }
+                        }}
+                        className={`w-full rounded border px-4 py-2 text-sm transition ${
+                          listing.featured
+                            ? "border-[#d6aa55]/40 bg-[#d6aa55]/10 text-[#e7c77f] hover:bg-[#d6aa55]/20"
+                            : "border-white/10 bg-white/[0.03] text-gray-400 hover:border-[#d6aa55]/30 hover:text-[#e7c77f]"
+                        }`}
+                      >
+                        {listing.featured ? "★ Featured" : "★ Feature"}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
