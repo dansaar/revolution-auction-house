@@ -213,6 +213,7 @@ export default function SellerInvoicesPage() {
                         <div className="text-sm text-gray-400">
                           {invoice.shippingCity}, {invoice.shippingState} {invoice.shippingZip}
                         </div>
+                        {invoice.shippingPhone && <div className="text-sm text-gray-400">{invoice.shippingPhone}</div>}
                       </div>
                     )}
                   </div>

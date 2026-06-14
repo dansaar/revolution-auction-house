@@ -87,7 +87,7 @@ export async function GET(
             buyerEmail sellerEmail
             subtotal buyerPremium tax amount
             status stripeSessionId paidAt
-            shippingName shippingLine1 shippingLine2
+            shippingName shippingPhone shippingLine1 shippingLine2
             shippingCity shippingState shippingZip shippingCountry
           }
         }`,
@@ -199,6 +199,7 @@ export async function GET(
     if (invoice.shippingLine1) {
       contentHeight += 14; // "Ship To:" header + gap
       if (invoice.shippingName) contentHeight += 7;
+      if (invoice.shippingPhone) contentHeight += 7;
       contentHeight += 7; // line1
       if (invoice.shippingLine2) contentHeight += 7;
       contentHeight += 12; // city/state/zip
@@ -269,7 +270,9 @@ export async function GET(
         `${invoice.shippingCity || ""}, ${invoice.shippingState || ""} ${invoice.shippingZip || ""}`.trim(),
         28, y,
       );
-      y += 12;
+      y += 7;
+      if (invoice.shippingPhone) { doc.text(invoice.shippingPhone, 28, y); y += 7; }
+      y += 5;
     }
 
     doc.setFont("helvetica", "normal");

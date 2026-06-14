@@ -2042,6 +2042,7 @@ function MarketplaceSection({
                           <div className="text-sm text-gray-400">{invoice.shippingLine1}</div>
                           {invoice.shippingLine2 && <div className="text-sm text-gray-400">{invoice.shippingLine2}</div>}
                           <div className="text-sm text-gray-400">{invoice.shippingCity}, {invoice.shippingState} {invoice.shippingZip}</div>
+                          {invoice.shippingPhone && <div className="text-sm text-gray-400">{invoice.shippingPhone}</div>}
                         </div>
                       )}
 
