@@ -34,10 +34,14 @@ export const handler: Schema["submitVerificationRequest"]["functionHandler"] =
 
     const identity = event.identity as any;
     const claims = identity?.claims ?? {};
-    const userId = claims["sub"] as string | undefined;
-    const email = (claims["email"] as string | undefined)?.toLowerCase();
+    // identity.sub is the reliable source for the caller's Cognito sub;
+    // claims.sub can come back empty depending on the AppSync authorizer.
+    const userId =
+      (identity?.sub as string | undefined) ||
+      (claims["sub"] as string | undefined);
 
-    if (!userId || !email) {
+    if (!userId) {
+      console.error("SUBMIT_VERIFICATION_NO_USER", JSON.stringify(identity));
       return { success: false, message: "Not authenticated" };
     }
 
@@ -49,6 +53,16 @@ export const handler: Schema["submitVerificationRequest"]["functionHandler"] =
         { userId },
         { authMode: "iam" } as any,
       );
+
+      // Prefer the email claim; fall back to the email already stored on the
+      // buyer's profile so a missing claim doesn't block the request.
+      const email =
+        (claims["email"] as string | undefined)?.toLowerCase() ||
+        (existing.data?.email || "").toLowerCase();
+
+      if (!email) {
+        return { success: false, message: "No email on file for this account" };
+      }
 
       if (existing.data) {
         await client.models.BuyerProfile.update(
