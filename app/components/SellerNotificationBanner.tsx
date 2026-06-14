@@ -88,6 +88,10 @@ export default function SellerNotificationBanner() {
         }
         if (!seller) return;
 
+        // Force-refresh the session now so adminGraphQL's cached fetch gets a
+        // current token with correct Cognito groups (stale cache lacks Admin group).
+        try { await fetchAuthSession({ forceRefresh: true }); } catch { /* ignore */ }
+
         setReady(true);
         await fetchCounts();
         interval = setInterval(() => fetchCounts(), POLL_MS);
