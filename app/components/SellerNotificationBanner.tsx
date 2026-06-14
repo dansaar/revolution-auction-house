@@ -7,7 +7,7 @@ import Link from "next/link";
 import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
-import { isApprovedSeller } from "@/lib/sellers";
+import { adminGraphQL, isAdminUser, isApprovedSeller } from "@/lib/sellers";
 
 const client = generateClient<Schema>();
 
@@ -21,15 +21,27 @@ export default function SellerNotificationBanner() {
 
   const fetchCounts = useCallback(async () => {
     async function getOffers(): Promise<any[]> {
-      // All approved sellers and admins see all pending offers site-wide
       try {
-        const res = await client.models.Offer.list({
-          filter: { status: { eq: "PENDING" } },
-          authMode: "userPool",
-          limit: 500,
-        } as any);
-        return res.data ?? [];
-      } catch { return []; }
+        // Use raw GraphQL fetch to bypass Amplify client's auto-owner filter injection.
+        // Amplify v6 with ownerDefinedIn silently filters list results by the current
+        // user's sub, so admins see 0 records even though AppSync group auth allows all.
+        const result = await adminGraphQL(`
+          query BannerPendingOffers {
+            listOffers(filter: { status: { eq: "PENDING" } }, limit: 500) {
+              items { id sellerEmail status }
+            }
+          }
+        `);
+        const items = result?.data?.listOffers?.items;
+        if (!Array.isArray(items)) {
+          console.error("[Banner] unexpected listOffers response:", result);
+          return [];
+        }
+        return items;
+      } catch (err) {
+        console.error("[Banner] getOffers error:", err);
+        return [];
+      }
     }
 
     const [offersResult, verifRes] = await Promise.allSettled([
@@ -58,34 +70,29 @@ export default function SellerNotificationBanner() {
 
     async function init() {
       try {
-        await getCurrentUser(); // confirms user is signed in
+        await getCurrentUser();
       } catch {
         return; // not signed in
       }
 
       try {
-        // Try fresh token first; fall back to cached if refresh fails
-        let session;
-        try {
-          session = await fetchAuthSession({ forceRefresh: true });
-        } catch {
-          session = await fetchAuthSession({ forceRefresh: false });
+        const admin = await isAdminUser();
+        let seller = admin;
+        if (!seller) {
+          let email = "";
+          try {
+            const s = await fetchAuthSession({ forceRefresh: false });
+            email = ((s.tokens?.idToken?.payload?.["email"] as string) || "").toLowerCase();
+          } catch { /* no session */ }
+          seller = await isApprovedSeller(email);
         }
-
-        const payload = session.tokens?.idToken?.payload ?? {};
-        const groups = (payload["cognito:groups"] as string[]) ?? [];
-        const admin = groups.includes("Admin");
-        // Prefer the email claim from the token over signInDetails
-        const email = ((payload["email"] as string) || "").toLowerCase();
-
-        const seller = admin || await isApprovedSeller(email);
         if (!seller) return;
 
         setReady(true);
         await fetchCounts();
         interval = setInterval(() => fetchCounts(), POLL_MS);
-      } catch {
-        // unexpected error — skip silently
+      } catch (err) {
+        console.error("[Banner] init error:", err);
       }
     }
 
