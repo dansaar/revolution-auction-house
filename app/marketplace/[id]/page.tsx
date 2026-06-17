@@ -554,6 +554,18 @@ export default function MarketplaceListingPage() {
                       name="offer-amount"
                       value={offerAmount}
                       onChange={(e) => setOfferAmount(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Enter" &&
+                          !submittingOffer &&
+                          listing.status !== "OFFER_PENDING" &&
+                          listing.status !== "OFFER_ACCEPTED"
+                        ) {
+                          e.preventDefault();
+                          handleMakeOffer();
+                        }
+                      }}
+                      inputMode="decimal"
                       placeholder="Offer Amount"
                       className="flex-1 rounded border border-white/10 bg-black px-4 py-3 text-white"
                     />
