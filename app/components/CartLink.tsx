@@ -1,22 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
-import { cartCount, CART_EVENT } from "@/lib/cart";
+import { CART_EVENT } from "@/lib/cart";
+import { fetchCartCountDetail, localTotalFrom, type CartCountDetail } from "@/lib/cartCount";
 
 export default function CartLink({ onNavigate }: { onNavigate?: () => void }) {
   const [count, setCount] = useState(0);
+  const detailRef = useRef<CartCountDetail | null>(null);
 
   useEffect(() => {
-    const sync = () => setCount(cartCount());
-    sync();
-    // Update when this tab changes the cart, or another tab does (storage).
-    window.addEventListener(CART_EVENT, sync);
-    window.addEventListener("storage", sync);
+    let cancelled = false;
+
+    // Full refresh: re-fetches payment obligations + recomputes total.
+    async function fullRefresh() {
+      const detail = await fetchCartCountDetail();
+      if (cancelled) return;
+      detailRef.current = detail;
+      setCount(detail.total);
+    }
+
+    // Local refresh: cheap recompute on add/remove using cached obligations.
+    function localRefresh() {
+      if (detailRef.current) setCount(localTotalFrom(detailRef.current));
+      else fullRefresh();
+    }
+
+    fullRefresh();
+    window.addEventListener(CART_EVENT, localRefresh); // this tab added/removed
+    window.addEventListener("storage", fullRefresh); // another tab changed it
+    window.addEventListener("focus", fullRefresh); // returning to the tab
     return () => {
-      window.removeEventListener(CART_EVENT, sync);
-      window.removeEventListener("storage", sync);
+      cancelled = true;
+      window.removeEventListener(CART_EVENT, localRefresh);
+      window.removeEventListener("storage", fullRefresh);
+      window.removeEventListener("focus", fullRefresh);
     };
   }, []);
 
