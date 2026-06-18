@@ -100,7 +100,10 @@ export default function Header() {
                 {label}
               </Link>
             ))}
-            <BuyerDashboardLink onNavigate={() => setOpen(false)} />
+            <BuyerDashboardLink
+              onNavigate={() => setOpen(false)}
+              className="rounded-xl px-4 py-4 text-lg text-gray-300 transition hover:bg-white/[0.04] hover:text-white"
+            />
             <div className="px-4 py-4 text-lg text-gray-300">
               <CartLink onNavigate={() => setOpen(false)} />
             </div>

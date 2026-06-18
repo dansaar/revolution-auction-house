@@ -7,7 +7,10 @@ import Link from "next/link";
 import { getCurrentUser } from "aws-amplify/auth";
 import { isApprovedSeller } from "@/lib/sellers";
 
-export default function BuyerDashboardLink({ onNavigate }: { onNavigate?: () => void } = {}) {
+export default function BuyerDashboardLink({
+  onNavigate,
+  className,
+}: { onNavigate?: () => void; className?: string } = {}) {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -27,7 +30,7 @@ export default function BuyerDashboardLink({ onNavigate }: { onNavigate?: () => 
   if (!show) return null;
 
   return (
-    <Link href="/dashboard" onClick={onNavigate} className="hover:text-white">
+    <Link href="/dashboard" onClick={onNavigate} className={className ?? "hover:text-white"}>
       Buyer Dashboard
     </Link>
   );
