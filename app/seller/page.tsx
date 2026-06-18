@@ -195,6 +195,25 @@ function SellerPage() {
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  // Stable handle to the data loader so other effects (e.g. the Shipping-tab
+  // poll) can trigger a refetch without re-running the mount subscription setup.
+  const loadRef = React.useRef<(() => void) | null>(null);
+
+  // Shipping tab: subscriptions already refresh on listing/auction updates, but
+  // poll + refetch-on-focus as a resilience layer (delivery status arrives via
+  // the EasyPost webhook). Gated to the active tab so it's not wasteful.
+  useEffect(() => {
+    if (activeTab !== "shipping") return;
+    const refetch = () => loadRef.current?.();
+    refetch();
+    const onFocus = () => refetch();
+    window.addEventListener("focus", onFocus);
+    const interval = setInterval(refetch, 60_000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      clearInterval(interval);
+    };
+  }, [activeTab]);
 
   useEffect(() => {
     async function loadSellerAuctions() {
@@ -325,6 +344,7 @@ function SellerPage() {
       setLoading(false);
     }
 
+    loadRef.current = loadSellerAuctions;
     loadSellerAuctions();
 
     function scheduleSellerRefresh() {
