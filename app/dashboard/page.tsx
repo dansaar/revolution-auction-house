@@ -766,7 +766,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="mt-10 grid grid-cols-2 gap-4 sm:mx-auto sm:max-w-lg">
           <button
             type="button"
             onClick={() => setActiveTab("auctions")}
@@ -792,7 +792,12 @@ export default function DashboardPage() {
             <Tag className="mb-4 h-8 w-8 text-[#e7c77f]" />
             <div className="text-base font-bold text-white">Marketplace</div>
           </button>
+        </div>
 
+        {/* Divider between in-page tabs (above) and navigation/actions (below) */}
+        <div className="mx-auto mt-6 h-px max-w-3xl bg-white/10" />
+
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           <Link
             href="/auctions"
             className="group flex min-h-36 flex-col items-center justify-center rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-5 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
