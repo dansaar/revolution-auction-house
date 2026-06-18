@@ -697,21 +697,18 @@ function SellerPage() {
             <Archive className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
             <div className="text-lg font-bold text-white">Shipping</div>
           </button>
+        </div>
 
-          <Link
-            href="/sell/auction"
-            className="w-36 group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
-          >
-            <Gavel className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
-            <div className="text-lg font-bold text-white">Create Auction</div>
-          </Link>
+        {/* Divider between in-page tabs (above) and navigation/actions (below) */}
+        <div className="mx-auto mt-6 h-px max-w-3xl bg-white/10" />
 
+        <div className="mt-6 flex flex-wrap items-stretch justify-center gap-4">
           <Link
-            href="/sell/listing"
-            className="w-36 group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
+            href="/sell"
+            className="w-36 group rounded-2xl border border-[#d6aa55]/50 bg-[#1a1408] px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#221909]"
           >
             <Tag className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
-            <div className="text-lg font-bold text-white">Create Listing</div>
+            <div className="text-lg font-bold text-white">Create Auction / Listing</div>
           </Link>
 
           <Link
