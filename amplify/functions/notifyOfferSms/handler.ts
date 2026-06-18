@@ -18,6 +18,8 @@ const sesClient = new SESClient({});
 
 const SITE_URL = (env as any).SITE_URL || "https://www.revolutionauctionhouse.com";
 const FROM_EMAIL = (env as any).FROM_EMAIL || "";
+// Seller SMS unless audience is "none".
+const SELLER_SMS_ENABLED = ((env as any).SMS_AUDIENCE || "all") !== "none";
 
 export const handler: Schema["notifySellerOfferSms"]["functionHandler"] = async (event) => {
   const { sellerEmail, listingId, listingTitle, offerAmount } = event.arguments;
@@ -58,7 +60,7 @@ export const handler: Schema["notifySellerOfferSms"]["functionHandler"] = async 
     const pref: string = sellerProfile?.notifyOffers ?? "none";
     const phone: string = sellerProfile?.phoneNumber ?? "";
     // Only text verified numbers.
-    const wantsSms = (pref === "sms" || pref === "both") && phone && sellerProfile?.phoneVerified;
+    const wantsSms = SELLER_SMS_ENABLED && (pref === "sms" || pref === "both") && phone && sellerProfile?.phoneVerified;
     const wantsEmail = (pref === "email" || pref === "both") && FROM_EMAIL;
 
     if (!wantsSms && !wantsEmail) {

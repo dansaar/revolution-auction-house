@@ -17,6 +17,8 @@ const sesClient = new SESClient({});
 const snsClient = new SNSClient({});
 const FROM_EMAIL = (env as any).FROM_EMAIL || "";
 const SITE_URL = (env as any).SITE_URL || "https://www.revolutionauctionhouse.com";
+// Seller SMS unless audience is "none".
+const SELLER_SMS_ENABLED = ((env as any).SMS_AUDIENCE || "all") !== "none";
 
 const TIER_LIMITS: Record<string, number> = {
   BASIC: 1_000,
@@ -103,7 +105,7 @@ export const handler: Schema["submitVerificationRequest"]["functionHandler"] =
           for (const s of approvedSellers) {
             const pref = (s as any).notifyVerifications ?? "none";
             if ((pref === "email" || pref === "both") && s.email) emailTo.push(s.email);
-            if ((pref === "sms" || pref === "both") && (s as any).phoneNumber && (s as any).phoneVerified) smsTo.push((s as any).phoneNumber);
+            if (SELLER_SMS_ENABLED && (pref === "sms" || pref === "both") && (s as any).phoneNumber && (s as any).phoneVerified) smsTo.push((s as any).phoneNumber);
           }
 
           const emailHtml = `<p>A buyer has submitted a verification request.</p>

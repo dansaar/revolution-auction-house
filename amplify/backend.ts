@@ -111,20 +111,30 @@ adminListInvoicesCfn.addPropertyOverride(
 const FROM_EMAIL = "noreply@revolutionauctionhouse.com";
 const SITE_URL = "https://www.revolutionauctionhouse.com";
 
+// Who receives SMS notifications. Set the SMS_AUDIENCE env var in Amplify to
+// flip this without code changes:
+//   "all"     → buyers + sellers (default)
+//   "sellers" → sellers only (no buyer outbid/watchlist/won texts)
+//   "none"    → SMS disabled entirely
+const SMS_AUDIENCE = process.env.SMS_AUDIENCE || "all";
+
 placeBidCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
 placeBidCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
+placeBidCfn.addPropertyOverride("Environment.Variables.SMS_AUDIENCE", SMS_AUDIENCE);
 
 const finalizeAuctionCfn = backend.finalizeAuction.resources.lambda.node
   .defaultChild as CfnFunction;
 
 finalizeAuctionCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
 finalizeAuctionCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
+finalizeAuctionCfn.addPropertyOverride("Environment.Variables.SMS_AUDIENCE", SMS_AUDIENCE);
 
 const notifyOfferSmsCfn = backend.notifyOfferSms.resources.lambda.node
   .defaultChild as CfnFunction;
 
 notifyOfferSmsCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
 notifyOfferSmsCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
+notifyOfferSmsCfn.addPropertyOverride("Environment.Variables.SMS_AUDIENCE", SMS_AUDIENCE);
 backend.notifyOfferSms.resources.lambda.addToRolePolicy(sesPolicy);
 
 const submitVerificationRequestCfn = backend.submitVerificationRequest.resources.lambda.node
@@ -132,6 +142,7 @@ const submitVerificationRequestCfn = backend.submitVerificationRequest.resources
 
 submitVerificationRequestCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
 submitVerificationRequestCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
+submitVerificationRequestCfn.addPropertyOverride("Environment.Variables.SMS_AUDIENCE", SMS_AUDIENCE);
 
 const userPool = backend.auth.resources.userPool;
 

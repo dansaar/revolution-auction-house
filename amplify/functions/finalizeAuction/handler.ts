@@ -18,6 +18,8 @@ const snsClient = new SNSClient({});
 
 const FROM_EMAIL = (env as any).FROM_EMAIL || "";
 const SITE_URL = (env as any).SITE_URL || "https://www.revolutionauctionhouse.com";
+// Buyer SMS (auction won) only when audience is "all".
+const BUYER_SMS_ENABLED = ((env as any).SMS_AUDIENCE || "all") === "all";
 
 async function sendWinnerEmail({
   to,
@@ -179,7 +181,7 @@ async function finalizeOneAuction(auction: any) {
         }));
       }
 
-      if ((notifyWon === "sms" || notifyWon === "both") && profile?.phoneNumber && profile?.phoneVerified) {
+      if (BUYER_SMS_ENABLED && (notifyWon === "sms" || notifyWon === "both") && profile?.phoneNumber && profile?.phoneVerified) {
         sends.push(sendWinnerSms({
           to: profile.phoneNumber,
           auctionTitle: auction.title || "this auction",
