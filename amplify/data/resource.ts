@@ -328,6 +328,13 @@ const schema = a
         notifyOffers: a.string().default("none"),        // "email" | "sms" | "both" | "none"
         phoneNumber: a.string(),
 
+        // Phone OTP verification (written only by the OTP Lambdas via IAM —
+        // sellers can't self-mark verified; OTP secrets are Admin-only).
+        phoneVerified: a.boolean().default(false),
+        phoneOtpHash: a.string().authorization((allow) => [allow.group("Admin")]),
+        phoneOtpExpiresAt: a.datetime().authorization((allow) => [allow.group("Admin")]),
+        phoneOtpAttempts: a.integer().authorization((allow) => [allow.group("Admin")]),
+
         // Ship-from address for label generation
         shipFromName: a.string(),
         shipFromStreet1: a.string(),
@@ -630,14 +637,14 @@ const schema = a
     // Phone verification: send a one-time code by SMS, then verify it.
     sendPhoneOtp: a
       .mutation()
-      .arguments({ phoneNumber: a.string().required() })
+      .arguments({ phoneNumber: a.string().required(), target: a.string() })
       .returns(a.customType({ success: a.boolean(), message: a.string() }))
       .authorization((allow) => [allow.authenticated()])
       .handler(a.handler.function(sendPhoneOtp)),
 
     verifyPhoneOtp: a
       .mutation()
-      .arguments({ code: a.string().required() })
+      .arguments({ code: a.string().required(), target: a.string() })
       .returns(a.customType({ success: a.boolean(), verified: a.boolean(), message: a.string() }))
       .authorization((allow) => [allow.authenticated()])
       .handler(a.handler.function(verifyPhoneOtp)),

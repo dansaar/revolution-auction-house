@@ -20,15 +20,29 @@ const MAX_ATTEMPTS = 5;
 export const handler: Schema["verifyPhoneOtp"]["functionHandler"] = async (event) => {
   const identity = event.identity as any;
   const userId = identity?.sub || identity?.claims?.sub || "";
+  const email = (identity?.claims?.email || "").toLowerCase();
   if (!userId) return { success: false, verified: false, message: "Not authenticated" };
+
+  const target = event.arguments.target === "SELLER" ? "SELLER" : "BUYER";
 
   const code = (event.arguments.code || "").replace(/\D/g, "");
   if (code.length !== 6) {
     return { success: false, verified: false, message: "Enter the 6-digit code." };
   }
 
+  // Read/update the right profile. Key by email (seller) or sub (buyer);
+  // the OTP hash is always scoped to the caller's sub.
+  const getProfile = () =>
+    target === "SELLER"
+      ? client.models.SellerProfile.get({ email } as any, { authMode: "iam" } as any)
+      : client.models.BuyerProfile.get({ userId } as any, { authMode: "iam" } as any);
+  const updateProfile = (fields: any) =>
+    target === "SELLER"
+      ? client.models.SellerProfile.update({ email, ...fields } as any, { authMode: "iam" } as any)
+      : client.models.BuyerProfile.update({ userId, ...fields } as any, { authMode: "iam" } as any);
+
   try {
-    const res = await client.models.BuyerProfile.get({ userId }, { authMode: "iam" } as any);
+    const res = await getProfile();
     const p = res.data as any;
 
     if (!p?.phoneOtpHash || !p?.phoneOtpExpiresAt) {
@@ -42,23 +56,16 @@ export const handler: Schema["verifyPhoneOtp"]["functionHandler"] = async (event
     }
 
     if (hashCode(userId, code) !== p.phoneOtpHash) {
-      await client.models.BuyerProfile.update(
-        { userId, phoneOtpAttempts: (p.phoneOtpAttempts || 0) + 1 } as any,
-        { authMode: "iam" } as any,
-      );
+      await updateProfile({ phoneOtpAttempts: (p.phoneOtpAttempts || 0) + 1 });
       return { success: false, verified: false, message: "Incorrect code. Try again." };
     }
 
-    await client.models.BuyerProfile.update(
-      {
-        userId,
-        phoneVerified: true,
-        phoneOtpHash: null,
-        phoneOtpExpiresAt: null,
-        phoneOtpAttempts: 0,
-      } as any,
-      { authMode: "iam" } as any,
-    );
+    await updateProfile({
+      phoneVerified: true,
+      phoneOtpHash: null,
+      phoneOtpExpiresAt: null,
+      phoneOtpAttempts: 0,
+    });
     return { success: true, verified: true, message: "Phone number verified." };
   } catch (err: any) {
     console.error("VERIFY_PHONE_OTP_ERROR", err);

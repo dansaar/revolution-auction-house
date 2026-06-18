@@ -103,7 +103,7 @@ export const handler: Schema["submitVerificationRequest"]["functionHandler"] =
           for (const s of approvedSellers) {
             const pref = (s as any).notifyVerifications ?? "none";
             if ((pref === "email" || pref === "both") && s.email) emailTo.push(s.email);
-            if ((pref === "sms" || pref === "both") && (s as any).phoneNumber) smsTo.push((s as any).phoneNumber);
+            if ((pref === "sms" || pref === "both") && (s as any).phoneNumber && (s as any).phoneVerified) smsTo.push((s as any).phoneNumber);
           }
 
           const emailHtml = `<p>A buyer has submitted a verification request.</p>

@@ -34,6 +34,54 @@ export default function SellerVerificationsPage() {
   const [savingNotify, setSavingNotify] = useState(false);
   const [notifySaved, setNotifySaved] = useState(false);
 
+  // Phone OTP verification
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [verifiedPhone, setVerifiedPhone] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpMsg, setOtpMsg] = useState("");
+
+  const normalize = (p: string) => p.replace(/[^\d+]/g, "");
+  const phoneIsVerified =
+    phoneVerified && !!notifyPhone && normalize(notifyPhone) === normalize(verifiedPhone);
+
+  async function handleSendOtp() {
+    if (sendingOtp) return;
+    setOtpMsg("");
+    setSendingOtp(true);
+    try {
+      const res = await client.mutations.sendPhoneOtp(
+        { phoneNumber: notifyPhone, target: "SELLER" },
+        { authMode: "userPool" } as any,
+      );
+      if (res.data?.success) { setOtpSent(true); setOtpMsg(res.data.message || "Code sent."); }
+      else setOtpMsg(res.data?.message || "Could not send code.");
+    } catch { setOtpMsg("Could not send code. Try again."); }
+    finally { setSendingOtp(false); }
+  }
+
+  async function handleVerifyOtp() {
+    if (verifyingOtp) return;
+    setOtpMsg("");
+    setVerifyingOtp(true);
+    try {
+      const res = await client.mutations.verifyPhoneOtp(
+        { code: otpCode, target: "SELLER" },
+        { authMode: "userPool" } as any,
+      );
+      if (res.data?.verified) {
+        setPhoneVerified(true);
+        setVerifiedPhone(notifyPhone);
+        setOtpSent(false);
+        setOtpCode("");
+        setOtpMsg("Phone number verified ✓");
+      } else setOtpMsg(res.data?.message || "Incorrect code.");
+    } catch { setOtpMsg("Verification failed. Try again."); }
+    finally { setVerifyingOtp(false); }
+  }
+
   async function loadPending() {
     const result = await client.models.BuyerProfile.list({
       filter: { status: { eq: "PENDING_REVIEW" } },
@@ -83,6 +131,10 @@ export default function SellerVerificationsPage() {
         setNotifyVerifPref(profile.notifyVerifications ?? "email");
         setNotifyOffersPref(profile.notifyOffers ?? "email");
         setNotifyPhone(profile.phoneNumber ?? "");
+        if (profile.phoneVerified) {
+          setPhoneVerified(true);
+          setVerifiedPhone(profile.phoneNumber ?? "");
+        }
       }
     } catch {
       // non-fatal
@@ -199,13 +251,52 @@ export default function SellerVerificationsPage() {
             {(notifyVerifPref === "sms" || notifyVerifPref === "both" || notifyOffersPref === "sms" || notifyOffersPref === "both") && (
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-[0.15em] text-gray-500">Phone number (with country code)</label>
-                <input
-                  type="tel"
-                  value={notifyPhone}
-                  onChange={(e) => setNotifyPhone(e.target.value)}
-                  placeholder="+1 555 000 0000"
-                  className="w-56 rounded border border-white/10 bg-black px-3 py-1.5 text-sm text-white outline-none focus:border-[#d6aa55]/50"
-                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="tel"
+                    value={notifyPhone}
+                    onChange={(e) => { setNotifyPhone(e.target.value); setOtpSent(false); setOtpMsg(""); }}
+                    placeholder="+1 555 000 0000"
+                    className="w-56 rounded border border-white/10 bg-black px-3 py-1.5 text-sm text-white outline-none focus:border-[#d6aa55]/50"
+                  />
+                  {phoneIsVerified ? (
+                    <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">✓ Verified</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={!notifyPhone || sendingOtp}
+                      className="rounded border border-[#d6aa55]/40 bg-[#1a1408] px-3 py-1.5 text-xs font-semibold text-[#e7c77f] hover:bg-[#221909] disabled:opacity-50"
+                    >
+                      {sendingOtp ? "Sending…" : otpSent ? "Resend code" : "Send code"}
+                    </button>
+                  )}
+                </div>
+                {otpSent && !phoneIsVerified && (
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                      placeholder="6-digit code"
+                      className="w-32 rounded border border-white/10 bg-black px-3 py-1.5 text-sm tracking-[0.3em] text-white outline-none focus:border-[#d6aa55]/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyOtp}
+                      disabled={otpCode.length !== 6 || verifyingOtp}
+                      className="rounded bg-[#c0c0c0] px-4 py-1.5 text-xs font-bold text-black hover:bg-white disabled:opacity-50"
+                    >
+                      {verifyingOtp ? "Verifying…" : "Verify"}
+                    </button>
+                  </div>
+                )}
+                {otpMsg && (
+                  <p className={`text-xs ${phoneIsVerified ? "text-emerald-400" : "text-gray-400"}`}>{otpMsg}</p>
+                )}
+                <p className="text-[10px] text-gray-600">Texts only go to verified numbers. Reply STOP to opt out.</p>
               </div>
             )}
 

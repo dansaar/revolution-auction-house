@@ -34,7 +34,10 @@ function normalizePhone(raw: string): string | null {
 export const handler: Schema["sendPhoneOtp"]["functionHandler"] = async (event) => {
   const identity = event.identity as any;
   const userId = identity?.sub || identity?.claims?.sub || "";
+  const email = (identity?.claims?.email || "").toLowerCase();
   if (!userId) return { success: false, message: "Not authenticated" };
+
+  const target = event.arguments.target === "SELLER" ? "SELLER" : "BUYER";
 
   const phone = normalizePhone(event.arguments.phoneNumber || "");
   if (!phone) {
@@ -43,27 +46,29 @@ export const handler: Schema["sendPhoneOtp"]["functionHandler"] = async (event) 
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const otpFields = {
+    phoneNumber: phone,
+    phoneVerified: false,
+    phoneOtpHash: hashCode(userId, code),
+    phoneOtpExpiresAt: expiresAt,
+    phoneOtpAttempts: 0,
+  };
 
   try {
-    const existing = await client.models.BuyerProfile.get(
-      { userId },
-      { authMode: "iam" } as any,
-    );
-    const otpFields = {
-      userId,
-      phoneNumber: phone,
-      phoneVerified: false,
-      phoneOtpHash: hashCode(userId, code),
-      phoneOtpExpiresAt: expiresAt,
-      phoneOtpAttempts: 0,
-    };
-    if (existing.data) {
-      await client.models.BuyerProfile.update(otpFields as any, { authMode: "iam" } as any);
+    if (target === "SELLER") {
+      if (!email) return { success: false, message: "No seller email on file." };
+      const existing = await client.models.SellerProfile.get({ email }, { authMode: "iam" } as any);
+      if (!existing.data) {
+        return { success: false, message: "No approved seller profile found for this account." };
+      }
+      await client.models.SellerProfile.update({ email, ...otpFields } as any, { authMode: "iam" } as any);
     } else {
-      await client.models.BuyerProfile.create(
-        { ...otpFields, email: (identity?.claims?.email || "").toLowerCase() } as any,
-        { authMode: "iam" } as any,
-      );
+      const existing = await client.models.BuyerProfile.get({ userId }, { authMode: "iam" } as any);
+      if (existing.data) {
+        await client.models.BuyerProfile.update({ userId, ...otpFields } as any, { authMode: "iam" } as any);
+      } else {
+        await client.models.BuyerProfile.create({ userId, email, ...otpFields } as any, { authMode: "iam" } as any);
+      }
     }
 
     await sns.send(
