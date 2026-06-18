@@ -2921,12 +2921,26 @@ function SellerShipping({
   needs, transit, delivered, invoices, client, onManage,
   setAuctions, setMarketplaceListings,
 }: any) {
+  const [search, setSearch] = useState("");
+
   const invoiceFor = (item: any) =>
     invoices?.find((inv: any) =>
       item._shipType === "AUCTION"
         ? String(inv.auctionId) === String(item.id)
         : String(inv.listingId) === String(item.id),
     );
+
+  // Filter by item title OR buyer email (from the item or its invoice).
+  const filterItems = (items: any[]) => {
+    if (!search.trim()) return items;
+    return items.filter((it: any) => {
+      const buyer = it.buyerEmail || invoiceFor(it)?.buyerEmail || "";
+      return matchesSearch(it.title, search) || matchesSearch(buyer, search);
+    });
+  };
+  const fNeeds = filterItems(needs);
+  const fTransit = filterItems(transit);
+  const fDelivered = filterItems(delivered);
 
   async function markDelivered(item: any) {
     const now = new Date().toISOString();
@@ -3059,12 +3073,17 @@ function SellerShipping({
   return (
     <div className="mt-10">
       <h2 className="font-serif text-3xl text-[#c0c0c0]">Shipping</h2>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 mb-6 text-sm text-gray-500">
         Everything sold across auctions and the marketplace, grouped by shipping stage.
       </p>
-      <Group title="Needs Shipping" items={needs} bucket="NEEDS" accent="bg-amber-500 text-black" />
-      <Group title="In Transit" items={transit} bucket="TRANSIT" accent="bg-sky-500/20 text-sky-300" />
-      <Group title="Delivered" items={delivered} bucket="DELIVERED" accent="bg-emerald-500/20 text-emerald-300" />
+      <DashboardFilterBar
+        search={search}
+        setSearch={setSearch}
+        placeholder="Search by item or buyer…"
+      />
+      <Group title="Needs Shipping" items={fNeeds} bucket="NEEDS" accent="bg-amber-500 text-black" />
+      <Group title="In Transit" items={fTransit} bucket="TRANSIT" accent="bg-sky-500/20 text-sky-300" />
+      <Group title="Delivered" items={fDelivered} bucket="DELIVERED" accent="bg-emerald-500/20 text-emerald-300" />
     </div>
   );
 }
