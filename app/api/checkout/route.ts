@@ -60,6 +60,15 @@ function calcAuctionAmounts(auction: any) {
   };
 }
 
+// A marketplace listing can only be bought when it's still active — not sold,
+// paid, or reserved by an accepted/pending offer.
+function isListingAvailable(listing: any): boolean {
+  if (listing.sold === true || listing.paid === true) return false;
+  const blocked = ["SOLD", "OFFER_PENDING", "OFFER_ACCEPTED", "PENDING_PAYMENT"];
+  if (blocked.includes(listing.status)) return false;
+  return true;
+}
+
 function calcListingAmounts(listing: any) {
   const price = moneyToNumber(
     listing.acceptedOfferAmount || listing.price || 0,
@@ -220,6 +229,14 @@ export async function POST(req: Request) {
           const listing = result.data;
           if (!listing) continue;
 
+          // Skip items that sold / went to an accepted offer since being added.
+          if (!isListingAvailable(listing)) {
+            return NextResponse.json(
+              { error: `"${listing.title || "An item"}" is no longer available. Remove it and try again.` },
+              { status: 409 },
+            );
+          }
+
           if (
             buyerEmail &&
             listing.sellerEmail &&
@@ -342,6 +359,15 @@ export async function POST(req: Request) {
         return NextResponse.json(
           { error: "Listing not found" },
           { status: 404 },
+        );
+      }
+
+      // Availability check — close the common race where the item sold (or went
+      // to an accepted offer) before this buyer checks out.
+      if (!isListingAvailable(listing)) {
+        return NextResponse.json(
+          { error: "This item is no longer available." },
+          { status: 409 },
         );
       }
 

@@ -38,6 +38,28 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
       return { paid: false };
     }
 
+    // Inventory-race guard: a marketplace listing is single-quantity. If a
+    // different checkout session already paid for it, this is a double-purchase
+    // — refund this payment instead of marking the item sold twice.
+    async function listingClaimedByOther(lid: string): Promise<boolean> {
+      try {
+        const cur = (await client.models.MarketplaceListing.get({ id: lid })).data as any;
+        return !!(cur?.paid === true && cur?.stripeSessionId && cur.stripeSessionId !== session.id);
+      } catch {
+        return false;
+      }
+    }
+    async function refundCents(cents: number, tag: string) {
+      try {
+        const pi = session.payment_intent;
+        if (pi && cents > 0) {
+          await stripe.refunds.create({ payment_intent: String(pi), amount: Math.round(cents) });
+        }
+      } catch (e) {
+        console.error("VERIFY_PAYMENT_REFUND_FAILED", tag, e);
+      }
+    }
+
     // Ownership check — skip when called from the webhook (Stripe already verified the signature)
     if (!isWebhookCall) {
       const sessionBuyerSub = session.metadata?.buyerSub || "";
@@ -153,6 +175,13 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
             });
           }
         } else if (item.type === "MARKETPLACE") {
+          // Already sold via another session? Refund just this line item and skip it.
+          if (await listingClaimedByOther(item.id)) {
+            const cents = Number(String(item.amount || "0").replace(/[$,]/g, "")) * 100;
+            await refundCents(cents, "cart-listing");
+            continue;
+          }
+
           await client.models.MarketplaceListing.update({
             id: item.id,
             sold: true,
@@ -201,6 +230,14 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
 
     // Single listing
     if (listingId) {
+      if (await listingClaimedByOther(listingId)) {
+        await refundCents(session.amount_total ?? 0, "single-listing");
+        return {
+          paid: false,
+          error: "This item was already sold to another buyer — your payment has been refunded.",
+        };
+      }
+
       await client.models.MarketplaceListing.update({
         id: listingId,
         sold: true,

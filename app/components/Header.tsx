@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import NavUser from "./NavUser";
 import SellerOnly from "./SellerOnly";
 import BuyerDashboardLink from "./BuyerDashboardLink";
+import CartLink from "./CartLink";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -53,6 +54,7 @@ export default function Header() {
               <Link key={href} href={href} className="hover:text-white">{label}</Link>
             ))}
             <BuyerDashboardLink />
+            <CartLink />
             <NavUser />
             <SellerOnly />
           </nav>
@@ -99,6 +101,9 @@ export default function Header() {
               </Link>
             ))}
             <BuyerDashboardLink onNavigate={() => setOpen(false)} />
+            <div className="px-4 py-4 text-lg text-gray-300">
+              <CartLink onNavigate={() => setOpen(false)} />
+            </div>
 
             <div className="my-4 border-t border-white/10" />
 
