@@ -17,6 +17,8 @@ import { saveSellerPrefs } from "./functions/saveSellerPrefs/resource";
 import { getShippingRates } from "./functions/getShippingRates/resource";
 import { purchaseShippingLabel } from "./functions/purchaseShippingLabel/resource";
 import { updateShippingByTracking } from "./functions/updateShippingByTracking/resource";
+import { sendPhoneOtp } from "./functions/sendPhoneOtp/resource";
+import { verifyPhoneOtp } from "./functions/verifyPhoneOtp/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
@@ -39,6 +41,8 @@ const backend = defineBackend({
   getShippingRates,
   purchaseShippingLabel,
   updateShippingByTracking,
+  sendPhoneOtp,
+  verifyPhoneOtp,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];
@@ -80,6 +84,7 @@ backend.placeBid.resources.lambda.addToRolePolicy(sesPolicy);
 backend.finalizeAuction.resources.lambda.addToRolePolicy(sesPolicy);
 backend.finalizeAuction.resources.lambda.addToRolePolicy(snsPolicy);
 backend.notifyOfferSms.resources.lambda.addToRolePolicy(snsPolicy);
+backend.sendPhoneOtp.resources.lambda.addToRolePolicy(snsPolicy);
 backend.autoVerifyBuyer.resources.lambda.addToRolePolicy(snsPolicy);
 backend.reviewBuyerVerification.resources.lambda.addToRolePolicy(snsPolicy);
 backend.submitVerificationRequest.resources.lambda.addToRolePolicy(sesPolicy);

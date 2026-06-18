@@ -55,11 +55,70 @@ export default function NotificationsPage() {
   const [saved, setSaved] = useState(false);
 
   const [phone, setPhone] = useState("");
+  const [verified, setVerified] = useState(false);
+  const [verifiedPhone, setVerifiedPhone] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [code, setCode] = useState("");
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [otpMsg, setOtpMsg] = useState("");
   const [prefs, setPrefs] = useState<Record<string, Channel>>({
     notifyOutbid: "sms",
     notifyWon: "both",
     notifyWatchlist: "none",
   });
+
+  // The number is "verified" only if the server says so AND the input still
+  // matches the verified number (editing it invalidates the badge).
+  const isVerified =
+    verified && !!phone && formatPhone(phone) === formatPhone(verifiedPhone);
+
+  async function handleSendOtp() {
+    if (sendingOtp) return;
+    setOtpMsg("");
+    setSendingOtp(true);
+    try {
+      const res = await client.mutations.sendPhoneOtp(
+        { phoneNumber: phone },
+        { authMode: "userPool" } as any,
+      );
+      if (res.data?.success) {
+        setOtpSent(true);
+        setOtpMsg(res.data.message || "Code sent.");
+      } else {
+        setOtpMsg(res.data?.message || "Could not send code.");
+      }
+    } catch {
+      setOtpMsg("Could not send code. Try again.");
+    } finally {
+      setSendingOtp(false);
+    }
+  }
+
+  async function handleVerifyOtp() {
+    if (verifying) return;
+    setOtpMsg("");
+    setVerifying(true);
+    try {
+      const res = await client.mutations.verifyPhoneOtp(
+        { code },
+        { authMode: "userPool" } as any,
+      );
+      if (res.data?.verified) {
+        setVerified(true);
+        setVerifiedPhone(phone);
+        setOtpSent(false);
+        setCode("");
+        setOtpMsg("Phone number verified ✓");
+      } else {
+        setOtpMsg(res.data?.message || "Incorrect code.");
+      }
+    } catch {
+      setOtpMsg("Verification failed. Try again.");
+    } finally {
+      setVerifying(false);
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -75,6 +134,10 @@ export default function NotificationsPage() {
         const profile = result.data;
         if (profile) {
           setPhone(profile.phoneNumber || "");
+          if ((profile as any).phoneVerified) {
+            setVerified(true);
+            setVerifiedPhone(profile.phoneNumber || "");
+          }
           setPrefs({
             notifyOutbid: (profile.notifyOutbid as Channel) || (profile.smsOptIn ? "sms" : "none"),
             notifyWon: (profile.notifyWon as Channel) || "both",
@@ -247,14 +310,61 @@ export default function NotificationsPage() {
                   ? "Required for text notifications."
                   : "Only needed if you choose Text or Both above."}
               </div>
-              <input
-                type="tel"
-                placeholder="+1 (555) 000-0000"
-                value={phone}
-                disabled={!smsRequired}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white placeholder-gray-700 focus:border-white/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
-              />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="tel"
+                  placeholder="+1 (555) 000-0000"
+                  value={phone}
+                  disabled={!smsRequired}
+                  onChange={(e) => { setPhone(e.target.value); setOtpSent(false); setOtpMsg(""); }}
+                  className="w-full flex-1 rounded-lg border border-white/10 bg-black px-4 py-3 text-white placeholder-gray-700 focus:border-white/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                />
+                {smsRequired && (
+                  isVerified ? (
+                    <span className="flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-300">
+                      <Check size={15} /> Verified
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={!phone || sendingOtp}
+                      className="rounded-lg border border-[#d6aa55]/40 bg-[#1a1408] px-4 py-3 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909] disabled:opacity-50"
+                    >
+                      {sendingOtp ? "Sending…" : otpSent ? "Resend code" : "Send code"}
+                    </button>
+                  )
+                )}
+              </div>
+
+              {smsRequired && otpSent && !isVerified && (
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="6-digit code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    className="w-full flex-1 rounded-lg border border-white/10 bg-black px-4 py-3 tracking-[0.4em] text-white placeholder-gray-700 focus:border-white/30 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyOtp}
+                    disabled={code.length !== 6 || verifying}
+                    className="rounded-lg bg-[#c0c0c0] px-5 py-3 text-sm font-bold text-black hover:bg-white disabled:opacity-50"
+                  >
+                    {verifying ? "Verifying…" : "Verify"}
+                  </button>
+                </div>
+              )}
+
+              {otpMsg && (
+                <p className={`mt-2 text-xs ${isVerified ? "text-emerald-400" : "text-gray-400"}`}>
+                  {otpMsg}
+                </p>
+              )}
+
               <p className="mt-2 text-xs text-gray-600">
                 Include country code, e.g. +1 for US. Standard message &amp; data rates apply. Reply STOP to unsubscribe.
               </p>

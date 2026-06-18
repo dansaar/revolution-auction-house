@@ -14,6 +14,8 @@ import { saveSellerPrefs } from "../functions/saveSellerPrefs/resource";
 import { getShippingRates } from "../functions/getShippingRates/resource";
 import { purchaseShippingLabel } from "../functions/purchaseShippingLabel/resource";
 import { updateShippingByTracking } from "../functions/updateShippingByTracking/resource";
+import { sendPhoneOtp } from "../functions/sendPhoneOtp/resource";
+import { verifyPhoneOtp } from "../functions/verifyPhoneOtp/resource";
 
 const schema = a
   .schema({
@@ -274,6 +276,18 @@ const schema = a
 
         phoneNumber: a.string(),
         smsOptIn: a.boolean().default(false),
+
+        // Phone OTP verification. phoneVerified is owner-readable (so the UI can
+        // show status) but only written by the OTP Lambdas (IAM) / Admin — the
+        // user can't self-mark verified. The OTP secrets are Admin-only (hidden
+        // from the owner), accessed by the Lambdas via IAM.
+        phoneVerified: a.boolean().default(false).authorization((allow) => [
+          allow.group("Admin"),
+          allow.ownerDefinedIn("userId").to(["read"]),
+        ]),
+        phoneOtpHash: a.string().authorization((allow) => [allow.group("Admin")]),
+        phoneOtpExpiresAt: a.datetime().authorization((allow) => [allow.group("Admin")]),
+        phoneOtpAttempts: a.integer().authorization((allow) => [allow.group("Admin")]),
 
         notifyOutbid: a.string().default("sms"),
         notifyWon: a.string().default("both"),
@@ -612,6 +626,21 @@ const schema = a
       }))
       .authorization((allow) => [allow.publicApiKey()])
       .handler(a.handler.function(updateShippingByTracking)),
+
+    // Phone verification: send a one-time code by SMS, then verify it.
+    sendPhoneOtp: a
+      .mutation()
+      .arguments({ phoneNumber: a.string().required() })
+      .returns(a.customType({ success: a.boolean(), message: a.string() }))
+      .authorization((allow) => [allow.authenticated()])
+      .handler(a.handler.function(sendPhoneOtp)),
+
+    verifyPhoneOtp: a
+      .mutation()
+      .arguments({ code: a.string().required() })
+      .returns(a.customType({ success: a.boolean(), verified: a.boolean(), message: a.string() }))
+      .authorization((allow) => [allow.authenticated()])
+      .handler(a.handler.function(verifyPhoneOtp)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -629,6 +658,8 @@ const schema = a
     allow.resource(getShippingRates),
     allow.resource(purchaseShippingLabel),
     allow.resource(updateShippingByTracking),
+    allow.resource(sendPhoneOtp),
+    allow.resource(verifyPhoneOtp),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;
