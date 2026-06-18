@@ -160,9 +160,26 @@ function SellerPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<"auctions" | "marketplace">(
+  const [activeTab, setActiveTab] = useState<"auctions" | "marketplace" | "shipping">(
     searchParams?.get("tab") === "marketplace" ? "marketplace" : "auctions",
   );
+  // When a seller jumps from the Shipping tab to an item's native tab to buy a
+  // label, remember to offer a way back to Shipping.
+  const [returnToShipping, setReturnToShipping] = useState(false);
+
+  function manageShipping(type: "AUCTION" | "LISTING", itemId: string) {
+    setReturnToShipping(true);
+    setActiveTab(type === "AUCTION" ? "auctions" : "marketplace");
+    // Scroll the target card into view once the tab has switched.
+    setTimeout(() => {
+      const el = document.getElementById(`ship-${type}-${itemId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-[#d6aa55]");
+        setTimeout(() => el.classList.remove("ring-2", "ring-[#d6aa55]"), 2500);
+      }
+    }, 120);
+  }
   const [auctionSearch, setAuctionSearch] = useState("");
   const bySearch = (arr: any[]) => arr.filter((a: any) => matchesSearch(a.title, auctionSearch));
 
@@ -423,6 +440,23 @@ function SellerPage() {
 
   const paidAuctions = endedAuctions.filter((a) => a.paid === true);
 
+  // ── Shipping aggregation (paid items that have a physical shipping lifecycle) ──
+  const shippableAuctions = paidAuctions.map((a: any) => ({ ...a, _shipType: "AUCTION" as const }));
+  const shippableListings = marketplaceListings
+    .filter((l: any) => l.paid === true || l.status === "SOLD" || l.sold === true)
+    .map((l: any) => ({ ...l, _shipType: "LISTING" as const }));
+  const allShippable = [...shippableAuctions, ...shippableListings];
+
+  const shipBucket = (it: any): "DELIVERED" | "TRANSIT" | "NEEDS" => {
+    if (it.shippingStatus === "DELIVERED" || it.deliveredAt) return "DELIVERED";
+    if (it.trackingNumber || it.shippingLabelUrl) return "TRANSIT";
+    return "NEEDS";
+  };
+  const shipNeeds = allShippable.filter((it) => shipBucket(it) === "NEEDS");
+  const shipTransit = allShippable.filter((it) => shipBucket(it) === "TRANSIT");
+  const shipDelivered = allShippable.filter((it) => shipBucket(it) === "DELIVERED");
+  const needsShippingCount = shipNeeds.length;
+
   const unpaidAuctions = endedAuctions.filter(
     (a) => a.winnerUserId && a.paid !== true,
   );
@@ -626,6 +660,24 @@ function SellerPage() {
             <div className="text-lg font-bold text-white">Marketplace</div>
           </button>
 
+          <button
+            type="button"
+            onClick={() => { setReturnToShipping(false); setActiveTab("shipping"); }}
+            className={`w-36 group relative rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
+              activeTab === "shipping"
+                ? "border-[#d6aa55]/60 bg-[#1a1408]"
+                : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
+            }`}
+          >
+            {needsShippingCount > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-black">
+                {needsShippingCount}
+              </span>
+            )}
+            <Archive className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Shipping</div>
+          </button>
+
           <Link
             href="/sell/auction"
             className="w-36 group rounded-2xl border border-[#d6aa55]/30 bg-[#1a1408]/60 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#1a1408]"
@@ -698,6 +750,16 @@ function SellerPage() {
           <OnlineBuyerSummary buyerProfiles={buyerProfiles} />
           <BuyerTierSummary buyerProfiles={buyerProfiles} />
         </div>
+
+        {returnToShipping && activeTab !== "shipping" && (
+          <button
+            type="button"
+            onClick={() => { setReturnToShipping(false); setActiveTab("shipping"); }}
+            className="sticky top-2 z-30 mt-6 flex items-center gap-2 rounded-lg border border-[#d6aa55]/40 bg-[#1a1408] px-4 py-2 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909]"
+          >
+            ← Back to Shipping
+          </button>
+        )}
 
         {activeTab === "auctions" && (
           <>
@@ -817,6 +879,19 @@ function SellerPage() {
             />
           </>
         )}
+
+        {activeTab === "shipping" && (
+          <SellerShipping
+            needs={shipNeeds}
+            transit={shipTransit}
+            delivered={shipDelivered}
+            invoices={invoices}
+            client={client}
+            onManage={manageShipping}
+            setAuctions={setAuctions}
+            setMarketplaceListings={setMarketplaceListings}
+          />
+        )}
       </div>
     </main>
   );
@@ -897,21 +972,22 @@ function AuctionSection({
       ) : (
         <div className="grid gap-6">
           {auctions.map((auction: any) => (
-            <SellerAuctionCard
-              key={auction.id}
-              auction={auction}
-              client={client}
-              sellerEmail={sellerEmail}
-              sellerUserId={sellerUserId}
-              savedShipFrom={savedShipFrom ?? null}
-              invoice={invoices?.find(
-                (invoice: any) =>
-                  String(invoice.auctionId) === String(auction.id),
-              )}
-              onViewInvoice={onViewInvoice}
-              onDownloadInvoice={onDownloadInvoice}
-              formatInvoiceAmount={formatInvoiceAmount}
-            />
+            <div key={auction.id} id={`ship-AUCTION-${auction.id}`} className="rounded-2xl">
+              <SellerAuctionCard
+                auction={auction}
+                client={client}
+                sellerEmail={sellerEmail}
+                sellerUserId={sellerUserId}
+                savedShipFrom={savedShipFrom ?? null}
+                invoice={invoices?.find(
+                  (invoice: any) =>
+                    String(invoice.auctionId) === String(auction.id),
+                )}
+                onViewInvoice={onViewInvoice}
+                onDownloadInvoice={onDownloadInvoice}
+                formatInvoiceAmount={formatInvoiceAmount}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -2052,6 +2128,7 @@ function MarketplaceSection({
             return (
               <div
                 key={listing.id}
+                id={`ship-LISTING-${listing.id}`}
                 className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition hover:border-[#c0c0c0]/40"
               >
                 <div className="h-56 bg-black sm:h-72">
@@ -2835,6 +2912,159 @@ function EasyPostModal({
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Shipping tab: unified triage of paid auctions + listings by ship status ──
+function SellerShipping({
+  needs, transit, delivered, invoices, client, onManage,
+  setAuctions, setMarketplaceListings,
+}: any) {
+  const invoiceFor = (item: any) =>
+    invoices?.find((inv: any) =>
+      item._shipType === "AUCTION"
+        ? String(inv.auctionId) === String(item.id)
+        : String(inv.listingId) === String(item.id),
+    );
+
+  async function markDelivered(item: any) {
+    const now = new Date().toISOString();
+    try {
+      if (item._shipType === "AUCTION") {
+        await client.models.Auction.update(
+          { id: item.id, shippingStatus: "DELIVERED", deliveredAt: now },
+          { authMode: "userPool" } as any,
+        );
+        setAuctions((prev: any[]) =>
+          prev.map((a) => (a.id === item.id ? { ...a, shippingStatus: "DELIVERED", deliveredAt: now } : a)),
+        );
+      } else {
+        await client.models.MarketplaceListing.update(
+          { id: item.id, shippingStatus: "DELIVERED", deliveredAt: now },
+          { authMode: "userPool" } as any,
+        );
+        setMarketplaceListings((prev: any[]) =>
+          prev.map((l) => (l.id === item.id ? { ...l, shippingStatus: "DELIVERED", deliveredAt: now } : l)),
+        );
+      }
+      toast.success("Marked as delivered");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update");
+    }
+  }
+
+  function Row({ item, bucket }: { item: any; bucket: "NEEDS" | "TRANSIT" | "DELIVERED" }) {
+    const invoice = invoiceFor(item);
+    const track = trackingUrl(item.carrier || "", item.trackingNumber || "");
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:flex-row sm:items-center">
+        <img
+          loading="lazy"
+          src={item.image && item.image !== "undefined" ? item.image : "/logo.png"}
+          className="h-16 w-16 shrink-0 rounded object-contain bg-black"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-gray-400">
+              {item._shipType === "AUCTION" ? "Auction" : "Marketplace"}
+            </span>
+            <h4 className="truncate font-semibold text-white">{item.title}</h4>
+          </div>
+          <div className="mt-1 text-xs text-gray-400">
+            Buyer: {item.buyerEmail || invoice?.buyerEmail || "—"}
+          </div>
+          {invoice?.shippingName && (
+            <div className="text-xs text-gray-500">
+              Ship to: {invoice.shippingName}, {invoice.shippingCity}, {invoice.shippingState} {invoice.shippingZip}
+            </div>
+          )}
+          {item.trackingNumber && (
+            <div className="mt-0.5 text-xs text-gray-500">
+              {item.carrier} {item.trackingNumber}
+            </div>
+          )}
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {bucket === "NEEDS" && (
+            <button
+              type="button"
+              onClick={() => onManage(item._shipType, item.id)}
+              className="rounded border border-[#d6aa55]/50 bg-[#1a1408] px-3 py-2 text-xs font-semibold text-[#e7c77f] hover:bg-[#221909]"
+            >
+              Get Rates & Print Label →
+            </button>
+          )}
+          {bucket === "TRANSIT" && (
+            <>
+              {item.shippingLabelUrl && (
+                <button
+                  type="button"
+                  onClick={() => viewLabel(item.shippingLabelUrl)}
+                  className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                >
+                  View Label
+                </button>
+              )}
+              {track && (
+                <a
+                  href={track}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded border border-white/10 px-3 py-2 text-xs font-semibold text-[#e7c77f] hover:bg-white/[0.06]"
+                >
+                  Track →
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => markDelivered(item)}
+                className="rounded border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20"
+              >
+                Mark Delivered
+              </button>
+            </>
+          )}
+          {bucket === "DELIVERED" && (
+            <span className="text-xs font-semibold text-emerald-400">
+              ✓ Delivered{item.deliveredAt ? ` · ${new Date(item.deliveredAt).toLocaleDateString()}` : ""}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function Group({ title, items, bucket, accent }: any) {
+    return (
+      <section className="mt-8">
+        <h3 className="mb-3 flex items-center gap-2 font-serif text-xl text-[#c0c0c0]">
+          {title}
+          <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${accent}`}>{items.length}</span>
+        </h3>
+        {items.length === 0 ? (
+          <p className="text-sm text-gray-600">Nothing here.</p>
+        ) : (
+          <div className="space-y-3">
+            {items.map((item: any) => (
+              <Row key={`${item._shipType}-${item.id}`} item={item} bucket={bucket} />
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <div className="mt-10">
+      <h2 className="font-serif text-3xl text-[#c0c0c0]">Shipping</h2>
+      <p className="mt-1 text-sm text-gray-500">
+        Everything sold across auctions and the marketplace, grouped by shipping stage.
+      </p>
+      <Group title="Needs Shipping" items={needs} bucket="NEEDS" accent="bg-amber-500 text-black" />
+      <Group title="In Transit" items={transit} bucket="TRANSIT" accent="bg-sky-500/20 text-sky-300" />
+      <Group title="Delivered" items={delivered} bucket="DELIVERED" accent="bg-emerald-500/20 text-emerald-300" />
     </div>
   );
 }
