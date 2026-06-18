@@ -12,6 +12,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 import { moneyToNumber } from "@/lib/money";
+import { addToCart, isInCart } from "@/lib/cart";
+import { toast } from "sonner";
 
 const client = generateClient<Schema>();
 
@@ -42,6 +44,7 @@ export default function MarketplaceListingPage() {
 
   const [offerAmount, setOfferAmount] = useState("");
   const [submittingOffer, setSubmittingOffer] = useState(false);
+  const [inCart, setInCart] = useState(false);
 
   const [images, setImages] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState("");
@@ -300,6 +303,33 @@ export default function MarketplaceListingPage() {
     }
   }
 
+  useEffect(() => {
+    if (id) setInCart(isInCart(String(id)));
+  }, [id]);
+
+  function handleAddToCart() {
+    if (isSeller || isAdmin) {
+      toast.error("Sellers and admins cannot purchase marketplace listings.");
+      return;
+    }
+    const rawImage =
+      listing.thumbImages?.[0] || listing.images?.[0] || listing.image || "";
+    const added = addToCart({
+      id: String(id),
+      type: "MARKETPLACE",
+      title: listing.title || "Marketplace Listing",
+      amount: listing.price || "$0",
+      image: cdnUrl(rawImage),
+      chargeTax: Boolean(listing.chargeTax),
+      taxRate: Number(listing.taxRate || 6.625),
+    });
+    setInCart(true);
+    toast[added ? "success" : "message"](
+      added ? "Added to cart" : "Already in your cart",
+      { action: { label: "View cart", onClick: () => { window.location.href = "/cart"; } } },
+    );
+  }
+
   async function handleBuyNow() {
     if (isSeller || isAdmin) {
       alert("Sellers and admins cannot purchase marketplace listings.");
@@ -503,6 +533,20 @@ export default function MarketplaceListingPage() {
                       ? "Offer Accepted"
                       : "Buy Now"}
             </button>
+
+            {!isSeller &&
+              !isAdmin &&
+              !listing.sold &&
+              listing.status !== "SOLD" &&
+              listing.status !== "OFFER_PENDING" &&
+              listing.status !== "OFFER_ACCEPTED" && (
+                <button
+                  onClick={handleAddToCart}
+                  className="mt-3 w-full rounded border border-[#c0c0c0]/40 bg-transparent py-4 font-semibold text-[#c0c0c0] transition hover:bg-[#c0c0c0]/10"
+                >
+                  {inCart ? "✓ In Cart" : "Add to Cart"}
+                </button>
+              )}
 
             <div className="mt-4 rounded-xl border border-[#d6aa55]/20 bg-[#1a1408]/60 p-4">
               <div className="text-xs uppercase tracking-[0.22em] text-[#b89b61]">

@@ -9,6 +9,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
+import { getCart, removeManyFromCart } from "@/lib/cart";
 
 const client = generateClient<Schema>();
 
@@ -162,7 +163,37 @@ export default function CartPage() {
             };
           });
 
-        const allItems = [...unpaidAuctionWins, ...unpaidMarketplacePurchases];
+        const obligationItems = [...unpaidAuctionWins, ...unpaidMarketplacePurchases];
+
+        // Marketplace listings the buyer added via "Add to Cart". Skip any that
+        // are already obligations (same id) or already sold/paid.
+        const obligationIds = new Set(obligationItems.map((i) => i.id));
+        const soldOrPaidIds = new Set(
+          (listingResult.data || [])
+            .filter((l: any) => l.paid === true || l.status === "SOLD" || l.sold === true)
+            .map((l: any) => l.id),
+        );
+        const addedItems: CartItem[] = getCart()
+          .filter((c) => !obligationIds.has(c.id) && !soldOrPaidIds.has(c.id))
+          .map((c) => ({
+            id: c.id,
+            type: "MARKETPLACE" as const,
+            title: c.title,
+            amount: c.amount,
+            image: c.image,
+            href: `/marketplace/${c.id}`,
+            chargeTax: c.chargeTax,
+            taxRate: c.taxRate,
+            buyerPremiumRate: 0,
+          }));
+
+        // Drop any added items that are now sold/paid from the stored cart.
+        const staleAdded = getCart()
+          .filter((c) => soldOrPaidIds.has(c.id))
+          .map((c) => c.id);
+        if (staleAdded.length) removeManyFromCart(staleAdded);
+
+        const allItems = [...obligationItems, ...addedItems];
 
         setItems(allItems);
         setSelectedIds(allItems.map((item) => `${item.type}:${item.id}`));
@@ -231,6 +262,10 @@ export default function CartPage() {
       const data = await res.json();
 
       if (data.url) {
+        // Clear the added marketplace items being checked out from the local cart.
+        removeManyFromCart(
+          selectedItems.filter((i) => i.type === "MARKETPLACE").map((i) => i.id),
+        );
         window.location.href = data.url;
       } else {
         alert(data.error || "Checkout failed");
