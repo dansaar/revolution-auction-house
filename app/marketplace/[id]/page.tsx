@@ -159,6 +159,12 @@ export default function MarketplaceListingPage() {
     loadListing();
   }, [id]);
 
+  // Reflect whether this listing is already in the local cart. Must stay above
+  // the early returns below so hook order is stable (React error #310).
+  useEffect(() => {
+    if (id) setInCart(isInCart(String(id)));
+  }, [id]);
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[#050607] p-10 text-white">
@@ -302,10 +308,6 @@ export default function MarketplaceListingPage() {
       setSubmittingOffer(false);
     }
   }
-
-  useEffect(() => {
-    if (id) setInCart(isInCart(String(id)));
-  }, [id]);
 
   function handleAddToCart() {
     if (isSeller || isAdmin) {
