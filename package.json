@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build",
+    "build": "npm run lint:hooks && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:hooks": "eslint --quiet --config eslint.hooks.config.mjs app lib"
   },
   "dependencies": {
     "@aws-amplify/adapter-nextjs": "^1.7.3",
