@@ -235,7 +235,8 @@ async function notifyWatchers({
       try {
         await sendWatchlistNotification({
           to: watcherSubs.get(sub) || (profile?.email as string) || "",
-          phone: profile?.phoneNumber as string | null,
+          // Only text verified numbers; email still goes out regardless.
+          phone: profile?.phoneVerified ? (profile?.phoneNumber as string | null) : null,
           notifyWatchlist,
           auctionTitle,
           auctionId,
@@ -1051,7 +1052,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
           const notifyOutbid = (profile.notifyOutbid as string) ?? (profile.smsOptIn ? "sms" : "none");
           const leaderEmail = (profile.email as string) || state?.leaderEmail || "";
           const sends: Promise<any>[] = [];
-          if ((notifyOutbid === "sms" || notifyOutbid === "both") && profile.phoneNumber) {
+          if ((notifyOutbid === "sms" || notifyOutbid === "both") && profile.phoneNumber && profile.phoneVerified) {
             sends.push(sendOutbidSms({ to: profile.phoneNumber as string, auctionTitle, auctionId, newPrice: formattedPrice }));
           }
           if ((notifyOutbid === "email" || notifyOutbid === "both") && leaderEmail) {

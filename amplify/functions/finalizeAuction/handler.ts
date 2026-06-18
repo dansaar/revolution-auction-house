@@ -179,7 +179,7 @@ async function finalizeOneAuction(auction: any) {
         }));
       }
 
-      if ((notifyWon === "sms" || notifyWon === "both") && profile?.phoneNumber) {
+      if ((notifyWon === "sms" || notifyWon === "both") && profile?.phoneNumber && profile?.phoneVerified) {
         sends.push(sendWinnerSms({
           to: profile.phoneNumber,
           auctionTitle: auction.title || "this auction",
