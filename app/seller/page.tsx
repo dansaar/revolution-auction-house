@@ -1236,6 +1236,23 @@ function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
                         {request.verificationNotes}
                       </div>
                     )}
+
+                    {request.proofOfFundsStatus === "VERIFIED" ? (
+                      <div className="mt-4 rounded border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+                        ✓ Proof of funds:{" "}
+                        <span className="font-semibold">
+                          ${Number(request.proofOfFundsAmount ? request.proofOfFundsAmount / 100 : 0).toLocaleString()}
+                        </span>
+                        {request.proofOfFundsBank ? ` at ${request.proofOfFundsBank}` : ""}
+                        {request.proofOfFundsAt ? ` · ${new Date(request.proofOfFundsAt).toLocaleDateString()}` : ""}
+                      </div>
+                    ) : request.proofOfFundsStatus === "PENDING" ? (
+                      <div className="mt-4 rounded border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+                        Proof of funds: bank linked, balance still refreshing.
+                      </div>
+                    ) : (
+                      <div className="mt-4 text-xs text-gray-600">No proof of funds submitted.</div>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
