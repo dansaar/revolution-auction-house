@@ -35,7 +35,20 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== "paid") {
-      return { paid: false };
+      // Bank debit (ACH) may still be clearing — signal "processing" so the
+      // success page reassures the buyer instead of showing a failure.
+      let processing = false;
+      try {
+        const piId =
+          typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : session.payment_intent?.id;
+        if (piId) {
+          const pi = await stripe.paymentIntents.retrieve(piId);
+          processing = pi.status === "processing";
+        }
+      } catch { /* ignore */ }
+      return { paid: false, error: processing ? "processing" : undefined };
     }
 
     // Inventory-race guard: a marketplace listing is single-quantity. If a

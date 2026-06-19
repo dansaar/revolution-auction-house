@@ -41,6 +41,20 @@ function toCents(amount: number): number {
   return Math.round(amount * 100);
 }
 
+// Stripe's hard per-transaction cap is $999,999.99 (99,999,999 cents) — applies
+// to BOTH card and ACH. Lots above this can't be charged online and must settle
+// by wire/escrow.
+const STRIPE_MAX_CENTS = 99_999_999;
+const HIGH_VALUE_MESSAGE =
+  "This lot exceeds the $999,999.99 online payment limit. Our team will contact you to arrange a secure wire transfer or escrow.";
+
+// Offer card AND bank debit (ACH via Financial Connections). ACH suits larger
+// lots (lower fees, higher acceptance) but settles over several days.
+const PAYMENT_METHOD_OPTIONS = {
+  payment_method_types: ["card", "us_bank_account"] as Array<"card" | "us_bank_account">,
+  customer_creation: "always" as const,
+};
+
 function fmt(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
@@ -187,6 +201,7 @@ export async function POST(req: Request) {
     if (Array.isArray(items) && items.length > 0) {
       const lineItems: any[] = [];
       const cartMeta: any[] = [];
+      let cartTotalCents = 0;
 
       for (const item of items) {
         if (item.type === "AUCTION") {
@@ -209,6 +224,7 @@ export async function POST(req: Request) {
           }
 
           const amounts = calcAuctionAmounts(auction);
+          cartTotalCents += toCents(amounts.total);
           const title = auction.title || "Auction";
 
           lineItems.push(...buildAuctionLineItems(title, amounts));
@@ -249,6 +265,7 @@ export async function POST(req: Request) {
           }
 
           const amounts = calcListingAmounts(listing);
+          cartTotalCents += toCents(amounts.total);
           const title = listing.title || "Marketplace Listing";
 
           lineItems.push(...buildListingLineItems(title, amounts));
@@ -271,8 +288,13 @@ export async function POST(req: Request) {
         );
       }
 
+      if (cartTotalCents > STRIPE_MAX_CENTS) {
+        return NextResponse.json({ error: HIGH_VALUE_MESSAGE, highValue: true }, { status: 409 });
+      }
+
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
+        ...PAYMENT_METHOD_OPTIONS,
         customer_email: buyerEmail || undefined,
         line_items: lineItems,
         shipping_address_collection: { allowed_countries: ["US"] },
@@ -324,10 +346,15 @@ export async function POST(req: Request) {
         );
       }
 
+      if (toCents(amounts.total) > STRIPE_MAX_CENTS) {
+        return NextResponse.json({ error: HIGH_VALUE_MESSAGE, highValue: true }, { status: 409 });
+      }
+
       const title = auction.title || "Auction";
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
+        ...PAYMENT_METHOD_OPTIONS,
         customer_email: buyerEmail || undefined,
         line_items: buildAuctionLineItems(title, amounts),
         shipping_address_collection: { allowed_countries: ["US"] },
@@ -391,10 +418,15 @@ export async function POST(req: Request) {
         );
       }
 
+      if (toCents(amounts.total) > STRIPE_MAX_CENTS) {
+        return NextResponse.json({ error: HIGH_VALUE_MESSAGE, highValue: true }, { status: 409 });
+      }
+
       const title = listing.title || "Marketplace Listing";
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
+        ...PAYMENT_METHOD_OPTIONS,
         customer_email: buyerEmail || undefined,
         line_items: buildListingLineItems(title, amounts),
         shipping_address_collection: { allowed_countries: ["US"] },

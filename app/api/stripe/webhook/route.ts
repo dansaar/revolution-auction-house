@@ -60,10 +60,15 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
-      case "checkout.session.completed": {
+      // checkout.session.completed fires immediately (card = paid; ACH = still
+      // processing). async_payment_succeeded fires later when an ACH/bank debit
+      // actually clears. Both run verifyPayment, which only marks items sold once
+      // payment_status === "paid" — so ACH items finalize on async success.
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded": {
         const session = event.data.object as Stripe.Checkout.Session;
 
-        console.log("WEBHOOK checkout.session.completed:", session.id);
+        console.log(`WEBHOOK ${event.type}:`, session.id, "payment_status:", session.payment_status);
 
         const result = await client.mutations.verifyPayment(
           { sessionId: session.id },
@@ -73,13 +78,19 @@ export async function POST(request: Request) {
         if (result.data?.paid) {
           console.log("WEBHOOK payment verified:", session.id, result.data);
         } else {
-          console.error(
-            "WEBHOOK payment verification failed:",
-            session.id,
-            result.data?.error,
-          );
+          // For ACH this is expected on the initial "completed" event (still
+          // processing); it finalizes on async_payment_succeeded.
+          console.log("WEBHOOK payment not yet finalized:", session.id, result.data?.error);
         }
 
+        break;
+      }
+
+      case "checkout.session.async_payment_failed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.error("WEBHOOK bank payment failed (ACH):", session.id, session.metadata);
+        // Nothing was marked sold (we only mark on "paid"), so no rollback
+        // needed. The buyer is notified by Stripe; surfaced here for monitoring.
         break;
       }
 

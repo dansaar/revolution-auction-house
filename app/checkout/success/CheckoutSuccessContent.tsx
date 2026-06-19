@@ -10,11 +10,12 @@ import type { Schema } from "@/amplify/data/resource";
 
 const client = generateClient<Schema>();
 
-type Outcome = "verifying" | "success" | "refunded" | "error";
+type Outcome = "verifying" | "success" | "processing" | "refunded" | "error";
 
 const VIEW: Record<Outcome, { icon: string; title: string; fallback: string }> = {
   verifying: { icon: "⏳", title: "Verifying Payment", fallback: "Verifying payment…" },
   success: { icon: "✅", title: "Payment Successful", fallback: "Payment verified. Your invoice has been created." },
+  processing: { icon: "🏦", title: "Bank Payment Processing", fallback: "Your bank transfer is processing. This can take a few business days — we'll email you and finalize your order once it clears." },
   refunded: { icon: "↩️", title: "Item No Longer Available", fallback: "This item sold to another buyer first — your payment has been refunded." },
   error: { icon: "⚠️", title: "Payment Issue", fallback: "Payment could not be verified. Please contact support." },
 };
@@ -43,6 +44,8 @@ export default function CheckoutSuccessContent() {
         const error = result.data?.error || "";
         if (result.data?.paid) {
           setOutcome("success");
+        } else if (/processing/i.test(error)) {
+          setOutcome("processing");
         } else if (/refund/i.test(error)) {
           setOutcome("refunded");
           setMessage(error);
