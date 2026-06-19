@@ -2151,6 +2151,7 @@ function MarketplaceSection({
                 <div className="h-56 bg-black sm:h-72">
                   <img
                     loading="lazy"
+                    alt={listing.title || "Listing image"}
                     src={
                       listing.image && listing.image !== "undefined"
                         ? listing.image
@@ -2993,6 +2994,7 @@ function SellerShipping({
       <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:flex-row sm:items-center">
         <img
           loading="lazy"
+          alt={item.title || "Item image"}
           src={item.image && item.image !== "undefined" ? item.image : "/logo.png"}
           className="h-16 w-16 shrink-0 rounded object-contain bg-black"
         />
