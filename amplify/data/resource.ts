@@ -16,6 +16,8 @@ import { purchaseShippingLabel } from "../functions/purchaseShippingLabel/resour
 import { updateShippingByTracking } from "../functions/updateShippingByTracking/resource";
 import { sendPhoneOtp } from "../functions/sendPhoneOtp/resource";
 import { verifyPhoneOtp } from "../functions/verifyPhoneOtp/resource";
+import { createFundsSession } from "../functions/createFundsSession/resource";
+import { recordFunds } from "../functions/recordFunds/resource";
 
 const schema = a
   .schema({
@@ -288,6 +290,37 @@ const schema = a
         phoneOtpHash: a.string().authorization((allow) => [allow.group("Admin")]),
         phoneOtpExpiresAt: a.datetime().authorization((allow) => [allow.group("Admin")]),
         phoneOtpAttempts: a.integer().authorization((allow) => [allow.group("Admin")]),
+
+        // Proof of funds via Stripe Financial Connections (bank balance). The
+        // balance is sensitive, so it's readable only by the owner, sellers, and
+        // admins (reviewers) — NOT all authenticated users. Written by the
+        // recordFunds Lambda (IAM) / Admin only. stripeCustomerId is internal.
+        stripeCustomerId: a.string().authorization((allow) => [allow.group("Admin")]),
+        proofOfFundsAmount: a.integer().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("userId").to(["read"]),
+        ]),
+        proofOfFundsCurrency: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("userId").to(["read"]),
+        ]),
+        proofOfFundsBank: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("userId").to(["read"]),
+        ]),
+        proofOfFundsAt: a.datetime().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("userId").to(["read"]),
+        ]),
+        proofOfFundsStatus: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("userId").to(["read"]),
+        ]),
 
         notifyOutbid: a.string().default("sms"),
         notifyWon: a.string().default("both"),
@@ -648,6 +681,27 @@ const schema = a
       .returns(a.customType({ success: a.boolean(), verified: a.boolean(), message: a.string() }))
       .authorization((allow) => [allow.authenticated()])
       .handler(a.handler.function(verifyPhoneOtp)),
+
+    // Proof of funds (Stripe Financial Connections — bank balance).
+    createFundsSession: a
+      .mutation()
+      .arguments({})
+      .returns(a.customType({ clientSecret: a.string(), error: a.string() }))
+      .authorization((allow) => [allow.authenticated()])
+      .handler(a.handler.function(createFundsSession)),
+
+    recordFunds: a
+      .mutation()
+      .arguments({ accountId: a.string().required() })
+      .returns(a.customType({
+        success: a.boolean(),
+        amount: a.integer(),
+        bank: a.string(),
+        status: a.string(),
+        message: a.string(),
+      }))
+      .authorization((allow) => [allow.authenticated()])
+      .handler(a.handler.function(recordFunds)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -667,6 +721,8 @@ const schema = a
     allow.resource(updateShippingByTracking),
     allow.resource(sendPhoneOtp),
     allow.resource(verifyPhoneOtp),
+    allow.resource(createFundsSession),
+    allow.resource(recordFunds),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

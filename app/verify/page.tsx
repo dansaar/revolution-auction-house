@@ -17,6 +17,9 @@ import Link from "next/link";
 import { BUYER_TIERS, getTier, formatTierLimit } from "@/lib/tiers";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { useSearchParams } from "next/navigation";
+import { loadStripe } from "@stripe/stripe-js";
+
+const STRIPE_PK = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
 
 const client = generateClient<Schema>();
 
@@ -41,6 +44,71 @@ function VerifyPageInner() {
   const [verificationNotes, setVerificationNotes] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const [startingIdentity, setStartingIdentity] = useState(false);
+
+  // Proof of funds (Stripe Financial Connections)
+  const [verifyingFunds, setVerifyingFunds] = useState(false);
+  const [fundsMsg, setFundsMsg] = useState("");
+
+  function formatUsd(cents?: number | null) {
+    if (!cents) return "$0";
+    return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  }
+
+  async function verifyFunds() {
+    if (verifyingFunds) return;
+    setFundsMsg("");
+    if (!STRIPE_PK) {
+      setFundsMsg("Bank verification isn't configured yet. Please try again later.");
+      return;
+    }
+    setVerifyingFunds(true);
+    try {
+      const sessionRes = await client.mutations.createFundsSession({} as any, { authMode: "userPool" } as any);
+      const clientSecret = sessionRes.data?.clientSecret;
+      if (!clientSecret) {
+        setFundsMsg(sessionRes.data?.error || "Could not start bank verification.");
+        return;
+      }
+
+      const stripe = await loadStripe(STRIPE_PK);
+      if (!stripe) {
+        setFundsMsg("Could not load Stripe.");
+        return;
+      }
+
+      const result = await (stripe as any).collectFinancialConnectionsAccounts({ clientSecret });
+      if (result.error) {
+        setFundsMsg(result.error.message || "Bank linking was cancelled.");
+        return;
+      }
+      const accounts = result.financialConnectionsSession?.accounts || [];
+      if (accounts.length === 0) {
+        setFundsMsg("No account was linked.");
+        return;
+      }
+
+      setFundsMsg("Reading your balance…");
+      const rec = await client.mutations.recordFunds(
+        { accountId: accounts[0].id },
+        { authMode: "userPool" } as any,
+      );
+      if (rec.data?.success) {
+        setFundsMsg(
+          rec.data.status === "VERIFIED"
+            ? `Funds verified: ${formatUsd(rec.data.amount)} at ${rec.data.bank || "your bank"}.`
+            : rec.data.message || "Bank linked — balance still refreshing.",
+        );
+        await loadBuyerProfile();
+      } else {
+        setFundsMsg(rec.data?.message || "Could not read your balance.");
+      }
+    } catch (err: any) {
+      console.error("VERIFY_FUNDS_ERROR", err);
+      setFundsMsg("Bank verification failed. Please try again.");
+    } finally {
+      setVerifyingFunds(false);
+    }
+  }
 
   async function loadBuyerProfile() {
     try {
@@ -329,6 +397,45 @@ function VerifyPageInner() {
               : "Submit Verification Request"}
             <ArrowRight size={16} />
           </button>
+
+          {/* Proof of funds — optional, strengthens high-tier requests */}
+          <div className="mt-8 rounded-xl border border-[#d6aa55]/20 bg-[#d6aa55]/[0.04] p-5">
+            <div className="flex items-center gap-2 font-semibold text-[#e7c77f]">
+              <ShieldCheck size={18} /> Proof of Funds (optional)
+            </div>
+            <p className="mt-1 text-sm text-gray-400">
+              Securely link a bank account via Stripe to verify available funds.
+              Recommended for Private Client and Trophy tiers — it speeds up approval.
+              We only see your balance and bank name, never your login.
+            </p>
+
+            {buyerProfile?.proofOfFundsStatus === "VERIFIED" ? (
+              <div className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+                ✓ Funds verified: {formatUsd(buyerProfile.proofOfFundsAmount)}
+                {buyerProfile.proofOfFundsBank ? ` at ${buyerProfile.proofOfFundsBank}` : ""}
+                {buyerProfile.proofOfFundsAt ? ` · ${new Date(buyerProfile.proofOfFundsAt).toLocaleDateString()}` : ""}
+                <button
+                  type="button"
+                  onClick={verifyFunds}
+                  disabled={verifyingFunds}
+                  className="ml-3 text-xs underline hover:text-white disabled:opacity-50"
+                >
+                  Refresh
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={verifyFunds}
+                disabled={verifyingFunds}
+                className="mt-3 rounded-md border border-[#d6aa55]/40 bg-[#1a1408] px-5 py-2.5 text-sm font-semibold text-[#e7c77f] hover:bg-[#221909] disabled:opacity-50"
+              >
+                {verifyingFunds ? "Connecting…" : "Verify funds with your bank"}
+              </button>
+            )}
+
+            {fundsMsg && <p className="mt-2 text-xs text-gray-400">{fundsMsg}</p>}
+          </div>
         </section>
       </main>
     </div>

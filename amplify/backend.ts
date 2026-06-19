@@ -19,6 +19,8 @@ import { purchaseShippingLabel } from "./functions/purchaseShippingLabel/resourc
 import { updateShippingByTracking } from "./functions/updateShippingByTracking/resource";
 import { sendPhoneOtp } from "./functions/sendPhoneOtp/resource";
 import { verifyPhoneOtp } from "./functions/verifyPhoneOtp/resource";
+import { createFundsSession } from "./functions/createFundsSession/resource";
+import { recordFunds } from "./functions/recordFunds/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
@@ -43,6 +45,8 @@ const backend = defineBackend({
   updateShippingByTracking,
   sendPhoneOtp,
   verifyPhoneOtp,
+  createFundsSession,
+  recordFunds,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];
