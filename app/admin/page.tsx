@@ -358,6 +358,12 @@ export default function AdminPage() {
             description="Flag bidder/seller pairs with suspicious concentration or identity overlap."
             href="/admin/shill"
           />
+
+          <AdminCard
+            title="Stripe Health"
+            description="Confirm keys, ACH, and Financial Connections are wired correctly."
+            href="/admin/stripe"
+          />
         </div>
       </div>
     </main>
