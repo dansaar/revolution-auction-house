@@ -404,6 +404,24 @@ const schema = a
         allow.group("Admin"),
       ]),
 
+    // Site-wide announcement ticker. Singleton row (id = "GLOBAL"); public read
+    // so every visitor sees it, sellers/admins write.
+    SiteAnnouncement: a
+      .model({
+        message: a.string(),
+        active: a.boolean().default(false),
+        linkUrl: a.string(),
+        linkLabel: a.string(),
+        variant: a.string(), // "info" | "special" | "alert" — controls color
+        updatedBy: a.string(),
+      })
+      .authorization((allow) => [
+        allow.publicApiKey().to(["read"]),
+        allow.authenticated().to(["read"]),
+        allow.group("Seller"),
+        allow.group("Admin"),
+      ]),
+
     placeBid: a
       .mutation()
       .arguments({

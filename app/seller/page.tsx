@@ -15,6 +15,7 @@ import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp } from "
 import { toast } from "sonner";
 import { privateBandLabel } from "@/lib/tiers";
 import { DashboardFilterBar, matchesSearch } from "@/app/components/DashboardFilters";
+import AnnouncementEditor from "@/app/components/AnnouncementEditor";
 
 // Print a shipping label straight to a printer (not a webpage). We fetch the PDF
 // through our same-origin proxy (/api/shipping-label) — avoiding the S3 CORS block
@@ -768,6 +769,8 @@ function SellerPage() {
           <OnlineBuyerSummary buyerProfiles={buyerProfiles} />
           <BuyerTierSummary buyerProfiles={buyerProfiles} />
         </div>
+
+        <AnnouncementEditor />
 
         {returnToShipping && activeTab !== "shipping" && (
           <button
