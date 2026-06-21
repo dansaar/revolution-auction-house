@@ -13,6 +13,7 @@ import { moneyToNumber } from "@/lib/money";
 import { isAdminUser } from "@/lib/sellers";
 import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { privateBandLabel } from "@/lib/tiers";
 import { DashboardFilterBar, matchesSearch } from "@/app/components/DashboardFilters";
 
 // Print a shipping label straight to a printer (not a webpage). We fetch the PDF
@@ -1175,6 +1176,7 @@ function OfferSection({ offers, listings, client }: any) {
 
 function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
   const [approvalTiers, setApprovalTiers] = React.useState<Record<string, string>>({});
+  const [approvalLimits, setApprovalLimits] = React.useState<Record<string, string>>({});
 
   const pendingRequests = requests.filter(
     (request: any) => request.status === "PENDING_REVIEW",
@@ -1270,18 +1272,57 @@ function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
                         }
                         className="rounded border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none"
                       >
-                        {["VERIFIED", "PREMIUM", "PRIVATE", "TROPHY"].map((t) => (
+                        {["BASIC", "VERIFIED", "PRIVATE", "TROPHY"].map((t) => (
                           <option key={t} value={t}>{t}</option>
                         ))}
                       </select>
                     </div>
 
+                    {selectedTier === "PRIVATE" && (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase tracking-[0.15em] text-gray-500">
+                          Limit ($10K–$1M)
+                        </label>
+                        <input
+                          type="number"
+                          min={10000}
+                          max={1000000}
+                          step={1000}
+                          placeholder="e.g. 400000"
+                          value={approvalLimits[request.userId] ?? ""}
+                          onChange={(e) =>
+                            setApprovalLimits((prev) => ({ ...prev, [request.userId]: e.target.value }))
+                          }
+                          className="w-36 rounded border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none"
+                        />
+                        {approvalLimits[request.userId] && (
+                          <span className="text-[10px] text-[#e7c77f]">
+                            Band: {privateBandLabel(Number(approvalLimits[request.userId]))}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <button
                       type="button"
                       onClick={async () => {
                         try {
+                          if (selectedTier === "PRIVATE") {
+                            const lim = Number(approvalLimits[request.userId]);
+                            if (!lim || lim < 10000 || lim > 1000000) {
+                              toast.error("Enter a Private limit between $10,000 and $1,000,000");
+                              return;
+                            }
+                          }
                           const result = await client.mutations.reviewBuyerVerification(
-                            { userId: request.userId, approved: true, tier: selectedTier },
+                            {
+                              userId: request.userId,
+                              approved: true,
+                              tier: selectedTier,
+                              ...(selectedTier === "PRIVATE"
+                                ? { bidLimit: Number(approvalLimits[request.userId]) }
+                                : {}),
+                            },
                             { authMode: "userPool" } as any,
                           );
 
@@ -1369,7 +1410,6 @@ function OnlineBuyerSummary({ buyerProfiles }: { buyerProfiles: any[] }) {
   const tiers = [
     { label: "Basic", code: "BASIC" },
     { label: "Verified", code: "VERIFIED" },
-    { label: "Premium", code: "PREMIUM" },
     { label: "Private", code: "PRIVATE" },
     { label: "Trophy", code: "TROPHY" },
   ];
@@ -1422,7 +1462,6 @@ function BuyerTierSummary({ buyerProfiles }: { buyerProfiles: any[] }) {
   const tiers = [
     { label: "Basic", code: "BASIC" },
     { label: "Verified", code: "VERIFIED" },
-    { label: "Premium", code: "PREMIUM" },
     { label: "Private", code: "PRIVATE" },
     { label: "Trophy", code: "TROPHY" },
   ];

@@ -504,6 +504,7 @@ const schema = a
         userId: a.string().required(),
         approved: a.boolean().required(),
         tier: a.string(),
+        bidLimit: a.integer(), // exact limit for PRIVATE ($10K–$1M); ignored for fixed tiers
       })
       .returns(
         a.customType({

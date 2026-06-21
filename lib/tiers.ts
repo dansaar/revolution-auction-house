@@ -23,22 +23,10 @@ export const BUYER_TIERS = [
     ],
   },
   {
-    code: "PREMIUM",
-    name: "Premium",
-    limit: 50_000,
-    description: "Manually reviewed high-value buyers",
-    requirements: [
-      "ID verification",
-      "Bank/payment verification",
-      "Manual account review",
-      "Payment method on file",
-    ],
-  },
-  {
     code: "PRIVATE",
     name: "Private Client",
-    limit: 250_000,
-    description: "Concierge-level collector access",
+    limit: 1_000_000,
+    description: "Concierge access — limit set per buyer from $10K to $1M",
     requirements: [
       "Proof of funds",
       "Private client approval",
@@ -50,7 +38,7 @@ export const BUYER_TIERS = [
     code: "TROPHY",
     name: "Trophy Bidder",
     limit: 5_000_000,
-    description: "Unrestricted — signed agreement required",
+    description: "Above $1M — settled by wire/escrow, signed agreement required",
     requirements: [
       "Proof of funds",
       "Signed bidder agreement",
@@ -58,6 +46,25 @@ export const BUYER_TIERS = [
     ],
   },
 ] as const;
+
+// Private Client is approved at an exact dollar limit ($10K–$1M); the UI shows
+// which band that limit falls in.
+export const PRIVATE_MIN = 10_000;
+export const PRIVATE_MAX = 1_000_000;
+
+export function privateBandLabel(limit: number): string {
+  if (limit <= 100_000) return "$10K–$100K";
+  if (limit <= 500_000) return "$100K–$500K";
+  return "$500K–$1M";
+}
+
+// Human label for a buyer's tier + approved limit (Private shows its band).
+export function tierLimitDisplay(tier: string, bidLimit?: number | null): string {
+  if (tier === "PRIVATE" && bidLimit) {
+    return `Private Client · ${privateBandLabel(bidLimit)} (limit $${bidLimit.toLocaleString()})`;
+  }
+  return `${getTier(tier).name} · ${formatTierLimit(tier)}`;
+}
 
 export type TierCode = (typeof BUYER_TIERS)[number]["code"];
 

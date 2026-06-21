@@ -8,13 +8,12 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { isApprovedSeller, isAdminUser } from "@/lib/sellers";
-import { BUYER_TIERS, getTier, formatTierLimit } from "@/lib/tiers";
+import { BUYER_TIERS, getTier, formatTierLimit, privateBandLabel } from "@/lib/tiers";
 
 const client = generateClient<Schema>();
 
-// Sellers can approve up to PREMIUM; admins can approve any tier
-const SELLER_TIERS = BUYER_TIERS.filter((t) => ["PREMIUM"].includes(t.code));
-const ADMIN_TIERS = BUYER_TIERS.filter((t) => !["BASIC", "VERIFIED"].includes(t.code));
+// Sellers and admins can approve any upgrade tier. Private uses an exact $ limit.
+const APPROVABLE_TIERS = BUYER_TIERS.filter((t) => t.code !== "BASIC");
 
 export default function SellerVerificationsPage() {
   const [checking, setChecking] = useState(true);
@@ -24,6 +23,7 @@ export default function SellerVerificationsPage() {
   const [pending, setPending] = useState<any[]>([]);
   const [invoiceMap, setInvoiceMap] = useState<Record<string, any[]>>({});
   const [approvalTiers, setApprovalTiers] = useState<Record<string, string>>({});
+  const [approvalLimits, setApprovalLimits] = useState<Record<string, string>>({});
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
   // Notification settings
@@ -95,7 +95,7 @@ export default function SellerVerificationsPage() {
     for (const p of profiles) {
       defaults[p.userId] = p.requestedTier && !["BASIC", "VERIFIED"].includes(p.requestedTier)
         ? p.requestedTier
-        : "PREMIUM";
+        : "PRIVATE";
     }
     setApprovalTiers((prev) => ({ ...defaults, ...prev }));
 
@@ -188,9 +188,17 @@ export default function SellerVerificationsPage() {
     if (processingIds.has(userId)) return;
     setProcessingIds((prev) => new Set(prev).add(userId));
     try {
-      const tier = approved ? (approvalTiers[userId] || "PREMIUM") : undefined;
+      const tier = approved ? (approvalTiers[userId] || "PRIVATE") : undefined;
+      let bidLimit: number | undefined;
+      if (approved && tier === "PRIVATE") {
+        bidLimit = Number(approvalLimits[userId]);
+        if (!bidLimit || bidLimit < 10000 || bidLimit > 1000000) {
+          alert("Enter a Private limit between $10,000 and $1,000,000");
+          return;
+        }
+      }
       await client.mutations.reviewBuyerVerification(
-        { userId, approved, ...(tier ? { tier } : {}) },
+        { userId, approved, ...(tier ? { tier } : {}), ...(bidLimit ? { bidLimit } : {}) },
         { authMode: "userPool" } as any,
       );
       await loadPending();
@@ -219,7 +227,7 @@ export default function SellerVerificationsPage() {
     );
   }
 
-  const approvableTiers = isAdmin ? ADMIN_TIERS : SELLER_TIERS;
+  const approvableTiers = APPROVABLE_TIERS;
 
   return (
     <main className="min-h-screen bg-[#050607] px-6 py-12 text-white">
@@ -229,8 +237,8 @@ export default function SellerVerificationsPage() {
         <h1 className="mt-6 font-serif text-5xl text-[#c0c0c0]">Buyer Verifications</h1>
         <div className="mt-2 h-px w-48 bg-gradient-to-r from-transparent via-[#d6aa55]/60 to-transparent" />
         <p className="mt-4 text-gray-400">
-          Review pending buyer verification requests.
-          {!isAdmin && " You can approve buyers up to Premium tier."}
+          Review pending buyer verification requests. Private Client is approved
+          at an exact limit ($10K–$1M); the band is shown for reference.
         </p>
 
         {/* Notification settings */}
@@ -320,7 +328,11 @@ export default function SellerVerificationsPage() {
             <div className="space-y-5">
               {pending.map((profile) => {
                 const currentTier = getTier(profile.verificationTier || "BASIC");
-                const requestedTier = getTier(profile.requestedTier || "PREMIUM");
+                const requestedTier = getTier(profile.requestedTier || "PRIVATE");
+                const currentLimitLabel =
+                  currentTier.code === "PRIVATE" && profile.bidLimit
+                    ? `$${Number(profile.bidLimit).toLocaleString()} · ${privateBandLabel(Number(profile.bidLimit))}`
+                    : formatTierLimit(currentTier.code);
                 const isProcessing = processingIds.has(profile.userId);
                 const invoices = invoiceMap[profile.userId] ?? [];
                 const totalSpend = invoices.reduce((sum: number, inv: any) => {
@@ -334,7 +346,7 @@ export default function SellerVerificationsPage() {
                       <div className="min-w-0 flex-1">
                         <div className="text-lg font-semibold text-white">{profile.email}</div>
                         <div className="mt-1 flex flex-wrap gap-3 text-sm text-gray-400">
-                          <span>Current: <span className="text-[#c0c0c0]">{currentTier.name} ({formatTierLimit(currentTier.code)})</span></span>
+                          <span>Current: <span className="text-[#c0c0c0]">{currentTier.name} ({currentLimitLabel})</span></span>
                           <span>→</span>
                           <span>Requesting: <span className="text-[#e7c77f]">{requestedTier.name} ({formatTierLimit(requestedTier.code)})</span></span>
                         </div>
@@ -385,7 +397,7 @@ export default function SellerVerificationsPage() {
                         <div className="flex flex-col gap-1">
                           <label className="text-[10px] uppercase tracking-[0.15em] text-gray-500">Approve as</label>
                           <select
-                            value={approvalTiers[profile.userId] || "PREMIUM"}
+                            value={approvalTiers[profile.userId] || "PRIVATE"}
                             onChange={(e) => setApprovalTiers((prev) => ({ ...prev, [profile.userId]: e.target.value }))}
                             className="rounded border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6aa55]/50"
                           >
@@ -396,6 +408,27 @@ export default function SellerVerificationsPage() {
                             ))}
                           </select>
                         </div>
+
+                        {(approvalTiers[profile.userId] || "PRIVATE") === "PRIVATE" && (
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] uppercase tracking-[0.15em] text-gray-500">Limit ($10K–$1M)</label>
+                            <input
+                              type="number"
+                              min={10000}
+                              max={1000000}
+                              step={1000}
+                              placeholder="e.g. 400000"
+                              value={approvalLimits[profile.userId] ?? ""}
+                              onChange={(e) => setApprovalLimits((prev) => ({ ...prev, [profile.userId]: e.target.value }))}
+                              className="rounded border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6aa55]/50"
+                            />
+                            {approvalLimits[profile.userId] && (
+                              <span className="text-[10px] text-[#e7c77f]">
+                                Band: {privateBandLabel(Number(approvalLimits[profile.userId]))}
+                              </span>
+                            )}
+                          </div>
+                        )}
 
                         <button
                           disabled={isProcessing}

@@ -14,17 +14,20 @@ Amplify.configure(resourceConfig, libraryOptions);
 const client = generateClient<Schema>();
 const snsClient = new SNSClient({});
 
+// Fixed tiers. Private Client is approved at an exact dollar amount instead
+// (PRIVATE_MIN..PRIVATE_MAX), passed as bidLimit.
 const TIER_LIMITS: Record<string, number> = {
   BASIC: 1_000,
   VERIFIED: 10_000,
-  PREMIUM: 50_000,
-  PRIVATE: 250_000,
+  PRIVATE: 1_000_000, // ceiling; actual limit comes from the bidLimit argument
   TROPHY: 5_000_000,
 };
+const PRIVATE_MIN = 10_000;
+const PRIVATE_MAX = 1_000_000;
 
 export const handler: Schema["reviewBuyerVerification"]["functionHandler"] =
   async (event) => {
-    const { userId, approved, tier: tierOverride } = event.arguments;
+    const { userId, approved, tier: tierOverride, bidLimit } = event.arguments;
 
     const identity = event.identity as any;
     const claims = identity?.claims ?? {};
@@ -59,11 +62,11 @@ export const handler: Schema["reviewBuyerVerification"]["functionHandler"] =
         return { success: false, message: "Cannot approve your own profile" };
       }
 
-      // Sellers can approve up to PREMIUM; PRIVATE and TROPHY require Admin
-      const SELLER_ALLOWED_TIERS = ["BASIC", "VERIFIED", "PREMIUM"];
-      const effectiveTier = tierOverride || "PREMIUM";
+      // Sellers (and admins) can approve any tier.
+      const SELLER_ALLOWED_TIERS = ["BASIC", "VERIFIED", "PRIVATE", "TROPHY"];
+      const effectiveTier = tierOverride || "VERIFIED";
       if (!SELLER_ALLOWED_TIERS.includes(effectiveTier)) {
-        return { success: false, message: "Sellers can approve up to Premium tier. Higher tiers require Admin." };
+        return { success: false, message: `Unknown tier: ${effectiveTier}` };
       }
     }
 
@@ -82,8 +85,15 @@ export const handler: Schema["reviewBuyerVerification"]["functionHandler"] =
         profile.verificationTier ||
         "BASIC";
 
-      const approvedLimit =
-        TIER_LIMITS[approvedTier] ?? TIER_LIMITS["BASIC"];
+      // Private Client uses the exact limit the reviewer entered (clamped to
+      // the $10K–$1M band range); all other tiers use their fixed limit.
+      let approvedLimit: number;
+      if (approvedTier === "PRIVATE") {
+        const requested = Number(bidLimit) || PRIVATE_MIN;
+        approvedLimit = Math.min(PRIVATE_MAX, Math.max(PRIVATE_MIN, requested));
+      } else {
+        approvedLimit = TIER_LIMITS[approvedTier] ?? TIER_LIMITS["BASIC"];
+      }
 
       await client.models.BuyerProfile.update({
         userId,

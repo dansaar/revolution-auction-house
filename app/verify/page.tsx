@@ -14,7 +14,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import "@/lib/amplifyclient";
 import Link from "next/link";
-import { BUYER_TIERS, getTier, formatTierLimit } from "@/lib/tiers";
+import { BUYER_TIERS, getTier, formatTierLimit, privateBandLabel } from "@/lib/tiers";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { useSearchParams } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
@@ -40,7 +40,7 @@ function VerifyPageInner() {
   const searchParams = useSearchParams();
   const identityComplete = searchParams?.get("identity") === "complete";
 
-  const [requestedTier, setRequestedTier] = useState("PREMIUM");
+  const [requestedTier, setRequestedTier] = useState("PRIVATE");
   const [verificationNotes, setVerificationNotes] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const [startingIdentity, setStartingIdentity] = useState(false);
@@ -262,11 +262,18 @@ function VerifyPageInner() {
           </div>
 
           <div className="mt-3 font-serif text-4xl text-[#f0d28c]">
-            {loadingProfile ? "Loading..." : formatTierLimit(currentTierCode)}
+            {loadingProfile
+              ? "Loading..."
+              : currentTierCode === "PRIVATE" && buyerProfile?.bidLimit
+                ? `$${Number(buyerProfile.bidLimit).toLocaleString()}`
+                : formatTierLimit(currentTierCode)}
           </div>
 
           <div className="mt-2 text-sm uppercase tracking-[0.2em] text-gray-400">
             {currentTier.name} Buyer
+            {currentTierCode === "PRIVATE" && buyerProfile?.bidLimit
+              ? ` · ${privateBandLabel(Number(buyerProfile.bidLimit))}`
+              : ""}
           </div>
 
           {currentTierCode === "BASIC" && (

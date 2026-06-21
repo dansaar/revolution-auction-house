@@ -23,8 +23,7 @@ const SELLER_SMS_ENABLED = ((env as any).SMS_AUDIENCE || "all") !== "none";
 const TIER_LIMITS: Record<string, number> = {
   BASIC: 1_000,
   VERIFIED: 10_000,
-  PREMIUM: 50_000,
-  PRIVATE: 250_000,
+  PRIVATE: 1_000_000, // requested ceiling; the exact limit is set at approval
   TROPHY: 5_000_000,
 };
 
