@@ -7,6 +7,7 @@ import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { isAdminUser, adminFetchAllInvoices } from "@/lib/sellers";
+import { viewInvoicePdf, downloadInvoicePdf } from "@/lib/invoicePdf";
 import { toast } from "sonner";
 
 const client = generateClient<Schema>();
@@ -304,18 +305,38 @@ export default function AdminMarketplacePage() {
                           >
                             View
                           </Link>
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => toggleFeatured(listing)}
-                            className={`rounded border px-3 py-1.5 text-xs disabled:opacity-50 ${
-                              listing.featured
-                                ? "border-[#d6aa55]/30 text-[#e7c77f] hover:bg-[#1a1408]"
-                                : "border-white/10 text-gray-400 hover:text-white"
-                            }`}
-                          >
-                            {listing.featured ? "Unfeature" : "Feature"}
-                          </button>
+          {!listing.sold && (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => toggleFeatured(listing)}
+                              className={`rounded border px-3 py-1.5 text-xs disabled:opacity-50 ${
+                                listing.featured
+                                  ? "border-[#d6aa55]/30 text-[#e7c77f] hover:bg-[#1a1408]"
+                                  : "border-white/10 text-gray-400 hover:text-white"
+                              }`}
+                            >
+                              {listing.featured ? "Unfeature" : "Feature"}
+                            </button>
+                          )}
+                          {invoice && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => viewInvoicePdf(invoice.id)}
+                                className="rounded border border-white/10 px-3 py-1.5 text-xs text-gray-300 hover:text-white"
+                              >
+                                Invoice
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => downloadInvoicePdf(invoice.id)}
+                                className="rounded border border-[#d6aa55]/30 px-3 py-1.5 text-xs text-[#e7c77f] hover:bg-[#1a1408]"
+                              >
+                                ↓
+                              </button>
+                            </>
+                          )}
                           {!listing.sold && (
                             status === "INACTIVE" ? (
                               <button

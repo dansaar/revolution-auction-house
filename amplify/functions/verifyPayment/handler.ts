@@ -203,6 +203,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
             stripeSessionId: session.id,
             buyerEmail,
             status: "SOLD",
+            featured: false, // sold items shouldn't stay featured
           });
 
           const invoiceExistsForItem = existingInvoiceData.some(
@@ -259,6 +260,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
         stripeSessionId: session.id,
         buyerEmail,
         status: "SOLD",
+        featured: false, // sold items shouldn't stay featured
       });
 
       const invoiceAlreadyExists = existingInvoiceData.length > 0;
