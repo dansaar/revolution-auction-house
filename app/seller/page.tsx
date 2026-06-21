@@ -1436,7 +1436,7 @@ function OnlineBuyerSummary({ buyerProfiles }: { buyerProfiles: any[] }) {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {tiers.map((tier) => {
           const count = onlineBuyers.filter(
             (buyer: any) => (buyer.verificationTier || "BASIC") === tier.code,
@@ -1458,6 +1458,8 @@ function OnlineBuyerSummary({ buyerProfiles }: { buyerProfiles: any[] }) {
           );
         })}
       </div>
+
+      <PrivateBandBreakdown buyers={onlineBuyers} label="Private online by band" />
     </div>
   );
 }
@@ -1486,7 +1488,7 @@ function BuyerTierSummary({ buyerProfiles }: { buyerProfiles: any[] }) {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {tiers.map((tier) => {
           const count = buyerProfiles.filter(
             (buyer: any) => (buyer.verificationTier || "BASIC") === tier.code,
@@ -1505,6 +1507,33 @@ function BuyerTierSummary({ buyerProfiles }: { buyerProfiles: any[] }) {
             </div>
           );
         })}
+      </div>
+
+      <PrivateBandBreakdown buyers={buyerProfiles} label="Private Client by band" />
+    </div>
+  );
+}
+
+// Counts of PRIVATE buyers split into the three approved bands.
+function PrivateBandBreakdown({ buyers, label }: { buyers: any[]; label: string }) {
+  const privates = buyers.filter((b: any) => (b.verificationTier || "") === "PRIVATE");
+  if (privates.length === 0) return null;
+  const bands = [
+    { label: "$10K–$100K", test: (n: number) => n <= 100_000 },
+    { label: "$100K–$500K", test: (n: number) => n > 100_000 && n <= 500_000 },
+    { label: "$500K–$1M", test: (n: number) => n > 500_000 },
+  ];
+  const counts = bands.map((b) => privates.filter((p: any) => b.test(Number(p.bidLimit || 0))).length);
+  return (
+    <div className="mt-4">
+      <div className="mb-2 text-[10px] uppercase tracking-[0.14em] text-gray-500">{label}</div>
+      <div className="grid grid-cols-3 gap-3">
+        {bands.map((b, i) => (
+          <div key={b.label} className="rounded-lg border border-purple-400/20 bg-purple-400/5 p-3 text-center">
+            <div className="font-serif text-xl text-purple-200">{counts[i]}</div>
+            <div className="mt-1 text-[10px] uppercase tracking-[0.12em] text-gray-500">{b.label}</div>
+          </div>
+        ))}
       </div>
     </div>
   );

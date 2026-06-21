@@ -7,13 +7,13 @@ import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { isAdminUser } from "@/lib/sellers";
-import { BUYER_TIERS, getTier, formatTierLimit } from "@/lib/tiers";
+import { BUYER_TIERS, getTier, formatTierLimit, privateBandLabel } from "@/lib/tiers";
 import { toast } from "sonner";
 import { fetchAuthSession } from "aws-amplify/auth";
 
 const client = generateClient<Schema>();
 
-const TIER_ORDER = ["BASIC", "VERIFIED", "PREMIUM", "PRIVATE", "TROPHY"] as const;
+const TIER_ORDER = ["BASIC", "VERIFIED", "PRIVATE", "TROPHY"] as const;
 
 function tierBadge(code: string) {
   switch (code) {
@@ -50,6 +50,7 @@ export default function AdminUsersPage() {
   // inline edit
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTier, setEditTier] = useState("BASIC");
+  const [editLimit, setEditLimit] = useState(""); // bid max for PRIVATE
   const [saving, setSaving] = useState(false);
 
   // detail drawer
@@ -136,8 +137,19 @@ export default function AdminUsersPage() {
     try {
       setSaving(true);
       const tier = getTier(editTier);
+      // Private uses a custom bid max ($10K–$1M); other tiers use the fixed limit.
+      let bidLimit: number = tier.limit;
+      if (editTier === "PRIVATE") {
+        const n = Number(editLimit);
+        if (!n || n < 10000 || n > 1000000) {
+          toast.error("Enter a Private bid max between $10,000 and $1,000,000");
+          setSaving(false);
+          return;
+        }
+        bidLimit = n;
+      }
       await client.models.BuyerProfile.update(
-        { userId: buyer.userId, verificationTier: editTier, bidLimit: tier.limit, status: "APPROVED", reviewedAt: new Date().toISOString() },
+        { userId: buyer.userId, verificationTier: editTier, bidLimit, status: "APPROVED", reviewedAt: new Date().toISOString() },
         { authMode: "userPool" } as any,
       );
       await loadData();
@@ -164,7 +176,7 @@ export default function AdminUsersPage() {
   const onlineCount = buyers.filter((b: any) => b.lastSeenAt && new Date(b.lastSeenAt).getTime() >= onlineCutoff).length;
   const pendingCount = buyers.filter((b: any) => b.status === "PENDING_REVIEW").length;
   const tierCounts = useMemo(() => {
-    const c: Record<string, number> = { BASIC: 0, VERIFIED: 0, PREMIUM: 0, PRIVATE: 0, TROPHY: 0 };
+    const c: Record<string, number> = { BASIC: 0, VERIFIED: 0, PRIVATE: 0, TROPHY: 0 };
     for (const b of buyers) { const t = b.verificationTier || "BASIC"; if (t in c) c[t]++; }
     return c;
   }, [buyers]);
@@ -298,7 +310,29 @@ export default function AdminUsersPage() {
                       </td>
 
                       <td className="p-4 text-[#c0c0c0]">
-                        {isEditing ? formatTierLimit(editTier) : `$${Number(buyer.bidLimit || tier.limit).toLocaleString()}`}
+                        {isEditing ? (
+                          editTier === "PRIVATE" ? (
+                            <div className="flex flex-col gap-0.5">
+                              <input
+                                type="number"
+                                min={10000}
+                                max={1000000}
+                                step={1000}
+                                value={editLimit}
+                                onChange={(e) => setEditLimit(e.target.value)}
+                                placeholder="Bid max ($10K–$1M)"
+                                className="w-32 rounded border border-[#d6aa55]/30 bg-black px-2 py-1 text-sm text-white outline-none"
+                              />
+                              {editLimit && Number(editLimit) >= 10000 && (
+                                <span className="text-[10px] text-[#e7c77f]">{privateBandLabel(Number(editLimit))}</span>
+                              )}
+                            </div>
+                          ) : (
+                            formatTierLimit(editTier)
+                          )
+                        ) : (
+                          `$${Number(buyer.bidLimit || tier.limit).toLocaleString()}`
+                        )}
                       </td>
 
                       <td className={`p-4 text-xs uppercase tracking-wide ${statusDot(buyer.status || "APPROVED")}`}>
@@ -321,7 +355,7 @@ export default function AdminUsersPage() {
                             </button>
                           </div>
                         ) : (
-                          <button type="button" onClick={() => { setEditingId(buyer.userId); setEditTier(tierCode); }} className="rounded border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-[#c0c0c0]/30 hover:text-white">
+                          <button type="button" onClick={() => { setEditingId(buyer.userId); setEditTier(tierCode); setEditLimit(buyer.bidLimit ? String(buyer.bidLimit) : ""); }} className="rounded border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-[#c0c0c0]/30 hover:text-white">
                             Edit Tier
                           </button>
                         )}
