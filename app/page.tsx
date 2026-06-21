@@ -31,6 +31,15 @@ function fmtDate(iso: string | null | undefined) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+// Repeat a ticker list so a few items still fill the bar (keeps the marquee from
+// looking sparse). The render then duplicates this x2 for the seamless -50% loop.
+function fillTicker<T>(arr: T[], min = 6): T[] {
+  if (arr.length === 0) return arr;
+  const out: T[] = [];
+  while (out.length < min) out.push(...arr);
+  return out;
+}
+
 function resolveAuctionImage(auction: any) {
   const imagePath =
     auction.thumbImages?.find(
@@ -424,7 +433,7 @@ export default function RevolutionAuctionHouseHomepage() {
               </div>
               <div className="relative flex-1 overflow-hidden">
                 <div className="animate-marquee flex gap-0 whitespace-nowrap py-2.5">
-                  {[...liveBids, ...liveBids].map((b, i) => (
+                  {(() => { const f = fillTicker(liveBids); return [...f, ...f]; })().map((b, i) => (
                     <Link
                       key={i}
                       href={`/auctions/${b.id}`}
@@ -450,7 +459,7 @@ export default function RevolutionAuctionHouseHomepage() {
               </div>
               <div className="relative flex-1 overflow-hidden">
                 <div className="animate-marquee flex gap-0 whitespace-nowrap py-3">
-                  {[...recentSales, ...recentSales].map((a: any, i: number) => (
+                  {(() => { const f = fillTicker(recentSales); return [...f, ...f]; })().map((a: any, i: number) => (
                     <Link
                       key={i}
                       href={`/auctions/${a.id}/results`}
