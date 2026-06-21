@@ -71,21 +71,26 @@ export async function GET(req: Request) {
     return NextResponse.json({ mode: secretMode, checks });
   }
 
-  // 5. ACH (us_bank_account) enabled — probe by creating a tiny PaymentIntent, then cancel it.
+  // 5. ACH (us_bank_account) enabled — probe by creating a tiny PaymentIntent
+  //    (no manual capture; us_bank_account doesn't support it), then cancel it.
+  //    If ACH isn't activated, Stripe rejects the payment_method_types instead.
   try {
     const pi = await stripe.paymentIntents.create({
       amount: 50,
       currency: "usd",
       payment_method_types: ["us_bank_account"],
-      capture_method: "manual",
     });
     await stripe.paymentIntents.cancel(pi.id).catch(() => {});
     checks.push({ ok: true, label: "ACH Direct Debit enabled", detail: "us_bank_account accepted" });
   } catch (e: any) {
+    const msg = e?.message || "rejected";
+    const notActivated = /not activated|invalid|isn't activated|not a valid/i.test(msg);
     checks.push({
       ok: false,
       label: "ACH Direct Debit enabled",
-      detail: `${e?.message || "rejected"} — enable in Settings → Payments → Payment methods`,
+      detail: notActivated
+        ? `${msg} — enable in Settings → Payments → Payment methods`
+        : msg,
     });
   }
 
