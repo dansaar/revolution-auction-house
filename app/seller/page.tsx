@@ -1194,6 +1194,7 @@ function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
         <div className="grid gap-4">
           {pendingRequests.map((request: any) => {
             const selectedTier = approvalTiers[request.userId] || request.requestedTier || "VERIFIED";
+            const limitVal = approvalLimits[request.userId] ?? (request.requestedLimit ? String(request.requestedLimit) : "");
 
             return (
               <div
@@ -1289,15 +1290,15 @@ function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
                           max={1000000}
                           step={1000}
                           placeholder="e.g. 400000"
-                          value={approvalLimits[request.userId] ?? ""}
+                          value={limitVal}
                           onChange={(e) =>
                             setApprovalLimits((prev) => ({ ...prev, [request.userId]: e.target.value }))
                           }
                           className="w-36 rounded border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none"
                         />
-                        {approvalLimits[request.userId] && (
+                        {limitVal && (
                           <span className="text-[10px] text-[#e7c77f]">
-                            Band: {privateBandLabel(Number(approvalLimits[request.userId]))}
+                            Band: {privateBandLabel(Number(limitVal))}
                           </span>
                         )}
                       </div>
@@ -1308,7 +1309,7 @@ function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
                       onClick={async () => {
                         try {
                           if (selectedTier === "PRIVATE") {
-                            const lim = Number(approvalLimits[request.userId]);
+                            const lim = Number(limitVal);
                             if (!lim || lim < 10000 || lim > 1000000) {
                               toast.error("Enter a Private limit between $10,000 and $1,000,000");
                               return;
@@ -1320,7 +1321,7 @@ function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
                               approved: true,
                               tier: selectedTier,
                               ...(selectedTier === "PRIVATE"
-                                ? { bidLimit: Number(approvalLimits[request.userId]) }
+                                ? { bidLimit: Number(limitVal) }
                                 : {}),
                             },
                             { authMode: "userPool" } as any,

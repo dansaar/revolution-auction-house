@@ -557,6 +557,7 @@ const schema = a
       .mutation()
       .arguments({
         requestedTier: a.string().required(),
+        requestedLimit: a.integer(), // buyer's desired limit ($10K–$1M) for PRIVATE
         verificationNotes: a.string(),
       })
       .returns(a.customType({ success: a.boolean(), message: a.string() }))

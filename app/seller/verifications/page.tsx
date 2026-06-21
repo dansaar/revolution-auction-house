@@ -92,12 +92,16 @@ export default function SellerVerificationsPage() {
     setPending(profiles);
 
     const defaults: Record<string, string> = {};
+    const limitDefaults: Record<string, string> = {};
     for (const p of profiles) {
       defaults[p.userId] = p.requestedTier && !["BASIC", "VERIFIED"].includes(p.requestedTier)
         ? p.requestedTier
         : "PRIVATE";
+      // Prefill the approval limit with what the buyer requested.
+      if (p.requestedLimit) limitDefaults[p.userId] = String(p.requestedLimit);
     }
     setApprovalTiers((prev) => ({ ...defaults, ...prev }));
+    setApprovalLimits((prev) => ({ ...limitDefaults, ...prev }));
 
     const map: Record<string, any[]> = {};
     await Promise.allSettled(

@@ -31,7 +31,7 @@ const VALID_TIERS = Object.keys(TIER_LIMITS);
 
 export const handler: Schema["submitVerificationRequest"]["functionHandler"] =
   async (event) => {
-    const { requestedTier, verificationNotes } = event.arguments;
+    const { requestedTier, requestedLimit: requestedLimitArg, verificationNotes } = event.arguments;
 
     const identity = event.identity as any;
     const claims = identity?.claims ?? {};
@@ -47,7 +47,11 @@ export const handler: Schema["submitVerificationRequest"]["functionHandler"] =
     }
 
     const tier = VALID_TIERS.includes(requestedTier) ? requestedTier : "VERIFIED";
-    const limit = TIER_LIMITS[tier];
+    // PRIVATE: use the buyer's chosen limit (clamped $10K–$1M). Others: fixed.
+    const limit =
+      tier === "PRIVATE" && requestedLimitArg
+        ? Math.min(1_000_000, Math.max(10_000, Number(requestedLimitArg)))
+        : TIER_LIMITS[tier];
 
     try {
       const existing = await client.models.BuyerProfile.get(

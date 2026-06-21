@@ -40,7 +40,8 @@ function VerifyPageInner() {
   const searchParams = useSearchParams();
   const identityComplete = searchParams?.get("identity") === "complete";
 
-  const [requestedTier, setRequestedTier] = useState("PRIVATE");
+  const [requestedLimitInput, setRequestedLimitInput] = useState("");
+  const [wantsTrophy, setWantsTrophy] = useState(false);
   const [verificationNotes, setVerificationNotes] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const [startingIdentity, setStartingIdentity] = useState(false);
@@ -199,8 +200,24 @@ function VerifyPageInner() {
     try {
       setSubmittingRequest(true);
 
+      let requestedTier = "PRIVATE";
+      let requestedLimit: number | undefined;
+      if (wantsTrophy) {
+        requestedTier = "TROPHY";
+      } else {
+        requestedLimit = Number(requestedLimitInput);
+        if (!requestedLimit || requestedLimit < 10000 || requestedLimit > 1000000) {
+          alert("Enter a desired bid limit between $10,000 and $1,000,000.");
+          return;
+        }
+      }
+
       const result = await client.mutations.submitVerificationRequest(
-        { requestedTier, verificationNotes },
+        {
+          requestedTier,
+          ...(requestedLimit ? { requestedLimit } : {}),
+          verificationNotes,
+        },
         { authMode: "userPool" } as any,
       );
 
@@ -345,8 +362,9 @@ function VerifyPageInner() {
             <h2 className="font-serif text-3xl">Request Verification Review</h2>
 
             <p className="mt-3 max-w-3xl text-gray-400">
-              Request a higher bidding limit. Premium and trophy-level approvals
-              may require identity review, proof of funds, and private approval.
+              Choose the bid limit you'd like — up to $1,000,000. Higher limits may
+              require identity review, proof of funds, and private approval. For
+              bidding above $1M, request Trophy access (settled by wire/escrow).
             </p>
           </div>
 
@@ -364,20 +382,35 @@ function VerifyPageInner() {
 
           <div className="mt-8">
             <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-gray-500">
-              Requested Tier
+              Desired Bid Limit
             </label>
 
-            <select
-              value={requestedTier}
-              onChange={(e) => setRequestedTier(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#d6aa55]/50 md:max-w-sm"
-            >
-              {BUYER_TIERS.filter((t) => t.code !== "BASIC" && t.code !== "VERIFIED").map((tier) => (
-                <option key={tier.code} value={tier.code}>
-                  {tier.name} — {formatTierLimit(tier.code)} limit
-                </option>
-              ))}
-            </select>
+            <input
+              type="number"
+              min={10000}
+              max={1000000}
+              step={1000}
+              disabled={wantsTrophy}
+              value={requestedLimitInput}
+              onChange={(e) => setRequestedLimitInput(e.target.value)}
+              placeholder="e.g. 100000 (up to $1,000,000)"
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#d6aa55]/50 disabled:opacity-40 md:max-w-sm"
+            />
+            {!wantsTrophy && requestedLimitInput && Number(requestedLimitInput) >= 10000 && (
+              <p className="mt-2 text-xs text-[#e7c77f]">
+                Private Client · {privateBandLabel(Number(requestedLimitInput))} band
+              </p>
+            )}
+
+            <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-gray-300">
+              <input
+                type="checkbox"
+                checked={wantsTrophy}
+                onChange={(e) => setWantsTrophy(e.target.checked)}
+                className="h-4 w-4 accent-[#d6aa55]"
+              />
+              I need to bid above $1M (Trophy — settled by wire/escrow)
+            </label>
           </div>
 
           <div className="mt-5">
