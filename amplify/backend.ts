@@ -22,6 +22,7 @@ import { verifyPhoneOtp } from "./functions/verifyPhoneOtp/resource";
 import { createFundsSession } from "./functions/createFundsSession/resource";
 import { recordFunds } from "./functions/recordFunds/resource";
 import { logError } from "./functions/logError/resource";
+import { notifyRelist } from "./functions/notifyRelist/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
@@ -49,6 +50,7 @@ const backend = defineBackend({
   createFundsSession,
   recordFunds,
   logError,
+  notifyRelist,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];
@@ -206,3 +208,12 @@ logErrorCfn.addPropertyOverride(
   "Environment.Variables.ERROR_LOG_SECRET",
   process.env.ERROR_LOG_SECRET || process.env.EASYPOST_WEBHOOK_SECRET || "",
 );
+
+// notifyRelist: emails/texts the original auction's bidders + watchers when an
+// item is re-listed. Needs SES + SNS, and the notification env vars.
+backend.notifyRelist.resources.lambda.addToRolePolicy(sesPolicy);
+backend.notifyRelist.resources.lambda.addToRolePolicy(snsPolicy);
+const notifyRelistCfn = backend.notifyRelist.resources.lambda.node.defaultChild as CfnFunction;
+notifyRelistCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
+notifyRelistCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
+notifyRelistCfn.addPropertyOverride("Environment.Variables.SMS_AUDIENCE", SMS_AUDIENCE);

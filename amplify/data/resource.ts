@@ -19,6 +19,7 @@ import { verifyPhoneOtp } from "../functions/verifyPhoneOtp/resource";
 import { createFundsSession } from "../functions/createFundsSession/resource";
 import { recordFunds } from "../functions/recordFunds/resource";
 import { logError } from "../functions/logError/resource";
+import { notifyRelist } from "../functions/notifyRelist/resource";
 
 const schema = a
   .schema({
@@ -764,6 +765,18 @@ const schema = a
       .returns(a.customType({ ok: a.boolean() }))
       .authorization((allow) => [allow.publicApiKey()])
       .handler(a.handler.function(logError)),
+
+    // Notify the original auction's bidders + watchers that it's been re-listed.
+    // Seller/Admin only (the handler also verifies caller owns the new auction).
+    notifyRelist: a
+      .mutation()
+      .arguments({
+        originalAuctionId: a.string().required(),
+        newAuctionId: a.string().required(),
+      })
+      .returns(a.customType({ success: a.boolean(), notified: a.integer(), message: a.string() }))
+      .authorization((allow) => [allow.group("Seller"), allow.group("Admin")])
+      .handler(a.handler.function(notifyRelist)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -786,6 +799,7 @@ const schema = a
     allow.resource(createFundsSession),
     allow.resource(recordFunds),
     allow.resource(logError),
+    allow.resource(notifyRelist),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

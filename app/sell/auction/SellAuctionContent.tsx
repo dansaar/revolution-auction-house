@@ -324,6 +324,19 @@ export default function SellAuctionContent() {
         ended: false,
       });
 
+      // If this is a re-list, notify the original auction's bidders + watchers.
+      if (relistId) {
+        try {
+          await client.mutations.notifyRelist(
+            { originalAuctionId: relistId, newAuctionId: auction.id },
+            { authMode: "userPool" } as any,
+          );
+        } catch (notifyErr) {
+          // Non-fatal: the re-list still succeeds even if notifications fail.
+          console.warn("NOTIFY_RELIST_FAILED", notifyErr);
+        }
+      }
+
       router.push("/auctions");
     } catch (err) {
       console.error(err);
