@@ -263,6 +263,11 @@ export default function AdminMarketplacePage() {
                         {listing.sellerPublicId && (
                           <div className="text-xs text-gray-600">{listing.sellerPublicId}</div>
                         )}
+                        {(listing.buyerEmail || invoice?.buyerEmail) && (
+                          <div className="mt-1 text-xs text-emerald-400/80">
+                            Buyer: {listing.buyerEmail || invoice?.buyerEmail}
+                          </div>
+                        )}
                       </td>
 
                       <td className="p-4 text-[#c0c0c0]">
