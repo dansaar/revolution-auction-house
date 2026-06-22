@@ -452,12 +452,13 @@ function SellerPage() {
 
   const liveAuctions = auctions.filter(
     (a) =>
+      !a.ended &&
       (!a.endsAt || new Date(a.endsAt).getTime() > Date.now()) &&
       !(a.status === "SCHEDULED" && a.startsAt && new Date(a.startsAt).getTime() > Date.now()),
   );
 
   const allEndedAuctions = auctions.filter(
-    (a) => a.endsAt && new Date(a.endsAt).getTime() <= Date.now(),
+    (a) => a.ended || (a.endsAt && new Date(a.endsAt).getTime() <= Date.now()),
   );
 
   const endedAuctions = allEndedAuctions.filter(
@@ -1580,7 +1581,7 @@ function SellerAuctionCard({
   formatInvoiceAmount,
 }: any) {
   const ended =
-    auction.endsAt && new Date(auction.endsAt).getTime() < Date.now();
+    auction.ended || (auction.endsAt && new Date(auction.endsAt).getTime() < Date.now());
   const isOwner =
     auction.sellerEmail === sellerEmail ||
     auction.sellerUserId === sellerUserId;
