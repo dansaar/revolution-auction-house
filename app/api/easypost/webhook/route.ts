@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import outputs from "@/amplify_outputs.json";
 
 // Maps EasyPost tracker statuses to our internal shippingStatus values
@@ -18,14 +18,27 @@ export async function POST(request: NextRequest) {
   const webhookSecret = process.env.EASYPOST_WEBHOOK_SECRET;
   const rawBody = await request.text();
 
-  // Verify HMAC signature if a webhook secret is configured
+  // Verify HMAC signature if a webhook secret is configured. EasyPost sends
+  // X-Hmac-Signature; the value may or may not carry an "hmac-sha256-hex=" prefix,
+  // and the secret should be NFKD-normalized per EasyPost's docs.
   if (webhookSecret) {
-    const signature = request.headers.get("x-hmac-signature");
+    const signature = request.headers.get("x-hmac-signature") || "";
     if (!signature) {
+      console.error("EASYPOST_WEBHOOK: missing X-Hmac-Signature header");
       return NextResponse.json({ error: "Missing signature" }, { status: 401 });
     }
-    const expected = createHmac("sha256", webhookSecret).update(rawBody).digest("hex");
-    if (`hmac-sha256-hex=${expected}` !== signature) {
+    const received = signature.replace(/^hmac-sha256-hex=/i, "").trim().toLowerCase();
+    const expected = createHmac("sha256", Buffer.from(webhookSecret.normalize("NFKD")))
+      .update(Buffer.from(rawBody, "utf8"))
+      .digest("hex");
+
+    const a = Buffer.from(received);
+    const b = Buffer.from(expected);
+    const ok = a.length === b.length && timingSafeEqual(a, b);
+    if (!ok) {
+      console.error(
+        `EASYPOST_WEBHOOK: signature mismatch (received len ${received.length}, expected len ${expected.length}) — check the secret matches the EasyPost webhook`,
+      );
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
   }
