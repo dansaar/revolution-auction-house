@@ -44,17 +44,35 @@ export default function AdminMarketplacePage() {
   }
 
   useEffect(() => {
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => { loadData(); }, 800);
+    };
+    let subs: { unsubscribe: () => void }[] = [];
+
     async function load() {
       try {
         if (!await isAdminUser()) return;
         setIsAdmin(true);
         await loadData();
+        // Live updates: reflect new listings, sales, and other admins' changes.
+        subs = [
+          client.models.MarketplaceListing.onCreate({ authMode: "apiKey" } as any).subscribe({ next: scheduleRefresh }),
+          client.models.MarketplaceListing.onUpdate({ authMode: "apiKey" } as any).subscribe({ next: scheduleRefresh }),
+          client.models.MarketplaceListing.onDelete({ authMode: "apiKey" } as any).subscribe({ next: scheduleRefresh }),
+        ];
       } finally {
         setChecking(false);
         setLoading(false);
       }
     }
     load();
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      subs.forEach((s) => s.unsubscribe());
+    };
   }, []);
 
   async function deactivateListing(listing: any) {

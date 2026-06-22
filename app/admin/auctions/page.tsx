@@ -52,17 +52,35 @@ export default function AdminAuctionsPage() {
   }
 
   useEffect(() => {
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => { loadData(); }, 800);
+    };
+    let subs: { unsubscribe: () => void }[] = [];
+
     async function load() {
       try {
         if (!await isAdminUser()) return;
         setIsAdmin(true);
         await loadData();
+        // Live updates: reflect sellers creating/ending and other admins' changes.
+        subs = [
+          client.models.Auction.onCreate({ authMode: "apiKey" } as any).subscribe({ next: scheduleRefresh }),
+          client.models.Auction.onUpdate({ authMode: "apiKey" } as any).subscribe({ next: scheduleRefresh }),
+          client.models.Auction.onDelete({ authMode: "apiKey" } as any).subscribe({ next: scheduleRefresh }),
+        ];
       } finally {
         setChecking(false);
         setLoading(false);
       }
     }
     load();
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      subs.forEach((s) => s.unsubscribe());
+    };
   }, []);
 
   async function forceEnd(auction: any) {
