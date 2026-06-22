@@ -259,7 +259,7 @@ export default function CreateAuctionPage() {
         return;
       }
 
-      await client.models.Auction.update(
+      const updateResult = await client.models.Auction.update(
         {
           id: auctionId,
 
@@ -296,6 +296,17 @@ export default function CreateAuctionPage() {
           authMode: "userPool",
         } as any,
       );
+
+      // Amplify Data returns errors here instead of throwing — if we ignore them
+      // the redirect makes a silent failure look like a successful save.
+      if (updateResult.errors?.length) {
+        console.error("AUCTION_UPDATE_ERRORS", updateResult.errors);
+        alert(
+          updateResult.errors[0]?.message ||
+            "Failed to save auction changes. Please try again.",
+        );
+        return;
+      }
 
       router.push(`/auctions/${auctionId}`);
     } catch (err) {

@@ -808,12 +808,14 @@ export default function LiveAuctionPage() {
             ← Auctions
           </Link>
 
-          <Link
-            href="/dashboard"
-            className="rounded-full border border-white/10 px-6 py-3 text-sm uppercase tracking-[0.22em] text-white transition hover:border-white/30 hover:bg-white/[0.03] hover:scale-[1.02] active:scale-[0.99]"
-          >
-            Buyer Dashboard →
-          </Link>
+          {!isSeller && !isAdmin && (
+            <Link
+              href="/dashboard"
+              className="rounded-full border border-white/10 px-6 py-3 text-sm uppercase tracking-[0.22em] text-white transition hover:border-white/30 hover:bg-white/[0.03] hover:scale-[1.02] active:scale-[0.99]"
+            >
+              Buyer Dashboard →
+            </Link>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-2 gap-10 mt-6">
