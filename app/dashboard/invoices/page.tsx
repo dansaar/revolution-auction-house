@@ -9,10 +9,13 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { moneyToNumber } from "@/lib/money";
+import ShippingTimeline from "@/app/components/ShippingTimeline";
 
 export default function BuyerInvoicesPage() {
   const client = generateClient<Schema>();
   const [invoices, setInvoices] = useState<any[]>([]);
+  // invoiceId -> { status, trackingNumber, carrier } pulled from the related record
+  const [shipping, setShipping] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,7 +31,27 @@ export default function BuyerInvoicesPage() {
           authMode: "userPool",
         } as any);
 
-        setInvoices(result.data || []);
+        const list = result.data || [];
+        setInvoices(list);
+
+        // Pull live shipping status from each invoice's auction/listing (public read).
+        const entries = await Promise.all(
+          list.map(async (inv: any) => {
+            try {
+              let rec: any = null;
+              if (inv.auctionId) {
+                rec = (await client.models.Auction.get({ id: inv.auctionId }, { authMode: "apiKey" } as any)).data;
+              } else if (inv.listingId) {
+                rec = (await client.models.MarketplaceListing.get({ id: inv.listingId }, { authMode: "apiKey" } as any)).data;
+              }
+              if (!rec) return null;
+              return [inv.id, { status: rec.shippingStatus, trackingNumber: rec.trackingNumber, carrier: rec.carrier }] as const;
+            } catch {
+              return null;
+            }
+          }),
+        );
+        setShipping(Object.fromEntries(entries.filter(Boolean) as any));
       } catch (err) {
         console.error(err);
       } finally {
@@ -210,6 +233,12 @@ export default function BuyerInvoicesPage() {
                     </div>
                   </div>
                 </div>
+
+                <ShippingTimeline
+                  status={shipping[invoice.id]?.status}
+                  trackingNumber={shipping[invoice.id]?.trackingNumber}
+                  carrier={shipping[invoice.id]?.carrier}
+                />
               </div>
             ))
           )}
