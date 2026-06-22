@@ -4,6 +4,7 @@ import { CognitoJwtVerifier } from "aws-jwt-verify";
 import jsPDF from "jspdf";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
+import { serverLogError } from "@/lib/serverLogError";
 
 const verifier = CognitoJwtVerifier.create({
   userPoolId: outputs.auth.user_pool_id,
@@ -305,6 +306,13 @@ export async function GET(
     });
   } catch (err: any) {
     console.error("PDF INVOICE ERROR:", err);
+    await serverLogError({
+      source: "invoices/pdf",
+      message: err?.message || "Failed to generate invoice PDF",
+      context: err?.stack,
+      severity: "ERROR",
+      url: "/api/invoices/[id]/pdf",
+    });
 
     return NextResponse.json(
       {

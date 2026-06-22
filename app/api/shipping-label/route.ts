@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { serverLogError } from "@/lib/serverLogError";
 
 // Proxy an EasyPost shipping-label file so the browser can fetch it same-origin.
 // EasyPost label URLs are cross-origin and block the CORS fetch print-js needs
@@ -65,6 +66,13 @@ export async function GET(request: Request) {
     });
   } catch (err: any) {
     console.error("SHIPPING_LABEL_PROXY_ERROR:", err);
+    await serverLogError({
+      source: "shipping-label",
+      message: err?.message || "Failed to load label",
+      context: err?.stack,
+      severity: "ERROR",
+      url: "/api/shipping-label",
+    });
     return NextResponse.json(
       { error: err?.message || "Failed to load label" },
       { status: 500 },

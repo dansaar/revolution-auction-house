@@ -5,6 +5,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import outputs from "@/amplify_outputs.json";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { serverLogError } from "@/lib/serverLogError";
 
 Amplify.configure(outputs);
 
@@ -452,6 +453,13 @@ export async function POST(req: Request) {
     );
   } catch (err: any) {
     console.error("CHECKOUT API ERROR:", err);
+    await serverLogError({
+      source: "checkout",
+      message: err?.message || "Checkout failed",
+      context: err?.stack,
+      severity: "ERROR",
+      url: "/api/checkout",
+    });
 
     return NextResponse.json(
       { error: err?.message || "Checkout failed" },

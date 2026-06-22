@@ -4,6 +4,7 @@ import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import outputs from "@/amplify_outputs.json";
+import { serverLogError } from "@/lib/serverLogError";
 
 Amplify.configure(outputs);
 
@@ -89,6 +90,13 @@ export async function POST(request: Request) {
       case "checkout.session.async_payment_failed": {
         const session = event.data.object as Stripe.Checkout.Session;
         console.error("WEBHOOK bank payment failed (ACH):", session.id, session.metadata);
+        await serverLogError({
+          source: "stripe/webhook",
+          message: `ACH bank payment failed: ${session.id}`,
+          context: session.metadata,
+          severity: "WARN",
+          url: "/api/stripe/webhook",
+        });
         // Nothing was marked sold (we only mark on "paid"), so no rollback
         // needed. The buyer is notified by Stripe; surfaced here for monitoring.
         break;
@@ -112,6 +120,13 @@ export async function POST(request: Request) {
           console.log("WEBHOOK identity.verified: buyer upgraded to VERIFIED", buyerEmail);
         } else {
           console.error("WEBHOOK identity.verified: autoVerifyBuyer failed", buyerEmail);
+          await serverLogError({
+            source: "stripe/webhook",
+            message: `identity.verified: autoVerifyBuyer failed for ${buyerEmail}`,
+            context: result.data,
+            severity: "ERROR",
+            url: "/api/stripe/webhook",
+          });
         }
 
         break;
@@ -124,6 +139,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("Stripe webhook handler failed:", error);
+    await serverLogError({
+      source: "stripe/webhook",
+      message: error instanceof Error ? error.message : String(error),
+      context: error instanceof Error ? error.stack : undefined,
+      severity: "ERROR",
+      url: "/api/stripe/webhook",
+    });
 
     return NextResponse.json(
       { error: "Webhook handler failed." },
