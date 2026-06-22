@@ -120,6 +120,32 @@ export const handler: Schema["notifyRelist"]["functionHandler"] = async (event) 
       }
     }
 
+    // Confirmation to the seller with the count.
+    const sellerEmail = String(newAuction.sellerEmail || "");
+    if (FROM_EMAIL && sellerEmail.includes("@")) {
+      try {
+        await ses.send(new SendEmailCommand({
+          Source: `Revolution Auction House <${FROM_EMAIL}>`,
+          Destination: { ToAddresses: [sellerEmail] },
+          Message: {
+            Subject: { Data: `Re-listed: ${title} — ${notified} buyer${notified === 1 ? "" : "s"} notified` },
+            Body: {
+              Html: { Data: `
+                <div style="background:#050607;color:#d7d7d7;font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+                  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.3em;color:#888;margin-bottom:24px">Revolution Auction House</div>
+                  <h1 style="font-size:26px;margin:0 0 8px;color:#ffffff">Your auction was re-listed</h1>
+                  <p style="color:#999;margin:0 0 24px"><strong style="color:#d7d7d7">${title}</strong> is live again, and we notified <strong style="color:#e7c77f">${notified}</strong> previous bidder${notified === 1 ? "" : "s"} / watcher${notified === 1 ? "" : "s"} by email.</p>
+                  <a href="${link}" style="display:inline-block;background:#c0c0c0;color:#000;font-weight:bold;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:14px">View Listing →</a>
+                </div>` },
+              Text: { Data: `"${title}" was re-listed. We notified ${notified} previous bidders/watchers. View: ${link}` },
+            },
+          },
+        }));
+      } catch (err) {
+        console.warn("NOTIFY_RELIST_SELLER_EMAIL_FAILED", err);
+      }
+    }
+
     return { success: true, notified, message: "ok" };
   } catch (err: any) {
     console.error("NOTIFY_RELIST_ERROR", err);
