@@ -97,7 +97,15 @@ export const handler: Schema["notifyRelist"]["functionHandler"] = async (event) 
       try {
         const profile = (await client.models.BuyerProfile.get({ userId: sub }, { authMode: "iam" } as any)).data as any;
         const to = (profile?.email as string) || subs.get(sub) || "";
-        if (FROM_EMAIL && to && to.includes("@")) {
+
+        // Opt-in only: respect the buyer's watchlist notification preference
+        // (re-list = "an item you wanted is available again"). Mirrors the
+        // watchlist notifications in placeBid.
+        const pref = String(profile?.notifyWatchlist || "none");
+        const wantsEmail = pref === "email" || pref === "both";
+        const wantsSms = pref === "sms" || pref === "both";
+
+        if (FROM_EMAIL && wantsEmail && to && to.includes("@")) {
           await ses.send(new SendEmailCommand({
             Source: `Revolution Auction House <${FROM_EMAIL}>`,
             Destination: { ToAddresses: [to] },
@@ -108,8 +116,8 @@ export const handler: Schema["notifyRelist"]["functionHandler"] = async (event) 
           }));
           notified++;
         }
-        // SMS only on opt-in (verified phone + smsOptIn), when buyer SMS is on.
-        if (BUYER_SMS_ENABLED && profile?.phoneVerified && profile?.smsOptIn && profile?.phoneNumber) {
+        // SMS only if opted in (sms/both) with a verified phone, when buyer SMS is on.
+        if (BUYER_SMS_ENABLED && wantsSms && profile?.phoneVerified && profile?.phoneNumber) {
           await sns.send(new PublishCommand({
             PhoneNumber: profile.phoneNumber as string,
             Message: `Revolution: "${title}" has been re-listed. View: ${link}`,
