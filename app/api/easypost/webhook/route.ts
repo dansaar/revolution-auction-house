@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import outputs from "@/amplify_outputs.json";
+import { serverLogError } from "@/lib/serverLogError";
 
 // Maps EasyPost tracker statuses to our internal shippingStatus values
 const STATUS_MAP: Record<string, string> = {
@@ -97,9 +98,23 @@ export async function POST(request: NextRequest) {
     const data = await res.json();
     if (data?.errors) {
       console.error("EASYPOST_WEBHOOK_GQL_ERROR", JSON.stringify(data.errors));
+      await serverLogError({
+        source: "easypost/webhook",
+        message: "updateShippingByTracking GraphQL error",
+        context: data.errors,
+        severity: "ERROR",
+        url: "/api/easypost/webhook",
+      });
     }
   } catch (err) {
     console.error("EASYPOST_WEBHOOK_ERROR", err);
+    await serverLogError({
+      source: "easypost/webhook",
+      message: err instanceof Error ? err.message : String(err),
+      context: err instanceof Error ? err.stack : undefined,
+      severity: "ERROR",
+      url: "/api/easypost/webhook",
+    });
   }
 
   return NextResponse.json({ ok: true });

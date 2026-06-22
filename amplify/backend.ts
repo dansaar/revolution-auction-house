@@ -21,6 +21,7 @@ import { sendPhoneOtp } from "./functions/sendPhoneOtp/resource";
 import { verifyPhoneOtp } from "./functions/verifyPhoneOtp/resource";
 import { createFundsSession } from "./functions/createFundsSession/resource";
 import { recordFunds } from "./functions/recordFunds/resource";
+import { logError } from "./functions/logError/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
@@ -47,6 +48,7 @@ const backend = defineBackend({
   verifyPhoneOtp,
   createFundsSession,
   recordFunds,
+  logError,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];
@@ -191,4 +193,16 @@ const updateShippingByTrackingCfn = backend.updateShippingByTracking.resources.l
 updateShippingByTrackingCfn.addPropertyOverride(
   "Environment.Variables.WEBHOOK_SECRET",
   process.env.EASYPOST_WEBHOOK_SECRET || "",
+);
+
+// In-app ErrorLog: the logError Lambda writes directly to its table (so the
+// admin page can read it back via AppSync). Gated by a shared secret; reuses the
+// EasyPost webhook secret unless ERROR_LOG_SECRET is set.
+const errorLogTable = backend.data.resources.tables["ErrorLog"];
+errorLogTable.grantWriteData(backend.logError.resources.lambda);
+const logErrorCfn = backend.logError.resources.lambda.node.defaultChild as CfnFunction;
+logErrorCfn.addPropertyOverride("Environment.Variables.ERROR_LOG_TABLE_NAME", errorLogTable.tableName);
+logErrorCfn.addPropertyOverride(
+  "Environment.Variables.ERROR_LOG_SECRET",
+  process.env.ERROR_LOG_SECRET || process.env.EASYPOST_WEBHOOK_SECRET || "",
 );

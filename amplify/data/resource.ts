@@ -18,6 +18,7 @@ import { sendPhoneOtp } from "../functions/sendPhoneOtp/resource";
 import { verifyPhoneOtp } from "../functions/verifyPhoneOtp/resource";
 import { createFundsSession } from "../functions/createFundsSession/resource";
 import { recordFunds } from "../functions/recordFunds/resource";
+import { logError } from "../functions/logError/resource";
 
 const schema = a
   .schema({
@@ -422,6 +423,18 @@ const schema = a
         allow.group("Admin"),
       ]),
 
+    // In-app error backstop. Written by the logError Lambda (direct DynamoDB);
+    // only admins can read/manage from the dashboard.
+    ErrorLog: a
+      .model({
+        source: a.string(),
+        message: a.string(),
+        context: a.string(),
+        severity: a.string(),
+        url: a.string(),
+      })
+      .authorization((allow) => [allow.group("Admin")]),
+
     placeBid: a
       .mutation()
       .arguments({
@@ -722,6 +735,22 @@ const schema = a
       }))
       .authorization((allow) => [allow.authenticated()])
       .handler(a.handler.function(recordFunds)),
+
+    // In-app error backstop. publicApiKey so server API routes can call it; the
+    // Lambda requires a shared secret so the public key can't spoof entries.
+    logError: a
+      .mutation()
+      .arguments({
+        source: a.string().required(),
+        message: a.string().required(),
+        context: a.string(),
+        severity: a.string(),
+        url: a.string(),
+        secret: a.string().required(),
+      })
+      .returns(a.customType({ ok: a.boolean() }))
+      .authorization((allow) => [allow.publicApiKey()])
+      .handler(a.handler.function(logError)),
   })
   .authorization((allow) => [
     allow.resource(placeBid),
@@ -743,6 +772,7 @@ const schema = a
     allow.resource(verifyPhoneOtp),
     allow.resource(createFundsSession),
     allow.resource(recordFunds),
+    allow.resource(logError),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

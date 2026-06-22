@@ -364,6 +364,12 @@ export default function AdminPage() {
             description="Confirm keys, ACH, and Financial Connections are wired correctly."
             href="/admin/stripe"
           />
+
+          <AdminCard
+            title="Error Log"
+            description="In-app backstop to Sentry — recent server-side failures."
+            href="/admin/errors"
+          />
         </div>
       </div>
     </main>
