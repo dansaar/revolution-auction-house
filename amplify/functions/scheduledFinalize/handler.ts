@@ -34,6 +34,8 @@ async function listAllAuctions(): Promise<any[]> {
   do {
     const result: any = await client.models.Auction.list({
       limit: 1000,
+      // apiKey so reservePrice (field-restricted) is returned — reserve gates the sale.
+      authMode: "apiKey",
       ...(nextToken ? { nextToken } : {}),
     } as any);
     all.push(...(result.data || []));

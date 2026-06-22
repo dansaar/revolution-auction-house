@@ -217,7 +217,12 @@ export const handler = async (event: any = {}) => {
         return { success: false, message: "Unauthorized", status: "UNAUTHORIZED" };
       }
 
-      const auctionResult = await client.models.Auction.get({ id: auctionId });
+      // apiKey read so reservePrice (now field-restricted) comes back — reserve
+      // gates whether the auction actually sells.
+      const auctionResult = await client.models.Auction.get(
+        { id: auctionId },
+        { authMode: "apiKey" } as any,
+      );
       const auction = auctionResult.data;
 
       if (!auction) {
@@ -240,6 +245,7 @@ export const handler = async (event: any = {}) => {
 
     const result = await client.models.Auction.list({
       limit: 1000,
+      authMode: "apiKey",
     } as any);
 
     const endedOpenAuctions = (result.data || []).filter((auction: any) => {

@@ -39,7 +39,15 @@ const schema = a
         endsAt: a.datetime(),
         ended: a.boolean().default(false),
         status: a.string(),
-        reservePrice: a.string(),
+        // Explicit field auth so the owning seller can set/edit reserve (mirrors
+        // the model rules — otherwise updates fail with "Unauthorized"). The
+        // finalize functions read reserve via apiKey (public read below).
+        reservePrice: a.string().authorization((allow) => [
+          allow.publicApiKey().to(["read"]),
+          allow.group("Seller").to(["create"]),
+          allow.ownerDefinedIn("sellerUserId").to(["read", "update"]),
+          allow.group("Admin"),
+        ]),
         reserveMet: a.boolean(),
         winningBid: a.string(),
         winnerEmail: a.string(),
@@ -71,7 +79,12 @@ const schema = a
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
         startsAt: a.datetime(),
-        increment: a.integer(),
+        increment: a.integer().authorization((allow) => [
+          allow.publicApiKey().to(["read"]),
+          allow.group("Seller").to(["create"]),
+          allow.ownerDefinedIn("sellerUserId").to(["read", "update"]),
+          allow.group("Admin"),
+        ]),
         easypostShipmentId: a.string(),
         shippingLabelUrl: a.string(),
       })
