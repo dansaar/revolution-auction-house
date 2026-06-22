@@ -275,10 +275,12 @@ export default function CreateAuctionPage() {
           provenance: form.provenance,
 
           price: form.startingPrice ? `$${Number(form.startingPrice).toLocaleString()}` : undefined,
+          // Omit when empty (undefined) rather than sending null — Amplify rejects
+          // an explicit null write with "Unauthorized on [field]" even for the owner.
           reservePrice: form.reservePrice
             ? `$${Number(form.reservePrice).toLocaleString()}`
-            : null,
-          increment: form.increment ? Number(form.increment) : null,
+            : undefined,
+          increment: form.increment ? Number(form.increment) : undefined,
 
           chargeTax: form.chargeTax,
           taxRate: form.chargeTax ? 6.625 : 0,
