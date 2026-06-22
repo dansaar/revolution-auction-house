@@ -548,12 +548,16 @@ export default function DashboardPage() {
         const myBid = highestMyBidByAuction.get(auction.id);
         if (!myBid) return null;
 
+        // Must actually be the winning bidder — not merely an underbidder whose
+        // highest bid happened to reach the final price (proxy bidding can do
+        // that). Otherwise the auction shows as a "win" for losing bidders too.
+        if (!isMeWinning(auction)) return null;
+
         const finalPrice = moneyToNumber(auction.price);
         const reservePrice = moneyToNumber(auction.reservePrice);
         const reserveMet = !auction.reservePrice || finalPrice >= reservePrice;
 
-        if (moneyToNumber(myBid.amount) < finalPrice || !reserveMet)
-          return null;
+        if (!reserveMet) return null;
 
         return {
           ...myBid,
