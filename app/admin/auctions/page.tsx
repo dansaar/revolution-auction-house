@@ -69,12 +69,22 @@ export default function AdminAuctionsPage() {
     if (!confirm(`Force-end "${auction.title}"? This cannot be undone.`)) return;
     try {
       setProcessingId(auction.id);
-      await client.models.Auction.update(
-        { id: auction.id, ended: true, status: "ENDED" },
+      // Use finalizeAuction so the auction is properly settled: winner set from
+      // the live leader, reserve checked, winner notified. (Just flipping
+      // ended/status leaves it with no winner and unpayable.)
+      const res = await client.mutations.finalizeAuction(
+        { auctionId: auction.id },
         { authMode: "userPool" } as any,
       );
+      if (!res.data?.success) {
+        throw new Error(res.data?.message || "Finalize failed");
+      }
       await loadData();
-      toast.success("Auction ended.");
+      toast.success(
+        res.data?.status === "RESERVE_NOT_MET"
+          ? "Ended — reserve not met (no winner)."
+          : "Auction ended and finalized.",
+      );
     } catch (err) {
       console.error(err);
       toast.error("Failed to end auction.");
