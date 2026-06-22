@@ -379,6 +379,15 @@ export default function AuctionsPage() {
       next: () => scheduleRefresh(),
     });
 
+    // Remove deleted auctions live (otherwise they linger until a refresh).
+    const auctionDeleteSub = client.models.Auction.onDelete({
+      authMode: "apiKey",
+    }).subscribe({
+      next: (deleted: any) => {
+        if (deleted?.id) setAuctions((prev) => prev.filter((a) => a.id !== deleted.id));
+      },
+    });
+
     const stateUpdateSub = client.models.AuctionState.onUpdate({
       authMode: "apiKey",
     }).subscribe({
@@ -406,6 +415,8 @@ export default function AuctionsPage() {
       auctionCreateSub.unsubscribe();
 
       auctionUpdateSub.unsubscribe();
+
+      auctionDeleteSub.unsubscribe();
 
       stateUpdateSub.unsubscribe();
     };

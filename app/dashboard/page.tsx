@@ -431,6 +431,21 @@ export default function DashboardPage() {
       error: (e) => console.error("Marketplace listing update sub error:", e),
     });
 
+    // Deletes (e.g. admin removing an auction/listing) — refresh so they drop off.
+    const auctionDeleteSub = client.models.Auction.onDelete({
+      authMode: "apiKey",
+    }).subscribe({
+      next: () => scheduleDashboardRefresh(loadDashboard),
+      error: (e) => console.error("Auction delete sub error:", e),
+    });
+
+    const listingDeleteSub = client.models.MarketplaceListing.onDelete({
+      authMode: "apiKey",
+    }).subscribe({
+      next: () => scheduleDashboardRefresh(loadDashboard),
+      error: (e) => console.error("Marketplace listing delete sub error:", e),
+    });
+
     return () => {
       bidCreateSub.unsubscribe();
       bidUpdateSub.unsubscribe();
@@ -440,6 +455,8 @@ export default function DashboardPage() {
       offerCreateSub.unsubscribe();
       offerUpdateSub.unsubscribe();
       listingUpdateSub.unsubscribe();
+      auctionDeleteSub.unsubscribe();
+      listingDeleteSub.unsubscribe();
 
       window.removeEventListener("focus", loadDashboard);
       window.removeEventListener("pageshow", loadDashboard);

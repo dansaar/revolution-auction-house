@@ -408,6 +408,21 @@ function SellerPage() {
         console.error("Seller marketplace listing subscription error:", error),
     });
 
+    // Deletes (e.g. admin removing an auction/listing) — refresh so they drop off.
+    const auctionDeleteSub = client.models.Auction.onDelete({
+      authMode: "apiKey",
+    }).subscribe({
+      next: () => scheduleSellerRefresh(),
+      error: (error) => console.error("Seller auction delete subscription error:", error),
+    });
+
+    const listingDeleteSub = client.models.MarketplaceListing.onDelete({
+      authMode: "apiKey",
+    }).subscribe({
+      next: () => scheduleSellerRefresh(),
+      error: (error) => console.error("Seller listing delete subscription error:", error),
+    });
+
     return () => {
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
@@ -418,6 +433,8 @@ function SellerPage() {
       offerCreateSub.unsubscribe();
       offerUpdateSub.unsubscribe();
       listingUpdateSub.unsubscribe();
+      auctionDeleteSub.unsubscribe();
+      listingDeleteSub.unsubscribe();
     };
   }, []);
 
