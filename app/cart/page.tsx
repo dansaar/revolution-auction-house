@@ -106,7 +106,14 @@ export default function CartPage() {
               (auction.endsAt &&
                 new Date(auction.endsAt).getTime() <= Date.now());
 
-            return winnerMatches && ended && auction.paid !== true;
+            // Unmet reserve = no sale, so it's not a payment obligation.
+            const finalPrice = moneyToNumber(auction.price);
+            const reservePrice = moneyToNumber(auction.reservePrice);
+            const reserveMet = !auction.reservePrice || finalPrice >= reservePrice;
+            const notVoided =
+              auction.status !== "RESERVE_NOT_MET" && auction.status !== "CANCELLED";
+
+            return winnerMatches && ended && auction.paid !== true && reserveMet && notVoided;
           })
           .map((auction: any) => {
             const rawImage =

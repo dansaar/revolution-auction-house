@@ -4,6 +4,7 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { getCart } from "@/lib/cart";
+import { moneyToNumber } from "@/lib/money";
 
 const client = generateClient<Schema>();
 
@@ -40,7 +41,13 @@ export async function fetchCartCountDetail(): Promise<CartCountDetail> {
       const winnerMatches =
         a.winnerUserId === userId || a.winnerEmail === email || a.winnerDisplayName === userId;
       const ended = a.ended || (a.endsAt && new Date(a.endsAt).getTime() <= Date.now());
-      return winnerMatches && ended && a.paid !== true;
+      // Reserve gate: an unmet reserve means no sale, so it isn't an obligation.
+      // Matches the buyer dashboard, which already checks this.
+      const finalPrice = moneyToNumber(a.price);
+      const reservePrice = moneyToNumber(a.reservePrice);
+      const reserveMet = !a.reservePrice || finalPrice >= reservePrice;
+      const notVoided = a.status !== "RESERVE_NOT_MET" && a.status !== "CANCELLED";
+      return winnerMatches && ended && a.paid !== true && reserveMet && notVoided;
     });
 
     const listings = listingRes.data || [];
