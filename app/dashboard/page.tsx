@@ -1068,6 +1068,18 @@ export default function DashboardPage() {
                 )}
               </Panel>
 
+              <Panel title="Reserve Not Met">
+                {reserveNotMet.filter((a: any) => matchesSearch(a.title, buyerSearch)).length === 0 ? (
+                  <Empty text="None — every auction you led cleared its reserve." />
+                ) : (
+                  reserveNotMet
+                    .filter((a: any) => matchesSearch(a.title, buyerSearch))
+                    .map((auction: any) => (
+                      <ReserveNotMetRow key={auction.id} auction={auction} />
+                    ))
+                )}
+              </Panel>
+
               <Panel title="Lost Auctions">
                 {lostAuctions.filter((a: any) => matchesSearch(a.title, buyerSearch)).length === 0 ? (
                   <Empty text="No lost auctions." />
