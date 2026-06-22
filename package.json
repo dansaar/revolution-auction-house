@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "npm run lint:hooks && next build",
+    "build": "npm run lint:hooks && npm run test && next build",
     "start": "next start",
     "lint": "eslint",
     "lint:hooks": "eslint --quiet --config eslint.hooks.config.mjs app lib",
