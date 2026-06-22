@@ -7,7 +7,9 @@
     "build": "npm run lint:hooks && next build",
     "start": "next start",
     "lint": "eslint",
-    "lint:hooks": "eslint --quiet --config eslint.hooks.config.mjs app lib"
+    "lint:hooks": "eslint --quiet --config eslint.hooks.config.mjs app lib",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@aws-amplify/adapter-nextjs": "^1.7.3",
@@ -50,6 +52,7 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "tsx": "^4.22.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.9"
   }
 }

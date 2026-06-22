@@ -14,6 +14,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { getIncrement, resolveBid } from "./bidEngine";
 
 const { resourceConfig, libraryOptions } =
   await getAmplifyDataClientConfig(env);
@@ -282,25 +283,6 @@ function retryDelayMs(attempt: number): number {
   // Exponential backoff capped at RETRY_MAX_MS, with full jitter.
   const ceiling = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** attempt);
   return Math.floor(Math.random() * ceiling);
-}
-
-function defaultIncrement(amount: number): number {
-  if (amount < 100) return 5;
-  if (amount < 500) return 10;
-  if (amount < 1000) return 25;
-  if (amount < 2500) return 50;
-  if (amount < 5000) return 100;
-  if (amount < 10000) return 250;
-  if (amount < 25000) return 500;
-  if (amount < 50000) return 1000;
-  if (amount < 100000) return 2500;
-  if (amount < 250000) return 5000;
-  if (amount < 500000) return 10000;
-  return 25000;
-}
-
-function getIncrement(amount: number, custom?: number | null): number {
-  return Math.max(custom || 0, defaultIncrement(amount));
 }
 
 function formatMoney(amount: number) {
@@ -853,48 +835,27 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
       const leaderUserId = state.leaderUserId || "";
       const leaderMaxBid = moneyToNumber(state.leaderMaxBid);
-      const secondUserId = state.secondUserId || "";
-      const secondMaxBid = moneyToNumber(state.secondMaxBid);
 
-      let newLeaderUserId = leaderUserId;
-      let newLeaderMaxBid = leaderMaxBid;
-      let newSecondUserId = secondUserId;
-      let newSecondMaxBid = secondMaxBid;
-      let visiblePrice = currentPrice;
-      let proxyUserId = "";
-
-      if (!leaderUserId) {
-        newLeaderUserId = bidderUserId;
-        newLeaderMaxBid = maxBid;
-        visiblePrice = minimumBid;
-      } else if (bidderUserId === leaderUserId) {
-        newLeaderMaxBid = Math.max(leaderMaxBid, maxBid);
-        visiblePrice = currentPrice;
-      } else if (maxBid > leaderMaxBid) {
-        newSecondUserId = leaderUserId;
-        newSecondMaxBid = leaderMaxBid;
-
-        newLeaderUserId = bidderUserId;
-        newLeaderMaxBid = maxBid;
-
-        visiblePrice = Math.min(
-          maxBid,
-          leaderMaxBid + getIncrement(leaderMaxBid, customIncrement),
-        );
-      } else if (maxBid === leaderMaxBid) {
-        newSecondUserId = bidderUserId;
-        newSecondMaxBid = maxBid;
-
-        visiblePrice = leaderMaxBid;
-        proxyUserId = leaderUserId;
-      } else {
-        newSecondUserId = bidderUserId;
-        newSecondMaxBid = Math.max(secondMaxBid, maxBid);
-
-        visiblePrice = Math.min(leaderMaxBid, maxBid + getIncrement(maxBid, customIncrement));
-
-        proxyUserId = leaderUserId;
-      }
+      const {
+        newLeaderUserId,
+        newLeaderMaxBid,
+        newSecondUserId,
+        newSecondMaxBid,
+        visiblePrice,
+        proxyUserId,
+      } = resolveBid(
+        {
+          currentPrice,
+          leaderUserId,
+          leaderMaxBid,
+          secondUserId: state.secondUserId || "",
+          secondMaxBid: moneyToNumber(state.secondMaxBid),
+        },
+        bidderUserId,
+        maxBid,
+        minimumBid,
+        customIncrement,
+      );
 
       const newBidCount = (state.bidCount || 0) + (proxyUserId ? 2 : 1);
       const SOFT_CLOSE_WINDOW_SEC = 60;
