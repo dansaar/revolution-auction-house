@@ -88,6 +88,8 @@ export function getTierLimit(code: string): number {
 }
 
 export function formatTierLimit(code: string): string {
+  // Trophy has no fixed ceiling — it's set per buyer above $1M.
+  if (code === "TROPHY") return "Above $1M";
   const limit = getTierLimit(code);
   if (limit >= 1_000_000) return `$${(limit / 1_000_000).toFixed(0)}M`;
   if (limit >= 1_000) return `$${(limit / 1_000).toFixed(0)}K`;
