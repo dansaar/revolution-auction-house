@@ -137,12 +137,21 @@ export default function AdminUsersPage() {
     try {
       setSaving(true);
       const tier = getTier(editTier);
-      // Private uses a custom bid max ($10K–$1M); other tiers use the fixed limit.
+      // Private ($10K–$1M) and Trophy (above $1M) use a custom bid max; other
+      // tiers use the fixed limit.
       let bidLimit: number = tier.limit;
       if (editTier === "PRIVATE") {
         const n = Number(editLimit);
         if (!n || n < 10000 || n > 1000000) {
           toast.error("Enter a Private bid max between $10,000 and $1,000,000");
+          setSaving(false);
+          return;
+        }
+        bidLimit = n;
+      } else if (editTier === "TROPHY") {
+        const n = Number(editLimit);
+        if (!n || n <= 1000000 || n > 100000000) {
+          toast.error("Enter a Trophy bid max above $1,000,000");
           setSaving(false);
           return;
         }
@@ -311,20 +320,23 @@ export default function AdminUsersPage() {
 
                       <td className="p-4 text-[#c0c0c0]">
                         {isEditing ? (
-                          editTier === "PRIVATE" ? (
+                          editTier === "PRIVATE" || editTier === "TROPHY" ? (
                             <div className="flex flex-col gap-0.5">
                               <input
                                 type="number"
-                                min={10000}
-                                max={1000000}
-                                step={1000}
+                                min={editTier === "PRIVATE" ? 10000 : 1000000}
+                                max={editTier === "PRIVATE" ? 1000000 : 100000000}
+                                step={editTier === "PRIVATE" ? 1000 : 100000}
                                 value={editLimit}
                                 onChange={(e) => setEditLimit(e.target.value)}
-                                placeholder="Bid max ($10K–$1M)"
+                                placeholder={editTier === "PRIVATE" ? "Bid max ($10K–$1M)" : "Bid max (above $1M)"}
                                 className="w-32 rounded border border-[#d6aa55]/30 bg-black px-2 py-1 text-sm text-white outline-none"
                               />
-                              {editLimit && Number(editLimit) >= 10000 && (
+                              {editLimit && editTier === "PRIVATE" && Number(editLimit) >= 10000 && (
                                 <span className="text-[10px] text-[#e7c77f]">{privateBandLabel(Number(editLimit))}</span>
+                              )}
+                              {editLimit && editTier === "TROPHY" && Number(editLimit) > 1000000 && (
+                                <span className="text-[10px] text-[#e7c77f]">up to ${Number(editLimit).toLocaleString()}</span>
                               )}
                             </div>
                           ) : (

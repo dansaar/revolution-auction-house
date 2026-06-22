@@ -201,6 +201,13 @@ export default function SellerVerificationsPage() {
           return;
         }
       }
+      if (approved && tier === "TROPHY") {
+        bidLimit = Number(approvalLimits[userId]);
+        if (!bidLimit || bidLimit <= 1000000 || bidLimit > 100000000) {
+          alert("Enter a Trophy max bid above $1,000,000");
+          return;
+        }
+      }
       await client.mutations.reviewBuyerVerification(
         { userId, approved, ...(tier ? { tier } : {}), ...(bidLimit ? { bidLimit } : {}) },
         { authMode: "userPool" } as any,
@@ -413,25 +420,36 @@ export default function SellerVerificationsPage() {
                           </select>
                         </div>
 
-                        {(approvalTiers[profile.userId] || "PRIVATE") === "PRIVATE" && (
-                          <div className="flex flex-col gap-1">
-                            <label className="text-[10px] uppercase tracking-[0.15em] text-gray-500">Limit ($10K–$1M)</label>
-                            <input
-                              type="number"
-                              min={10000}
-                              max={1000000}
-                              step={1000}
-                              placeholder="e.g. 400000"
-                              value={approvalLimits[profile.userId] ?? ""}
-                              onChange={(e) => setApprovalLimits((prev) => ({ ...prev, [profile.userId]: e.target.value }))}
-                              className="rounded border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6aa55]/50"
-                            />
-                            {approvalLimits[profile.userId] && (
-                              <span className="text-[10px] text-[#e7c77f]">
-                                Band: {privateBandLabel(Number(approvalLimits[profile.userId]))}
-                              </span>
-                            )}
-                          </div>
+                        {((approvalTiers[profile.userId] || "PRIVATE") === "PRIVATE" ||
+                          (approvalTiers[profile.userId] || "PRIVATE") === "TROPHY") && (
+                          (() => {
+                            const t = approvalTiers[profile.userId] || "PRIVATE";
+                            const isPriv = t === "PRIVATE";
+                            const val = approvalLimits[profile.userId] ?? "";
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] uppercase tracking-[0.15em] text-gray-500">
+                                  {isPriv ? "Limit ($10K–$1M)" : "Max bid (above $1M)"}
+                                </label>
+                                <input
+                                  type="number"
+                                  min={isPriv ? 10000 : 1000000}
+                                  max={isPriv ? 1000000 : 100000000}
+                                  step={isPriv ? 1000 : 100000}
+                                  placeholder={isPriv ? "e.g. 400000" : "e.g. 2500000"}
+                                  value={val}
+                                  onChange={(e) => setApprovalLimits((prev) => ({ ...prev, [profile.userId]: e.target.value }))}
+                                  className="rounded border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#d6aa55]/50"
+                                />
+                                {val && isPriv && (
+                                  <span className="text-[10px] text-[#e7c77f]">Band: {privateBandLabel(Number(val))}</span>
+                                )}
+                                {val && !isPriv && Number(val) > 1000000 && (
+                                  <span className="text-[10px] text-[#e7c77f]">Up to ${Number(val).toLocaleString()} (wire/escrow)</span>
+                                )}
+                              </div>
+                            );
+                          })()
                         )}
 
                         <button

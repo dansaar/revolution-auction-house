@@ -24,8 +24,13 @@ const TIER_LIMITS: Record<string, number> = {
   BASIC: 1_000,
   VERIFIED: 10_000,
   PRIVATE: 1_000_000, // requested ceiling; the exact limit is set at approval
-  TROPHY: 5_000_000,
+  TROPHY: 1_000_000, // floor; Trophy requests a custom ceiling above $1M
 };
+
+const PRIVATE_MIN = 10_000;
+const PRIVATE_MAX = 1_000_000;
+const TROPHY_MIN = 1_000_000;
+const TROPHY_MAX = 100_000_000;
 
 const VALID_TIERS = Object.keys(TIER_LIMITS);
 
@@ -47,11 +52,14 @@ export const handler: Schema["submitVerificationRequest"]["functionHandler"] =
     }
 
     const tier = VALID_TIERS.includes(requestedTier) ? requestedTier : "VERIFIED";
-    // PRIVATE: use the buyer's chosen limit (clamped $10K–$1M). Others: fixed.
-    const limit =
-      tier === "PRIVATE" && requestedLimitArg
-        ? Math.min(1_000_000, Math.max(10_000, Number(requestedLimitArg)))
-        : TIER_LIMITS[tier];
+    // PRIVATE/TROPHY: use the buyer's chosen ceiling (clamped to the tier's
+    // band). Others: fixed. The exact approved limit is still set at review.
+    let limit = TIER_LIMITS[tier];
+    if (tier === "PRIVATE" && requestedLimitArg) {
+      limit = Math.min(PRIVATE_MAX, Math.max(PRIVATE_MIN, Number(requestedLimitArg)));
+    } else if (tier === "TROPHY" && requestedLimitArg) {
+      limit = Math.min(TROPHY_MAX, Math.max(TROPHY_MIN, Number(requestedLimitArg)));
+    }
 
     try {
       const existing = await client.models.BuyerProfile.get(

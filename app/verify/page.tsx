@@ -14,7 +14,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import "@/lib/amplifyclient";
 import Link from "next/link";
-import { BUYER_TIERS, getTier, formatTierLimit, privateBandLabel } from "@/lib/tiers";
+import { BUYER_TIERS, getTier, formatTierLimit, privateBandLabel, PRIVATE_MIN, PRIVATE_MAX, TROPHY_MIN, TROPHY_MAX } from "@/lib/tiers";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { useSearchParams } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
@@ -42,6 +42,7 @@ function VerifyPageInner() {
 
   const [requestedLimitInput, setRequestedLimitInput] = useState("");
   const [wantsTrophy, setWantsTrophy] = useState(false);
+  const [trophyLimitInput, setTrophyLimitInput] = useState("");
   const [verificationNotes, setVerificationNotes] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const [startingIdentity, setStartingIdentity] = useState(false);
@@ -204,9 +205,14 @@ function VerifyPageInner() {
       let requestedLimit: number | undefined;
       if (wantsTrophy) {
         requestedTier = "TROPHY";
+        requestedLimit = Number(trophyLimitInput);
+        if (!requestedLimit || requestedLimit <= TROPHY_MIN || requestedLimit > TROPHY_MAX) {
+          alert("Enter a desired Trophy bid limit above $1,000,000 (subject to approval).");
+          return;
+        }
       } else {
         requestedLimit = Number(requestedLimitInput);
-        if (!requestedLimit || requestedLimit < 10000 || requestedLimit > 1000000) {
+        if (!requestedLimit || requestedLimit < PRIVATE_MIN || requestedLimit > PRIVATE_MAX) {
           alert("Enter a desired bid limit between $10,000 and $1,000,000.");
           return;
         }
@@ -281,7 +287,7 @@ function VerifyPageInner() {
           <div className="mt-3 font-serif text-4xl text-[#f0d28c]">
             {loadingProfile
               ? "Loading..."
-              : currentTierCode === "PRIVATE" && buyerProfile?.bidLimit
+              : (currentTierCode === "PRIVATE" || currentTierCode === "TROPHY") && buyerProfile?.bidLimit
                 ? `$${Number(buyerProfile.bidLimit).toLocaleString()}`
                 : formatTierLimit(currentTierCode)}
           </div>
@@ -290,7 +296,9 @@ function VerifyPageInner() {
             {currentTier.name} Buyer
             {currentTierCode === "PRIVATE" && buyerProfile?.bidLimit
               ? ` · ${privateBandLabel(Number(buyerProfile.bidLimit))}`
-              : ""}
+              : currentTierCode === "TROPHY" && buyerProfile?.bidLimit
+                ? ` · wire/escrow`
+                : ""}
           </div>
 
           {currentTierCode === "BASIC" && (
@@ -411,6 +419,31 @@ function VerifyPageInner() {
               />
               I need to bid above $1M (Trophy — settled by wire/escrow)
             </label>
+
+            {wantsTrophy && (
+              <div className="mt-4 rounded-xl border border-[#d6aa55]/20 bg-[#1a1408]/40 p-4">
+                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-gray-500">
+                  Desired Max Bid (subject to approval)
+                </label>
+                <input
+                  type="number"
+                  min={TROPHY_MIN}
+                  step={100000}
+                  value={trophyLimitInput}
+                  onChange={(e) => setTrophyLimitInput(e.target.value)}
+                  placeholder="e.g. 2500000 (above $1,000,000)"
+                  className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#d6aa55]/50 md:max-w-sm"
+                />
+                {trophyLimitInput && Number(trophyLimitInput) > TROPHY_MIN && (
+                  <p className="mt-2 text-xs text-[#e7c77f]">
+                    Trophy Bidder · up to ${Number(trophyLimitInput).toLocaleString()} — final ceiling set on approval
+                  </p>
+                )}
+                <p className="mt-2 text-[11px] text-gray-500">
+                  Your requested ceiling is reviewed; the seller/admin sets the approved max.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="mt-5">

@@ -1282,26 +1282,31 @@ function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
                       </select>
                     </div>
 
-                    {selectedTier === "PRIVATE" && (
+                    {(selectedTier === "PRIVATE" || selectedTier === "TROPHY") && (
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] uppercase tracking-[0.15em] text-gray-500">
-                          Limit ($10K–$1M)
+                          {selectedTier === "PRIVATE" ? "Limit ($10K–$1M)" : "Max bid (above $1M)"}
                         </label>
                         <input
                           type="number"
-                          min={10000}
-                          max={1000000}
-                          step={1000}
-                          placeholder="e.g. 400000"
+                          min={selectedTier === "PRIVATE" ? 10000 : 1000000}
+                          max={selectedTier === "PRIVATE" ? 1000000 : 100000000}
+                          step={selectedTier === "PRIVATE" ? 1000 : 100000}
+                          placeholder={selectedTier === "PRIVATE" ? "e.g. 400000" : "e.g. 2500000"}
                           value={limitVal}
                           onChange={(e) =>
                             setApprovalLimits((prev) => ({ ...prev, [request.userId]: e.target.value }))
                           }
                           className="w-36 rounded border border-white/10 bg-black px-3 py-2 text-sm text-white outline-none"
                         />
-                        {limitVal && (
+                        {limitVal && selectedTier === "PRIVATE" && (
                           <span className="text-[10px] text-[#e7c77f]">
                             Band: {privateBandLabel(Number(limitVal))}
+                          </span>
+                        )}
+                        {limitVal && selectedTier === "TROPHY" && Number(limitVal) > 1000000 && (
+                          <span className="text-[10px] text-[#e7c77f]">
+                            Up to ${Number(limitVal).toLocaleString()} (wire/escrow)
                           </span>
                         )}
                       </div>
@@ -1318,12 +1323,19 @@ function BuyerRequestsSection({ requests, client, setBuyerRequests }: any) {
                               return;
                             }
                           }
+                          if (selectedTier === "TROPHY") {
+                            const lim = Number(limitVal);
+                            if (!lim || lim <= 1000000 || lim > 100000000) {
+                              toast.error("Enter a Trophy max bid above $1,000,000");
+                              return;
+                            }
+                          }
                           const result = await client.mutations.reviewBuyerVerification(
                             {
                               userId: request.userId,
                               approved: true,
                               tier: selectedTier,
-                              ...(selectedTier === "PRIVATE"
+                              ...(selectedTier === "PRIVATE" || selectedTier === "TROPHY"
                                 ? { bidLimit: Number(limitVal) }
                                 : {}),
                             },
