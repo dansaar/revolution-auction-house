@@ -139,6 +139,9 @@ export default function LiveAuctionPage() {
   const [selectedImage, setSelectedImage] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
   const [displayPrice, setDisplayPrice] = useState(0);
+  // Live leader from AuctionState — used as the winner the instant an auction
+  // ends, before the backend finalize writes winnerUserId onto the record.
+  const [liveLeaderUserId, setLiveLeaderUserId] = useState("");
   const [priceFlash, setPriceFlash] = useState(false);
   const [priceFlashOutbid, setPriceFlashOutbid] = useState(false);
   const priceFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -422,6 +425,7 @@ export default function LiveAuctionPage() {
 
         const nextPrice = moneyToNumber(state.currentPrice || 0);
         const newLeader = state.leaderUserId || "";
+        if (newLeader) setLiveLeaderUserId(newLeader);
         const isOutbid = !!(rawUserKey && myMaxBid && newLeader && newLeader !== rawUserKey);
 
         setDisplayPrice((prev) => {
@@ -510,7 +514,7 @@ export default function LiveAuctionPage() {
 
   // FIX #2 â€“ bidderMap + actualWinner in useMemo (not bare component body)
   const actualWinnerUserId =
-    auction?.winnerUserId || auction?.winnerEmail || "";
+    auction?.winnerUserId || auction?.winnerEmail || liveLeaderUserId || "";
 
   const userIsWinning = !!rawUserKey && actualWinnerUserId === rawUserKey;
 
@@ -696,6 +700,8 @@ export default function LiveAuctionPage() {
     const state = stateResult.data;
 
     if (!state) return;
+
+    if (state.leaderUserId) setLiveLeaderUserId(state.leaderUserId);
 
     const nextPrice = moneyToNumber(state.currentPrice || 0);
 
