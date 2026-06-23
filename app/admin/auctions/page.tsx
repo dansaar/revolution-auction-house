@@ -282,11 +282,23 @@ export default function AdminAuctionsPage() {
                         {auction.sellerPublicId && (
                           <div className="text-xs text-gray-600">{auction.sellerPublicId}</div>
                         )}
-                        {(invoice?.buyerEmail || auction.winnerEmail) && (
-                          <div className="mt-1 text-xs text-emerald-400/80">
-                            Winner: {invoice?.buyerEmail || auction.winnerEmail}
-                          </div>
-                        )}
+                        {(() => {
+                          // No sale if the reserve wasn't met — don't imply a winner.
+                          const reserveUnmet =
+                            auction.status === "RESERVE_NOT_MET" ||
+                            (auction.reservePrice &&
+                              moneyToNumber(auction.price || 0) < moneyToNumber(auction.reservePrice || 0));
+                          if (reserveUnmet) {
+                            return (
+                              <div className="mt-1 text-xs text-yellow-400/80">Reserve not met — no sale</div>
+                            );
+                          }
+                          return (invoice?.buyerEmail || auction.winnerEmail) ? (
+                            <div className="mt-1 text-xs text-emerald-400/80">
+                              Winner: {invoice?.buyerEmail || auction.winnerEmail}
+                            </div>
+                          ) : null;
+                        })()}
                       </td>
 
                       <td className="p-4 text-[#c0c0c0]">
