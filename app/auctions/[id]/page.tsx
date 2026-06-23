@@ -153,8 +153,13 @@ export default function LiveAuctionPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   const enteredBidAmount = moneyToNumber(input || 0);
+  // When no amount is typed, base the estimate on the minimum next bid (current
+  // price + increment) so it matches the "Min $X" placeholder — not the raw
+  // current price, which a buyer can no longer bid at.
+  const minNextBid =
+    displayPrice > 0 ? displayPrice + getIncrement(displayPrice) : displayPrice;
   const estimateBaseAmount =
-    enteredBidAmount > 0 ? enteredBidAmount : displayPrice;
+    enteredBidAmount > 0 ? enteredBidAmount : minNextBid;
 
   const buyerPremiumRate = Number(auction?.buyerPremiumRate || 18);
   const buyerPremiumAmount = calculateBuyerPremium(estimateBaseAmount, buyerPremiumRate);
