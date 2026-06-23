@@ -493,6 +493,9 @@ export default function LiveAuctionPage() {
       } else if (diff < 30000) {
         setTimeColor("text-red-500");
         setAuctionMessage("Final seconds");
+      } else if (diff < 60000) {
+        setTimeColor("text-red-500");
+        setAuctionMessage("Closing soon");
       } else if (diff < 120000) {
         setTimeColor("text-yellow-400");
         setAuctionMessage("Closing soon");
@@ -1006,11 +1009,52 @@ export default function LiveAuctionPage() {
                 </div>
               </div>
 
-              {auctionEnded && (
-                <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm text-red-300">
-                  This auction has ended. Final results are available.
-                </div>
-              )}
+              {auctionEnded && (() => {
+                const reserveUnmet =
+                  auction.reservePrice &&
+                  currentAmount < moneyToNumber(auction.reservePrice);
+                if (reserveUnmet) {
+                  return (
+                    <div className="mt-5 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-center text-sm text-yellow-300">
+                      This auction has ended — reserve not met. No sale.
+                    </div>
+                  );
+                }
+                if (actualWinnerUserId) {
+                  const winnerName =
+                    auction.winnerDisplayName ||
+                    makeBidderDisplayName(String(actualWinnerUserId));
+                  if (userIsWinning) {
+                    return (
+                      <div className="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-center text-sm font-semibold text-emerald-300">
+                        🎉 You won this auction at {formatMoney(displayPrice)}!
+                      </div>
+                    );
+                  }
+                  // Logged-in buyer who bid but didn't win.
+                  if (user && myMaxBid) {
+                    return (
+                      <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm text-gray-300">
+                        You didn't win this one — won by{" "}
+                        <span className="font-semibold text-[#c0c0c0]">{winnerName}</span> at{" "}
+                        {formatMoney(displayPrice)}.
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm text-gray-300">
+                      Auction ended. Winner:{" "}
+                      <span className="font-semibold text-[#c0c0c0]">{winnerName}</span> at{" "}
+                      {formatMoney(displayPrice)}.
+                    </div>
+                  );
+                }
+                return (
+                  <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm text-red-300">
+                    This auction has ended with no bids.
+                  </div>
+                );
+              })()}
 
               {(isSeller || isAdmin) && !auctionEnded && (
                 <div className="mt-5 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-center text-sm text-yellow-300">
