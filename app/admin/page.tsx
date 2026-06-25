@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -120,7 +121,7 @@ export default function AdminPage() {
       await loadPendingVerifications();
     } catch (err) {
       console.error("Review failed", err);
-      alert("Failed to process request.");
+      toast.error("Failed to process request.");
     } finally {
       setProcessingIds((prev) => {
         const next = new Set(prev);

@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -150,7 +151,7 @@ export default function SellAuctionContent() {
 
   async function handleSubmit() {
     if (!form.title || !form.startingPrice || !form.endsAt) {
-      alert("Missing required fields");
+      toast.error("Missing required fields");
       return;
     }
 
@@ -349,7 +350,7 @@ export default function SellAuctionContent() {
       router.push("/auctions");
     } catch (err) {
       console.error(err);
-      alert("Failed to create auction");
+      toast.error("Failed to create auction");
     }
 
     setLoading(false);

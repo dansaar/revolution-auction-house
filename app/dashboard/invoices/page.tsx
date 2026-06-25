@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -28,7 +29,7 @@ export default function BuyerInvoicesPage() {
         { authMode: "userPool" } as any,
       );
       if (!res.data?.success) {
-        alert(res.data?.message || "Could not confirm receipt.");
+        toast.error(res.data?.message || "Could not confirm receipt.");
         return;
       }
       setShipping((prev) => ({
@@ -37,7 +38,7 @@ export default function BuyerInvoicesPage() {
       }));
     } catch (err) {
       console.error(err);
-      alert("Could not confirm receipt.");
+      toast.error("Could not confirm receipt.");
     } finally {
       setConfirming(null);
     }
@@ -113,7 +114,7 @@ export default function BuyerInvoicesPage() {
     const token = session.tokens?.idToken?.toString();
 
     if (!token) {
-      alert("Please sign in again to view this invoice.");
+      toast.error("Please sign in again to view this invoice.");
       return null;
     }
 
@@ -133,7 +134,7 @@ export default function BuyerInvoicesPage() {
         }
       } catch {}
 
-      alert(message);
+      toast.error(message);
       return null;
     }
 

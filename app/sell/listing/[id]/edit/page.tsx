@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -143,7 +144,7 @@ export default function EditListingPage() {
 
   async function handleSubmit() {
     if (!form.title || !form.price) {
-      alert("Missing required fields");
+      toast.error("Missing required fields");
       return;
     }
 
@@ -165,7 +166,7 @@ export default function EditListingPage() {
         latest?.sellerEmail === email || latest?.sellerUserId === userId;
 
       if (!sellerMatches) {
-        alert("You do not have permission to edit this listing.");
+        toast.error("You do not have permission to edit this listing.");
         router.push("/seller");
         return;
       }
@@ -248,7 +249,7 @@ export default function EditListingPage() {
       router.push(`/marketplace/${listingId}`);
     } catch (err) {
       console.error("LISTING EDIT SAVE ERROR", err);
-      alert("Failed to save listing");
+      toast.error("Failed to save listing");
     } finally {
       setLoading(false);
     }

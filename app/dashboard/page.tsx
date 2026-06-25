@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -691,7 +692,7 @@ export default function DashboardPage() {
     const token = session.tokens?.idToken?.toString();
 
     if (!token) {
-      alert("Please sign in again to view this invoice.");
+      toast.error("Please sign in again to view this invoice.");
       return null;
     }
 
@@ -702,7 +703,7 @@ export default function DashboardPage() {
     });
 
     if (!res.ok) {
-      alert(`Unable to open invoice PDF. Status: ${res.status}`);
+      toast.error(`Unable to open invoice PDF. Status: ${res.status}`);
       return null;
     }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -166,7 +167,7 @@ export default function SellerVerificationsPage() {
       setNotifySaved(true);
       setTimeout(() => setNotifySaved(false), 3000);
     } catch (err: any) {
-      alert(err?.message || "Failed to save settings.");
+      toast.error(err?.message || "Failed to save settings.");
     } finally {
       setSavingNotify(false);
     }
@@ -200,14 +201,14 @@ export default function SellerVerificationsPage() {
       if (approved && tier === "PRIVATE") {
         bidLimit = Number(approvalLimits[userId]);
         if (!bidLimit || bidLimit < 10000 || bidLimit > 1000000) {
-          alert("Enter a Private limit between $10,000 and $1,000,000");
+          toast.error("Enter a Private limit between $10,000 and $1,000,000");
           return;
         }
       }
       if (approved && tier === "TROPHY") {
         bidLimit = Number(approvalLimits[userId]);
         if (!bidLimit || bidLimit <= 1000000 || bidLimit > 100000000) {
-          alert("Enter a Trophy max bid above $1,000,000");
+          toast.error("Enter a Trophy max bid above $1,000,000");
           return;
         }
       }
@@ -217,7 +218,7 @@ export default function SellerVerificationsPage() {
       );
       await loadPending();
     } catch (err: any) {
-      alert(err?.message || "Failed to process request.");
+      toast.error(err?.message || "Failed to process request.");
     } finally {
       setProcessingIds((prev) => {
         const next = new Set(prev);

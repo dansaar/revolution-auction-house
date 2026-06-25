@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -70,7 +71,7 @@ export default function SellerInvoicesPage() {
     const token = session.tokens?.idToken?.toString();
 
     if (!token) {
-      alert("Please sign in again to view this invoice.");
+      toast.error("Please sign in again to view this invoice.");
       return null;
     }
 
@@ -90,7 +91,7 @@ export default function SellerInvoicesPage() {
         }
       } catch {}
 
-      alert(message);
+      toast.error(message);
       return null;
     }
 

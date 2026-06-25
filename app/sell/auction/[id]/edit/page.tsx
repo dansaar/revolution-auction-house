@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -157,7 +158,7 @@ export default function CreateAuctionPage() {
 
   async function handleSubmit() {
     if (!form.title || !form.endsAt) {
-      alert("Missing required fields");
+      toast.error("Missing required fields");
       return;
     }
 
@@ -241,7 +242,7 @@ export default function CreateAuctionPage() {
         latest?.sellerUserId === currentSellerUserId;
 
       if (!sellerMatches) {
-        alert("You do not have permission to edit this auction.");
+        toast.error("You do not have permission to edit this auction.");
         router.push("/seller");
         return;
       }
@@ -254,7 +255,7 @@ export default function CreateAuctionPage() {
       } as any);
 
       if (latestBidCount > 0 || (bidCheck.data || []).length > 0) {
-        alert("This auction already has bids and cannot be edited.");
+        toast.error("This auction already has bids and cannot be edited.");
         router.push(`/auctions/${auctionId}`);
         return;
       }
@@ -303,7 +304,7 @@ export default function CreateAuctionPage() {
       // the redirect makes a silent failure look like a successful save.
       if (updateResult.errors?.length) {
         console.error("AUCTION_UPDATE_ERRORS", updateResult.errors);
-        alert(
+        toast.error(
           updateResult.errors[0]?.message ||
             "Failed to save auction changes. Please try again.",
         );
@@ -313,7 +314,7 @@ export default function CreateAuctionPage() {
       router.push(`/auctions/${auctionId}`);
     } catch (err) {
       console.error(err);
-      alert("Failed to save auction changes");
+      toast.error("Failed to save auction changes");
     } finally {
       setLoading(false);
     }

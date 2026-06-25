@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -730,7 +731,7 @@ export default function LiveAuctionPage() {
     }
 
     if (isSeller || isAdmin) {
-      alert("Sellers and admins cannot place bids on auctions.");
+      toast.error("Sellers and admins cannot place bids on auctions.");
       return;
     }
 
@@ -748,7 +749,7 @@ export default function LiveAuctionPage() {
             : "";
 
     if (!auctionIdForBid) {
-      alert("Could not find auction ID for bid.");
+      toast.error("Could not find auction ID for bid.");
       return;
     }
 
@@ -767,7 +768,7 @@ export default function LiveAuctionPage() {
       );
 
       if (!result.data?.success) {
-        alert(result.data?.message || "Bid failed");
+        toast.error(result.data?.message || "Bid failed");
         return;
       }
 
@@ -799,7 +800,7 @@ export default function LiveAuctionPage() {
       }, 1000);
     } catch (err: any) {
       console.error("PLACE BID ERROR FULL", err);
-      alert(err?.message || "Failed to place bid");
+      toast.error(err?.message || "Failed to place bid");
     } finally {
       setIsSubmitting(false);
     }

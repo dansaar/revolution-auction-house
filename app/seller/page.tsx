@@ -620,7 +620,7 @@ function SellerPage() {
     const token = session.tokens?.idToken?.toString();
 
     if (!token) {
-      alert("Please sign in again to view this invoice.");
+      toast.error("Please sign in again to view this invoice.");
       return null;
     }
 
@@ -631,7 +631,7 @@ function SellerPage() {
     });
 
     if (!res.ok) {
-      alert(`Unable to open invoice PDF. Status: ${res.status}`);
+      toast.error(`Unable to open invoice PDF. Status: ${res.status}`);
       return null;
     }
 

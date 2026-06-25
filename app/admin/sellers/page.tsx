@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -62,7 +63,7 @@ export default function AdminSellersPage() {
     const email = newSellerEmail.trim().toLowerCase();
 
     if (!email) {
-      alert("Enter seller email.");
+      toast.error("Enter seller email.");
       return;
     }
 
@@ -106,7 +107,7 @@ export default function AdminSellersPage() {
       );
 
       if (!groupResult.data?.success) {
-        alert(
+        toast.error(
           `Seller profile saved, but Cognito group update failed: ${groupResult.data?.message ?? "unknown error"}\nThe seller must have an account before they can list items.`,
         );
       }
@@ -117,7 +118,7 @@ export default function AdminSellersPage() {
       await loadSellers();
     } catch (err) {
       console.error(err);
-      alert("Failed to add seller.");
+      toast.error("Failed to add seller.");
     } finally {
       setSaving(false);
     }
@@ -146,7 +147,7 @@ export default function AdminSellersPage() {
       await loadSellers();
     } catch (err) {
       console.error(err);
-      alert("Failed to revoke seller.");
+      toast.error("Failed to revoke seller.");
     }
   }
 
@@ -170,7 +171,7 @@ export default function AdminSellersPage() {
       );
 
       if (!groupResult.data?.success) {
-        alert(
+        toast.error(
           `Seller re-approved, but Cognito group update failed: ${groupResult.data?.message ?? "unknown error"}`,
         );
       }
@@ -178,7 +179,7 @@ export default function AdminSellersPage() {
       await loadSellers();
     } catch (err) {
       console.error(err);
-      alert("Failed to approve seller.");
+      toast.error("Failed to approve seller.");
     }
   }
 

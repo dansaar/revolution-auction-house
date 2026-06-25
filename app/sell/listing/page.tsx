@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -73,7 +74,7 @@ export default function CreateListingPage() {
 
   async function handleSubmit() {
     if (!form.title || !form.price) {
-      alert("Missing required fields");
+      toast.error("Missing required fields");
       return;
     }
 
@@ -162,7 +163,7 @@ export default function CreateListingPage() {
       router.push("/marketplace");
     } catch (err) {
       console.error(err);
-      alert("Failed to create listing");
+      toast.error("Failed to create listing");
     } finally {
       setLoading(false);
     }

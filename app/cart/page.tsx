@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { toast } from "sonner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -241,7 +242,7 @@ export default function CartPage() {
       const session = await fetchAuthSession();
       const token = session.tokens?.idToken?.toString();
       if (!token) {
-        alert("Please sign in to checkout.");
+        toast.error("Please sign in to checkout.");
         return;
       }
 
@@ -275,11 +276,11 @@ export default function CartPage() {
         );
         window.location.href = data.url;
       } else {
-        alert(data.error || "Checkout failed");
+        toast.error(data.error || "Checkout failed");
       }
     } catch (err) {
       console.error("CART CHECKOUT ERROR", err);
-      alert("Checkout failed.");
+      toast.error("Checkout failed.");
     } finally {
       setCheckingOut(false);
     }

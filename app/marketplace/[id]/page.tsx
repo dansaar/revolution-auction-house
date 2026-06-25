@@ -219,7 +219,7 @@ export default function MarketplaceListingPage() {
 
   async function handleMakeOffer() {
     if (isSeller || isAdmin) {
-      alert("Sellers and admins cannot make offers on marketplace listings.");
+      toast.error("Sellers and admins cannot make offers on marketplace listings.");
       return;
     }
 
@@ -242,18 +242,18 @@ export default function MarketplaceListingPage() {
 
     try {
       if (!offerAmount) {
-        alert("Enter an offer amount");
+        toast.error("Enter an offer amount");
         return;
       }
 
       const parsedAmount = moneyToNumber(offerAmount);
       if (!parsedAmount || parsedAmount <= 0) {
-        alert("Enter a valid offer amount");
+        toast.error("Enter a valid offer amount");
         return;
       }
 
       if (!listing.sellerUserId) {
-        alert("This listing cannot accept offers at this time. Please contact support.");
+        toast.error("This listing cannot accept offers at this time. Please contact support.");
         return;
       }
 
@@ -300,11 +300,11 @@ export default function MarketplaceListingPage() {
         { authMode: "userPool" } as any,
       ).catch(() => {});
 
-      alert(`Offer submitted! The seller (${listing.sellerEmail}) will review your offer and respond.`);
+      toast.success(`Offer submitted! The seller (${listing.sellerEmail}) will review your offer and respond.`);
       setOfferAmount("");
     } catch (err) {
       console.error(err);
-      alert("Failed to submit offer");
+      toast.error("Failed to submit offer");
     } finally {
       setSubmittingOffer(false);
     }
@@ -335,7 +335,7 @@ export default function MarketplaceListingPage() {
 
   async function handleBuyNow() {
     if (isSeller || isAdmin) {
-      alert("Sellers and admins cannot purchase marketplace listings.");
+      toast.error("Sellers and admins cannot purchase marketplace listings.");
       return;
     }
 
@@ -378,11 +378,11 @@ export default function MarketplaceListingPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || "Checkout failed");
+        toast.error(data.error || "Checkout failed");
       }
     } catch (err) {
       console.error("BUY NOW CHECKOUT ERROR", err);
-      alert("Checkout failed. Check console.");
+      toast.error("Checkout failed. Check console.");
     }
   }
 

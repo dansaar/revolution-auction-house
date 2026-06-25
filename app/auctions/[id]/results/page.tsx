@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Trophy, Gavel, ExternalLink } from "lucide-react";
@@ -215,7 +216,7 @@ export default function AuctionResultsPage() {
     const session = await fetchAuthSession();
     const token = session.tokens?.idToken?.toString();
     if (!token) {
-      alert("Please sign in to checkout.");
+      toast.error("Please sign in to checkout.");
       return;
     }
 
@@ -237,7 +238,7 @@ export default function AuctionResultsPage() {
     if (data.url) {
       window.location.href = data.url;
     } else {
-      alert(data.error || "Checkout failed");
+      toast.error(data.error || "Checkout failed");
     }
   }
 

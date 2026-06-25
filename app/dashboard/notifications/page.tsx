@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { ArrowLeft, Bell, Check } from "lucide-react";
 import "@/lib/amplifyclient";
@@ -168,7 +169,7 @@ export default function NotificationsPage() {
 
     const smsEnabled = needsPhone(prefs);
     if (smsEnabled && !phone.trim()) {
-      alert("Enter a mobile number to enable text notifications.");
+      toast.error("Enter a mobile number to enable text notifications.");
       return;
     }
 

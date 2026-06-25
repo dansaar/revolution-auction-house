@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
+import { toast } from "sonner";
 import {
   ArrowRight,
   BadgeCheck,
@@ -171,7 +172,7 @@ function VerifyPageInner() {
       const token = session.tokens?.idToken?.toString();
 
       if (!token) {
-        alert("Please sign in to verify your identity.");
+        toast.error("Please sign in to verify your identity.");
         return;
       }
 
@@ -185,11 +186,11 @@ function VerifyPageInner() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || "Could not start identity verification.");
+        toast.error(data.error || "Could not start identity verification.");
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to start identity verification.");
+      toast.error("Failed to start identity verification.");
     } finally {
       setStartingIdentity(false);
     }
@@ -207,13 +208,13 @@ function VerifyPageInner() {
         requestedTier = "TROPHY";
         requestedLimit = Number(trophyLimitInput);
         if (!requestedLimit || requestedLimit <= TROPHY_MIN || requestedLimit > TROPHY_MAX) {
-          alert("Enter a desired Trophy bid limit above $1,000,000 (subject to approval).");
+          toast.error("Enter a desired Trophy bid limit above $1,000,000 (subject to approval).");
           return;
         }
       } else {
         requestedLimit = Number(requestedLimitInput);
         if (!requestedLimit || requestedLimit < PRIVATE_MIN || requestedLimit > PRIVATE_MAX) {
-          alert("Enter a desired bid limit between $10,000 and $1,000,000.");
+          toast.error("Enter a desired bid limit between $10,000 and $1,000,000.");
           return;
         }
       }
@@ -228,15 +229,15 @@ function VerifyPageInner() {
       );
 
       if (!result.data?.success) {
-        alert(result.data?.message || "Failed to submit verification request.");
+        toast.error(result.data?.message || "Failed to submit verification request.");
         return;
       }
 
       await loadBuyerProfile();
-      alert("Verification request submitted.");
+      toast.success("Verification request submitted.");
     } catch (err) {
       console.error(err);
-      alert("Failed to submit verification request.");
+      toast.error("Failed to submit verification request.");
     } finally {
       setSubmittingRequest(false);
     }
