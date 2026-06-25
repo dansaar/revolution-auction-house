@@ -1043,7 +1043,7 @@ export default function LiveAuctionPage() {
                   if (user && myMaxBid) {
                     return (
                       <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm text-gray-300">
-                        You didn't win this one — won by{" "}
+                        You didn&apos;t win this one — won by{" "}
                         <span className="font-semibold text-[#c0c0c0]">{winnerName}</span> at{" "}
                         {formatMoney(displayPrice)}.
                       </div>

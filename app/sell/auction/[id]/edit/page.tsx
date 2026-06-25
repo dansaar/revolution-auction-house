@@ -165,9 +165,9 @@ export default function CreateAuctionPage() {
     setLoading(true);
 
     try {
-      let thumbUrls: string[] = [];
-      let mediumUrls: string[] = [];
-      let fullUrls: string[] = [];
+      const thumbUrls: string[] = [];
+      const mediumUrls: string[] = [];
+      const fullUrls: string[] = [];
 
       // Upload new images
       if (imageFiles.length > 0) {

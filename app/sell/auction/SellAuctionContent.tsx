@@ -158,9 +158,9 @@ export default function SellAuctionContent() {
     setLoading(true);
 
     try {
-      let thumbUrls: string[] = [];
-      let mediumUrls: string[] = [];
-      let fullUrls: string[] = [];
+      const thumbUrls: string[] = [];
+      const mediumUrls: string[] = [];
+      const fullUrls: string[] = [];
 
       if (imageFiles.length > 0) {
         for (const file of imageFiles) {

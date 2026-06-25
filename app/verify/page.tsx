@@ -371,7 +371,7 @@ function VerifyPageInner() {
             <h2 className="font-serif text-3xl">Request Verification Review</h2>
 
             <p className="mt-3 max-w-3xl text-gray-400">
-              Choose the bid limit you'd like — up to $1,000,000. Higher limits may
+              Choose the bid limit you&apos;d like — up to $1,000,000. Higher limits may
               require identity review, proof of funds, and private approval. For
               bidding above $1M, request Trophy access (settled by wire/escrow).
             </p>

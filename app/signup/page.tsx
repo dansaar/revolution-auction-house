@@ -118,7 +118,7 @@ export default function SignupPage() {
                 className="mt-1 h-4 w-4 accent-[#d6aa55]"
               />
               <span>
-                Text me when I'm outbid.{" "}
+                Text me when I&apos;m outbid.{" "}
                 <span className="text-gray-500">
                   Standard message & data rates apply. You can opt out anytime
                   in your notification preferences.

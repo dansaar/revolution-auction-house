@@ -25,8 +25,10 @@ export const handler: Schema["confirmReceipt"]["functionHandler"] = async (event
   if (!callerSub) return { success: false, message: "Not authenticated" };
 
   try {
-    const model = itemType === "AUCTION" ? client.models.Auction : client.models.MarketplaceListing;
-    const item = (await (model as any).get({ id: itemId }, { authMode: "iam" } as any)).data;
+    // Typed as any: a ternary union of two Amplify model clients blows TS's
+    // "excessive stack depth" check during backend synth.
+    const model: any = itemType === "AUCTION" ? client.models.Auction : client.models.MarketplaceListing;
+    const item = (await model.get({ id: itemId }, { authMode: "iam" } as any)).data;
     if (!item) return { success: false, message: "Order not found" };
 
     // Verify the caller is the buyer for this order (via the invoice).
@@ -43,7 +45,7 @@ export const handler: Schema["confirmReceipt"]["functionHandler"] = async (event
     }
 
     const now = new Date().toISOString();
-    await (model as any).update({ id: itemId, buyerReceivedAt: now }, { authMode: "iam" } as any);
+    await model.update({ id: itemId, buyerReceivedAt: now }, { authMode: "iam" } as any);
 
     // Notify the seller per their notifyReceipt preference (fire-and-forget).
     try {
