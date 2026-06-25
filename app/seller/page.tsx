@@ -221,7 +221,9 @@ function SellerPage() {
   useEffect(() => {
     async function loadSellerAuctions() {
       // Fetch public data (apiKey) independently so a userPool auth failure
-      // can't prevent the main auction/listing content from loading.
+      // can't prevent the main auction/listing content from loading. Sellers
+      // see ALL items (shared ops model) — shipping actions are allowed for any
+      // seller via the Seller-group auth on the models.
       const [listingResult, auctionResult] = await Promise.all([
         client.models.MarketplaceListing.list({ authMode: "apiKey", limit: 1000 } as any).catch(() => ({ data: [] })),
         client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any).catch(() => ({ data: [] })),
@@ -3143,19 +3145,30 @@ function SellerShipping({
   async function markDelivered(item: any) {
     const now = new Date().toISOString();
     try {
+      const res =
+        item._shipType === "AUCTION"
+          ? await client.models.Auction.update(
+              { id: item.id, shippingStatus: "DELIVERED", deliveredAt: now },
+              { authMode: "userPool" } as any,
+            )
+          : await client.models.MarketplaceListing.update(
+              { id: item.id, shippingStatus: "DELIVERED", deliveredAt: now },
+              { authMode: "userPool" } as any,
+            );
+
+      // Amplify returns errors here instead of throwing — surface them so a
+      // failed write doesn't look successful (it would just revert on refetch).
+      if ((res as any)?.errors?.length) {
+        console.error("MARK_DELIVERED_ERRORS", (res as any).errors);
+        toast.error((res as any).errors[0]?.message || "Failed to update");
+        return;
+      }
+
       if (item._shipType === "AUCTION") {
-        await client.models.Auction.update(
-          { id: item.id, shippingStatus: "DELIVERED", deliveredAt: now },
-          { authMode: "userPool" } as any,
-        );
         setAuctions((prev: any[]) =>
           prev.map((a) => (a.id === item.id ? { ...a, shippingStatus: "DELIVERED", deliveredAt: now } : a)),
         );
       } else {
-        await client.models.MarketplaceListing.update(
-          { id: item.id, shippingStatus: "DELIVERED", deliveredAt: now },
-          { authMode: "userPool" } as any,
-        );
         setMarketplaceListings((prev: any[]) =>
           prev.map((l) => (l.id === item.id ? { ...l, shippingStatus: "DELIVERED", deliveredAt: now } : l)),
         );

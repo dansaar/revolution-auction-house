@@ -94,7 +94,9 @@ const schema = a
       ])
       .authorization((allow) => [
         allow.publicApiKey().to(['read']),
-        allow.group("Seller").to(['create']),
+        // Shared ops model: any approved Seller can read/update any auction
+        // (e.g. manage shipping), not just the owner.
+        allow.group("Seller").to(['create', 'read', 'update']),
         allow.ownerDefinedIn("sellerUserId").to(['read', 'update']),
         allow.group("Admin"),
       ]),
@@ -173,7 +175,9 @@ const schema = a
       ])
       .authorization((allow) => [
         allow.publicApiKey().to(['read']),
-        allow.group("Seller").to(['create']),
+        // Shared ops model: any approved Seller can read/update any listing
+        // (e.g. manage shipping), not just the owner.
+        allow.group("Seller").to(['create', 'read', 'update']),
         allow.ownerDefinedIn("sellerUserId").to(['read', 'update']),
         allow.group("Admin"),
       ]),
