@@ -222,7 +222,9 @@ const schema = a
         auctionId: a.string().required(),
         bidderName: a.string(),
         bidderUserId: a.string(),
-        bidderEmail: a.string(),
+        // PII — not exposed on the public (apiKey) bid history; the public sees
+        // the anonymized bidderName. Admin only (shill review uses BidAuditLog).
+        bidderEmail: a.string().authorization((allow) => [allow.group("Admin")]),
         amount: a.string(),
         maxBid: a.string().authorization((allow) => [allow.group("Admin")]),
         isProxy: a.boolean(),

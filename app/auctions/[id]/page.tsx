@@ -325,7 +325,7 @@ export default function LiveAuctionPage() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+  }, [selectedImage, resolvedImages, fullscreen]);
 
   //  Load user ONCE
   useEffect(() => {
