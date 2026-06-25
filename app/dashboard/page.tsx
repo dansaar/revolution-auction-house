@@ -25,6 +25,7 @@ import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 import { isAdminUser } from "@/lib/sellers";
 import { getTier } from "@/lib/tiers";
 import { DashboardFilterBar, matchesSearch } from "@/app/components/DashboardFilters";
+import ConfirmReceiptButton from "@/app/components/ConfirmReceiptButton";
 
 function trackingUrl(carrier: string, trackingNumber: string) {
   const c = carrier.toLowerCase();
@@ -1365,6 +1366,14 @@ function BidRow({
         </div>
       )}
 
+      {auction?.shippingStatus && auction.shippingStatus !== "PAID" && (
+        <ConfirmReceiptButton
+          itemId={auction.id}
+          itemType="AUCTION"
+          buyerReceivedAt={auction.buyerReceivedAt}
+        />
+      )}
+
       {showPayButton && auction && !auction.paid && (
         <Link
           href="/cart"
@@ -1616,12 +1625,22 @@ function MarketplacePurchaseRow({
         </div>
       )}
 
-      <Link
-        href={`/marketplace/${listing.id}`}
-        className="mt-4 inline-flex rounded border border-white/10 px-4 py-2 text-sm text-white transition hover:bg-white/[0.05]"
-      >
-        View Listing
-      </Link>
+      {listing.shippingStatus && listing.shippingStatus !== "PAID" && (
+        <ConfirmReceiptButton
+          itemId={listing.id}
+          itemType="LISTING"
+          buyerReceivedAt={listing.buyerReceivedAt}
+        />
+      )}
+
+      <div>
+        <Link
+          href={`/marketplace/${listing.id}`}
+          className="mt-4 inline-flex rounded border border-white/10 px-4 py-2 text-sm text-white transition hover:bg-white/[0.05]"
+        >
+          View Listing
+        </Link>
+      </div>
 
       {invoice && (
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
