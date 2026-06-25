@@ -3,7 +3,7 @@
 import "@/lib/amplifyclient";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
@@ -37,6 +37,7 @@ function calculateMarketplaceTax(
 }
 
 export default function MarketplaceListingPage() {
+  const router = useRouter();
   const params = useParams();
   const id = params.id as string;
 
@@ -227,7 +228,7 @@ export default function MarketplaceListingPage() {
     try {
       currentUser = await getCurrentUser();
     } catch {
-      window.location.href = "/signin";
+      router.push("/signin");
       return;
     }
 
@@ -236,7 +237,7 @@ export default function MarketplaceListingPage() {
     ).toLowerCase();
 
     if (!buyerEmail) {
-      window.location.href = "/signin";
+      router.push("/signin");
       return;
     }
 
@@ -329,7 +330,7 @@ export default function MarketplaceListingPage() {
     setInCart(true);
     toast[added ? "success" : "message"](
       added ? "Added to cart" : "Already in your cart",
-      { action: { label: "View cart", onClick: () => { window.location.href = "/cart"; } } },
+      { action: { label: "View cart", onClick: () => { router.push("/cart"); } } },
     );
   }
 
@@ -349,7 +350,7 @@ export default function MarketplaceListingPage() {
     }
 
     if (!token) {
-      window.location.href = "/signin";
+      router.push("/signin");
       return;
     }
 

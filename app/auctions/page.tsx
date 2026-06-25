@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { useRouter } from "next/navigation";
 
 import React, { useEffect, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
@@ -170,6 +171,7 @@ function AuctionCard({ item, ended, isWatching, toggleWatchlist }: any) {
 }
 
 export default function AuctionsPage() {
+  const router = useRouter();
   const clientRef = React.useRef(generateClient<Schema>());
   const client = clientRef.current;
   const [user, setUser] = useState<any>(null);
@@ -200,7 +202,7 @@ export default function AuctionsPage() {
 
   async function toggleWatchlist(auction: any) {
     if (!user) {
-      window.location.href = "/signin";
+      router.push("/signin");
       return;
     }
 

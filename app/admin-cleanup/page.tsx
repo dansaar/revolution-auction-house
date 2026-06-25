@@ -1,6 +1,7 @@
 "use client";
 
 import "@/lib/amplifyclient";
+import { useRouter } from "next/navigation";
 
 import React, { useState, useEffect } from "react";
 import { generateClient } from "aws-amplify/data";
@@ -12,12 +13,13 @@ import { confirmDialog } from "@/lib/confirm";
 const client = generateClient<Schema>();
 
 export default function AdminCleanupPage() {
+  const router = useRouter();
   const [status, setStatus] = useState("Ready");
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     isAdminUser().then((ok) => {
-      if (!ok) window.location.href = "/";
+      if (!ok) router.push("/");
       else setAuthorized(true);
     });
   }, []);

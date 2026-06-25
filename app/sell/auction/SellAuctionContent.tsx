@@ -236,7 +236,7 @@ export default function SellAuctionContent() {
         await fetchAuthSession({ forceRefresh: true });
         currentUser = await getCurrentUser();
       } catch {
-        window.location.href = "/signin";
+        router.push("/signin");
         return;
       }
 

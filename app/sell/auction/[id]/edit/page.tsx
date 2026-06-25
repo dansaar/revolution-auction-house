@@ -228,7 +228,7 @@ export default function CreateAuctionPage() {
       try {
         currentUser = await getCurrentUser();
       } catch {
-        window.location.href = "/signin";
+        router.push("/signin");
         return;
       }
       const latestAuction = await client.models.Auction.get(

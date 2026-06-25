@@ -3,7 +3,7 @@
 import "@/lib/amplifyclient";
 import { toast } from "sonner";
 import React, { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
@@ -117,6 +117,7 @@ async function listMyAuctionBids(
 }
 
 export default function LiveAuctionPage() {
+  const router = useRouter();
   const params = useParams();
   const id = params.id as string;
 
@@ -633,7 +634,7 @@ export default function LiveAuctionPage() {
     const userSub = user?.userId || user?.username || "";
 
     if (!userSub) {
-      window.location.href = "/signin";
+      router.push("/signin");
       return;
     }
 
@@ -726,7 +727,7 @@ export default function LiveAuctionPage() {
 
   async function placeBid() {
     if (!user) {
-      window.location.href = `/signin?next=/auctions/${id}`;
+      router.push(`/signin?next=/auctions/${id}`);
       return;
     }
 
