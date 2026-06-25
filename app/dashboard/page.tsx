@@ -794,8 +794,8 @@ export default function DashboardPage() {
             onClick={() => setActiveTab("auctions")}
             className={`group flex min-h-36 flex-col items-center justify-center rounded-2xl border px-4 py-5 text-center transition hover:-translate-y-1 ${
               activeTab === "auctions"
-                ? "border-[#d6aa55]/60 bg-[#1a1408]"
-                : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
+                ? "border-[#d6aa55] bg-gradient-to-b from-[#2a1d0a] to-[#1a1408] shadow-[0_0_28px_rgba(214,170,85,0.4)] ring-1 ring-[#d6aa55]/50 -translate-y-1"
+                : "border-white/10 bg-white/[0.02] opacity-60 hover:opacity-100 hover:border-[#d6aa55]/40"
             }`}
           >
             <Gavel className="mb-4 h-8 w-8 text-[#e7c77f]" />
@@ -807,8 +807,8 @@ export default function DashboardPage() {
             onClick={() => setActiveTab("marketplace")}
             className={`group flex min-h-36 flex-col items-center justify-center rounded-2xl border px-4 py-5 text-center transition hover:-translate-y-1 ${
               activeTab === "marketplace"
-                ? "border-[#d6aa55]/60 bg-[#1a1408]"
-                : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
+                ? "border-[#d6aa55] bg-gradient-to-b from-[#2a1d0a] to-[#1a1408] shadow-[0_0_28px_rgba(214,170,85,0.4)] ring-1 ring-[#d6aa55]/50 -translate-y-1"
+                : "border-white/10 bg-white/[0.02] opacity-60 hover:opacity-100 hover:border-[#d6aa55]/40"
             }`}
           >
             <Tag className="mb-4 h-8 w-8 text-[#e7c77f]" />
