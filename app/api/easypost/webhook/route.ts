@@ -16,7 +16,10 @@ const STATUS_MAP: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
-  const webhookSecret = process.env.EASYPOST_WEBHOOK_SECRET;
+  // Amplify's Next.js runtime only exposes env vars prefixed with AMPLIFY_, so
+  // fall back to that (mirrors AMPLIFY_STRIPE_SECRET_KEY in the checkout route).
+  const webhookSecret =
+    process.env.EASYPOST_WEBHOOK_SECRET || process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET;
   const rawBody = await request.text();
 
   // Verify HMAC signature if a webhook secret is configured. EasyPost sends
@@ -74,7 +77,8 @@ export async function POST(request: NextRequest) {
   // which is gated by the shared secret below — so the public key can't spoof it.
   const apiUrl = (outputs as any).data?.url as string;
   const apiKey = (outputs as any).data?.api_key as string;
-  const secret = process.env.EASYPOST_WEBHOOK_SECRET || "";
+  const secret =
+    process.env.EASYPOST_WEBHOOK_SECRET || process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET || "";
 
   if (!secret) {
     console.warn("EASYPOST_WEBHOOK: EASYPOST_WEBHOOK_SECRET unset, skipping DB update");
