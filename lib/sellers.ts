@@ -3,13 +3,14 @@ import "@/lib/amplifyclient";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
+import type { Invoice } from "@/lib/types";
 import outputs from "@/amplify_outputs.json";
 
 const client = generateClient<Schema>();
 
 // Raw GraphQL fetch — bypasses Amplify client's auto-owner filters.
 // Use for admin operations where group auth should allow full access.
-export async function adminGraphQL(query: string, variables?: Record<string, any>) {
+export async function adminGraphQL(query: string, variables?: Record<string, unknown>) {
   const session = await fetchAuthSession({ forceRefresh: false });
   const token = session.tokens?.idToken?.toString();
   if (!token) throw new Error("Not authenticated");
@@ -22,10 +23,10 @@ export async function adminGraphQL(query: string, variables?: Record<string, any
   return res.json();
 }
 
-export async function adminFetchAllInvoices(): Promise<any[]> {
-  const result: any = await adminGraphQL(
+export async function adminFetchAllInvoices(): Promise<Invoice[]> {
+  const result = (await adminGraphQL(
     `query AdminListInvoices { adminListInvoices { invoicesJson } }`,
-  );
+  )) as { data?: { adminListInvoices?: { invoicesJson?: string } } };
   const json = result?.data?.adminListInvoices?.invoicesJson;
   if (!json) return [];
   try {
