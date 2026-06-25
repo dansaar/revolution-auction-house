@@ -24,11 +24,18 @@ export const handler: Schema["confirmReceipt"]["functionHandler"] = async (event
   const callerSub = String(identity?.sub || identity?.claims?.sub || "");
   if (!callerSub) return { success: false, message: "Not authenticated" };
 
+  const isAuction = itemType === "AUCTION";
+
   try {
-    // Typed as any: a ternary union of two Amplify model clients blows TS's
-    // "excessive stack depth" check during backend synth.
-    const model: any = itemType === "AUCTION" ? client.models.Auction : client.models.MarketplaceListing;
-    const item = (await model.get({ id: itemId }, { authMode: "iam" } as any)).data;
+    // NOTE: never combine both model clients/results in one expression (e.g. a
+    // ternary) — unifying the two generated model types blows TS's "excessive
+    // stack depth" check during backend synth. Fully branch each call.
+    let item: any;
+    if (isAuction) {
+      item = (await client.models.Auction.get({ id: itemId }, { authMode: "iam" } as any)).data;
+    } else {
+      item = (await client.models.MarketplaceListing.get({ id: itemId }, { authMode: "iam" } as any)).data;
+    }
     if (!item) return { success: false, message: "Order not found" };
 
     // Verify the caller is the buyer for this order (via the invoice).
@@ -45,7 +52,11 @@ export const handler: Schema["confirmReceipt"]["functionHandler"] = async (event
     }
 
     const now = new Date().toISOString();
-    await model.update({ id: itemId, buyerReceivedAt: now }, { authMode: "iam" } as any);
+    if (isAuction) {
+      await client.models.Auction.update({ id: itemId, buyerReceivedAt: now }, { authMode: "iam" } as any);
+    } else {
+      await client.models.MarketplaceListing.update({ id: itemId, buyerReceivedAt: now }, { authMode: "iam" } as any);
+    }
 
     // Notify the seller per their notifyReceipt preference (fire-and-forget).
     try {
