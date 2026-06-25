@@ -1631,6 +1631,13 @@ function SellerAuctionCard({
   useEffect(() => {
     if (!auction?.endsAt) return;
 
+    // A force-ended auction keeps its original (future) endsAt — honor the
+    // ended flag so it shows "Ended" instead of a live countdown.
+    if (auction.ended) {
+      setTimeLeft("Ended");
+      return;
+    }
+
     function updateTimer() {
       const diff = new Date(auction.endsAt).getTime() - Date.now();
 
@@ -1656,7 +1663,7 @@ function SellerAuctionCard({
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [auction?.endsAt]);
+  }, [auction?.endsAt, auction?.ended]);
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
