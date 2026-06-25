@@ -20,6 +20,7 @@ import { createFundsSession } from "../functions/createFundsSession/resource";
 import { recordFunds } from "../functions/recordFunds/resource";
 import { logError } from "../functions/logError/resource";
 import { notifyRelist } from "../functions/notifyRelist/resource";
+import { confirmReceipt } from "../functions/confirmReceipt/resource";
 
 const schema = a
   .schema({
@@ -83,6 +84,7 @@ const schema = a
         trackingUrl: a.string(), // EasyPost public tracking page (fallback link)
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
+        buyerReceivedAt: a.datetime(), // buyer-confirmed receipt
         startsAt: a.datetime(),
         increment: a.integer().authorization((allow) => [
           allow.publicApiKey().to(["read"]),
@@ -171,6 +173,7 @@ const schema = a
         trackingUrl: a.string(), // EasyPost public tracking page (fallback link)
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
+        buyerReceivedAt: a.datetime(), // buyer-confirmed receipt
         lastOfferSmsAt: a.datetime(),
         easypostShipmentId: a.string(),
         shippingLabelUrl: a.string(),
@@ -383,6 +386,7 @@ const schema = a
         // Notification preferences
         notifyVerifications: a.string().default("none"), // "email" | "sms" | "both" | "none"
         notifyOffers: a.string().default("none"),        // "email" | "sms" | "both" | "none"
+        notifyReceipt: a.string().default("email"),      // buyer-confirmed-receipt alerts
         phoneNumber: a.string(),
 
         // Phone OTP verification (written only by the OTP Lambdas via IAM —
@@ -644,6 +648,7 @@ const schema = a
       .arguments({
         notifyVerifications: a.string(),
         notifyOffers: a.string(),
+        notifyReceipt: a.string(),
         phoneNumber: a.string(),
         shipFromName: a.string(),
         shipFromStreet1: a.string(),
@@ -778,6 +783,18 @@ const schema = a
       .authorization((allow) => [allow.publicApiKey()])
       .handler(a.handler.function(logError)),
 
+    // Buyer confirms they received the item (records buyerReceivedAt + notifies
+    // the seller per their notifyReceipt pref). Buyer-only; handler verifies.
+    confirmReceipt: a
+      .mutation()
+      .arguments({
+        itemId: a.string().required(),
+        itemType: a.string().required(),
+      })
+      .returns(a.customType({ success: a.boolean(), message: a.string() }))
+      .authorization((allow) => [allow.authenticated()])
+      .handler(a.handler.function(confirmReceipt)),
+
     // Notify the original auction's bidders + watchers that it's been re-listed.
     // Seller/Admin only (the handler also verifies caller owns the new auction).
     notifyRelist: a
@@ -812,6 +829,7 @@ const schema = a
     allow.resource(recordFunds),
     allow.resource(logError),
     allow.resource(notifyRelist),
+    allow.resource(confirmReceipt),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

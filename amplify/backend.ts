@@ -23,6 +23,7 @@ import { createFundsSession } from "./functions/createFundsSession/resource";
 import { recordFunds } from "./functions/recordFunds/resource";
 import { logError } from "./functions/logError/resource";
 import { notifyRelist } from "./functions/notifyRelist/resource";
+import { confirmReceipt } from "./functions/confirmReceipt/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
@@ -51,6 +52,7 @@ const backend = defineBackend({
   recordFunds,
   logError,
   notifyRelist,
+  confirmReceipt,
 });
 
 const auctionTable = backend.data.resources.tables["Auction"];
@@ -217,3 +219,11 @@ const notifyRelistCfn = backend.notifyRelist.resources.lambda.node.defaultChild 
 notifyRelistCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
 notifyRelistCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
 notifyRelistCfn.addPropertyOverride("Environment.Variables.SMS_AUDIENCE", SMS_AUDIENCE);
+
+// confirmReceipt: buyer-confirms-receipt → notify seller (SES/SNS).
+backend.confirmReceipt.resources.lambda.addToRolePolicy(sesPolicy);
+backend.confirmReceipt.resources.lambda.addToRolePolicy(snsPolicy);
+const confirmReceiptCfn = backend.confirmReceipt.resources.lambda.node.defaultChild as CfnFunction;
+confirmReceiptCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
+confirmReceiptCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
+confirmReceiptCfn.addPropertyOverride("Environment.Variables.SMS_AUDIENCE", SMS_AUDIENCE);

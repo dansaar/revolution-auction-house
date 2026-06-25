@@ -15,7 +15,7 @@ const client = generateClient<Schema>();
 export const handler: Schema["saveSellerPrefs"]["functionHandler"] = async (
   event,
 ) => {
-  const { notifyVerifications, notifyOffers, phoneNumber, shipFromName, shipFromStreet1, shipFromStreet2, shipFromCity, shipFromState, shipFromZip, shipFromPhone } = event.arguments;
+  const { notifyVerifications, notifyOffers, notifyReceipt, phoneNumber, shipFromName, shipFromStreet1, shipFromStreet2, shipFromCity, shipFromState, shipFromZip, shipFromPhone } = event.arguments;
 
   const identity = event.identity as any;
   const claims = identity?.claims ?? {};
@@ -65,6 +65,7 @@ export const handler: Schema["saveSellerPrefs"]["functionHandler"] = async (
   const VALID_PREFS = ["email", "sms", "both", "none"];
   const safeVerif = VALID_PREFS.includes(notifyVerifications ?? "") ? notifyVerifications! : "email";
   const safeOffers = VALID_PREFS.includes(notifyOffers ?? "") ? notifyOffers! : "email";
+  const safeReceipt = VALID_PREFS.includes(notifyReceipt ?? "") ? notifyReceipt! : "email";
   const safePhone = phoneNumber ? phoneNumber.trim() : null;
 
   await client.models.SellerProfile.update(
@@ -72,6 +73,7 @@ export const handler: Schema["saveSellerPrefs"]["functionHandler"] = async (
       email: callerEmail,
       notifyVerifications: safeVerif,
       notifyOffers: safeOffers,
+      notifyReceipt: safeReceipt,
       phoneNumber: safePhone,
       ...(shipFromName !== undefined ? { shipFromName: shipFromName?.trim() || null } : {}),
       ...(shipFromStreet1 !== undefined ? { shipFromStreet1: shipFromStreet1?.trim() || null } : {}),

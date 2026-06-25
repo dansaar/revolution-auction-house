@@ -30,6 +30,7 @@ export default function SellerVerificationsPage() {
   const [myEmail, setMyEmail] = useState("");
   const [notifyVerifPref, setNotifyVerifPref] = useState("none");
   const [notifyOffersPref, setNotifyOffersPref] = useState("none");
+  const [notifyReceiptPref, setNotifyReceiptPref] = useState("email");
   const [notifyPhone, setNotifyPhone] = useState("");
   const [savingNotify, setSavingNotify] = useState(false);
   const [notifySaved, setNotifySaved] = useState(false);
@@ -134,6 +135,7 @@ export default function SellerVerificationsPage() {
       if (profile) {
         setNotifyVerifPref(profile.notifyVerifications ?? "email");
         setNotifyOffersPref(profile.notifyOffers ?? "email");
+        setNotifyReceiptPref(profile.notifyReceipt ?? "email");
         setNotifyPhone(profile.phoneNumber ?? "");
         if (profile.phoneVerified) {
           setPhoneVerified(true);
@@ -153,6 +155,7 @@ export default function SellerVerificationsPage() {
         {
           notifyVerifications: notifyVerifPref,
           notifyOffers: notifyOffersPref,
+          notifyReceipt: notifyReceiptPref,
           phoneNumber: notifyPhone || null,
         } as any,
         { authMode: "userPool" } as any,
@@ -266,8 +269,13 @@ export default function SellerVerificationsPage() {
               value={notifyOffersPref}
               onChange={setNotifyOffersPref}
             />
+            <NotifyRow
+              label="Buyer confirmed receipt"
+              value={notifyReceiptPref}
+              onChange={setNotifyReceiptPref}
+            />
 
-            {(notifyVerifPref === "sms" || notifyVerifPref === "both" || notifyOffersPref === "sms" || notifyOffersPref === "both") && (
+            {(notifyVerifPref === "sms" || notifyVerifPref === "both" || notifyOffersPref === "sms" || notifyOffersPref === "both" || notifyReceiptPref === "sms" || notifyReceiptPref === "both") && (
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-[0.15em] text-gray-500">Phone number (with country code)</label>
                 <div className="flex flex-wrap items-center gap-2">

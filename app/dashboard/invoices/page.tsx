@@ -17,6 +17,31 @@ export default function BuyerInvoicesPage() {
   // invoiceId -> { status, trackingNumber, carrier } pulled from the related record
   const [shipping, setShipping] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [confirming, setConfirming] = useState<string | null>(null);
+
+  async function confirmReceipt(invoiceId: string, itemId: string, itemType: string) {
+    if (!itemId) return;
+    setConfirming(invoiceId);
+    try {
+      const res = await client.mutations.confirmReceipt(
+        { itemId, itemType },
+        { authMode: "userPool" } as any,
+      );
+      if (!res.data?.success) {
+        alert(res.data?.message || "Could not confirm receipt.");
+        return;
+      }
+      setShipping((prev) => ({
+        ...prev,
+        [invoiceId]: { ...prev[invoiceId], buyerReceivedAt: new Date().toISOString() },
+      }));
+    } catch (err) {
+      console.error(err);
+      alert("Could not confirm receipt.");
+    } finally {
+      setConfirming(null);
+    }
+  }
 
   useEffect(() => {
     async function loadInvoices() {
@@ -45,7 +70,15 @@ export default function BuyerInvoicesPage() {
                 rec = (await client.models.MarketplaceListing.get({ id: inv.listingId }, { authMode: "apiKey" } as any)).data;
               }
               if (!rec) return null;
-              return [inv.id, { status: rec.shippingStatus, trackingNumber: rec.trackingNumber, carrier: rec.carrier, trackingUrl: rec.trackingUrl }] as const;
+              return [inv.id, {
+                status: rec.shippingStatus,
+                trackingNumber: rec.trackingNumber,
+                carrier: rec.carrier,
+                trackingUrl: rec.trackingUrl,
+                buyerReceivedAt: rec.buyerReceivedAt,
+                itemId: inv.auctionId || inv.listingId,
+                itemType: inv.auctionId ? "AUCTION" : "LISTING",
+              }] as const;
             } catch {
               return null;
             }
@@ -240,6 +273,32 @@ export default function BuyerInvoicesPage() {
                   carrier={shipping[invoice.id]?.carrier}
                   trackingUrl={shipping[invoice.id]?.trackingUrl}
                 />
+
+                {/* Buyer confirms receipt — available anytime after shipped. */}
+                {(() => {
+                  const s = shipping[invoice.id];
+                  if (!s) return null;
+                  const shipped = !!s.status && s.status !== "PAID";
+                  if (!shipped) return null;
+                  if (s.buyerReceivedAt) {
+                    return (
+                      <div className="mt-3 text-xs text-emerald-400">
+                        ✓ You confirmed receipt on{" "}
+                        {new Date(s.buyerReceivedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </div>
+                    );
+                  }
+                  return (
+                    <button
+                      type="button"
+                      disabled={confirming === invoice.id}
+                      onClick={() => confirmReceipt(invoice.id, s.itemId, s.itemType)}
+                      className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
+                    >
+                      {confirming === invoice.id ? "Confirming…" : "Confirm Receipt"}
+                    </button>
+                  );
+                })()}
               </div>
             ))
           )}
