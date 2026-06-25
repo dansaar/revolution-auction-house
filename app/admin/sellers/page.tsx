@@ -8,6 +8,7 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { isAdminUser } from "@/lib/sellers";
+import { confirmDialog } from "@/lib/confirm";
 
 const client = generateClient<Schema>();
 
@@ -123,7 +124,7 @@ export default function AdminSellersPage() {
   }
 
   async function revokeSeller(seller: any) {
-    const confirmed = confirm(`Revoke seller access for ${seller.email}?`);
+    const confirmed = await confirmDialog({ title: "Revoke seller", message: `Revoke seller access for ${seller.email}?`, confirmText: "Revoke", danger: true });
     if (!confirmed) return;
 
     try {

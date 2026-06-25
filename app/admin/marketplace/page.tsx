@@ -9,6 +9,7 @@ import type { Schema } from "@/amplify/data/resource";
 import { isAdminUser, adminFetchAllInvoices } from "@/lib/sellers";
 import { viewInvoicePdf, downloadInvoicePdf } from "@/lib/invoicePdf";
 import { toast } from "sonner";
+import { confirmDialog } from "@/lib/confirm";
 
 const client = generateClient<Schema>();
 
@@ -76,7 +77,7 @@ export default function AdminMarketplacePage() {
   }, []);
 
   async function deactivateListing(listing: any) {
-    if (!confirm(`Deactivate "${listing.title}"? It will no longer appear in the marketplace.`)) return;
+    if (!(await confirmDialog({ title: "Deactivate listing", message: `Deactivate "${listing.title}"? It will no longer appear in the marketplace.`, confirmText: "Deactivate", danger: true }))) return;
     try {
       setProcessingId(listing.id);
       await client.models.MarketplaceListing.update(
@@ -111,7 +112,7 @@ export default function AdminMarketplacePage() {
   }
 
   async function deleteListing(listing: any) {
-    if (!confirm(`Permanently delete "${listing.title}"?\n\nThis cannot be undone. Only delete listings with no buyer.`)) return;
+    if (!(await confirmDialog({ title: "Delete listing", message: `Permanently delete "${listing.title}"? This cannot be undone. Only delete listings with no buyer.`, confirmText: "Delete", danger: true }))) return;
     try {
       setProcessingId(listing.id);
       await client.models.MarketplaceListing.delete(

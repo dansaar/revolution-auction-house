@@ -9,6 +9,7 @@ import type { Schema } from "@/amplify/data/resource";
 import { isAdminUser, adminFetchAllInvoices } from "@/lib/sellers";
 import { viewInvoicePdf, downloadInvoicePdf } from "@/lib/invoicePdf";
 import { toast } from "sonner";
+import { confirmDialog } from "@/lib/confirm";
 
 const client = generateClient<Schema>();
 
@@ -84,7 +85,7 @@ export default function AdminAuctionsPage() {
   }, []);
 
   async function forceEnd(auction: any) {
-    if (!confirm(`Force-end "${auction.title}"? This cannot be undone.`)) return;
+    if (!(await confirmDialog({ title: "Force-end auction", message: `Force-end "${auction.title}"? This cannot be undone.`, confirmText: "Force End", danger: true }))) return;
     try {
       setProcessingId(auction.id);
       // Use finalizeAuction so the auction is properly settled: winner set from
@@ -112,7 +113,7 @@ export default function AdminAuctionsPage() {
   }
 
   async function cancelAuction(auction: any) {
-    if (!confirm(`Cancel "${auction.title}"? This will mark it CANCELLED with no winner.`)) return;
+    if (!(await confirmDialog({ title: "Cancel auction", message: `Cancel "${auction.title}"? This will mark it CANCELLED with no winner.`, confirmText: "Cancel Auction", cancelText: "Keep", danger: true }))) return;
     try {
       setProcessingId(auction.id);
       await client.models.Auction.update(
@@ -130,7 +131,7 @@ export default function AdminAuctionsPage() {
   }
 
   async function deleteAuction(auction: any) {
-    if (!confirm(`Permanently delete "${auction.title}"?\n\nThis cannot be undone. Only delete auctions with no bids or winner.`)) return;
+    if (!(await confirmDialog({ title: "Delete auction", message: `Permanently delete "${auction.title}"? This cannot be undone. Only delete auctions with no bids or winner.`, confirmText: "Delete", danger: true }))) return;
     try {
       setProcessingId(auction.id);
       await client.models.Auction.delete(

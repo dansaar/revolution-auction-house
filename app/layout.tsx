@@ -4,6 +4,7 @@ import Header from "./components/Header";
 import AnnouncementTicker from "./components/AnnouncementTicker";
 import SellerNotificationBanner from "./components/SellerNotificationBanner";
 import AmplifyProvider from "./amplify-provider";
+import ConfirmHost from "./components/ConfirmHost";
 import { Toaster } from "sonner";
 
 export const metadata = {
@@ -26,6 +27,8 @@ export default function RootLayout({
           <SellerNotificationBanner />
 
           {children}
+
+          <ConfirmHost />
 
           <Toaster
             position="top-center"

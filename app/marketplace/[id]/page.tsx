@@ -14,6 +14,7 @@ import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 import { moneyToNumber } from "@/lib/money";
 import { addToCart, isInCart } from "@/lib/cart";
 import { toast } from "sonner";
+import { confirmDialog } from "@/lib/confirm";
 
 const client = generateClient<Schema>();
 
@@ -353,7 +354,7 @@ export default function MarketplaceListingPage() {
     }
 
     try {
-      const confirmed = confirm("Buy this item now?");
+      const confirmed = await confirmDialog({ message: "Buy this item now?", confirmText: "Buy Now" });
       if (!confirmed) return;
 
       const res = await fetch("/api/checkout", {

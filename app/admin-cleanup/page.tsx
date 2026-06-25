@@ -7,6 +7,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { list, remove } from "aws-amplify/storage";
 import { isAdminUser } from "@/lib/sellers";
+import { confirmDialog } from "@/lib/confirm";
 
 const client = generateClient<Schema>();
 
@@ -47,9 +48,7 @@ export default function AdminCleanupPage() {
   }
 
   async function deleteS3Images() {
-    const confirmed = confirm(
-      "Delete all auction and marketplace images from S3?",
-    );
+    const confirmed = await confirmDialog({ message: "Delete all auction and marketplace images from S3?", confirmText: "Delete", danger: true });
     if (!confirmed) return;
 
     try {
@@ -92,9 +91,7 @@ export default function AdminCleanupPage() {
   }
 
   async function cleanup() {
-    const confirmed = confirm(
-      "This will permanently delete all auctions, bids, offers, invoices, watchlist items, auction states, and marketplace listings. Continue?",
-    );
+    const confirmed = await confirmDialog({ message: "This will permanently delete all auctions, bids, offers, invoices, watchlist items, auction states, and marketplace listings. Continue?", confirmText: "Delete everything", danger: true });
 
     if (!confirmed) return;
 

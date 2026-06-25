@@ -8,6 +8,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { isAdminUser } from "@/lib/sellers";
 import { toast } from "sonner";
+import { confirmDialog } from "@/lib/confirm";
 
 const client = generateClient<Schema>();
 
@@ -66,7 +67,7 @@ export default function AdminErrorsPage() {
   }
 
   async function clearAll() {
-    if (!confirm(`Delete all ${errors.length} error log entries?`)) return;
+    if (!(await confirmDialog({ title: "Clear error log", message: `Delete all ${errors.length} error log entries?`, confirmText: "Clear all", danger: true }))) return;
     setBusy(true);
     try {
       await Promise.all(
