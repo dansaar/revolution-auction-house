@@ -50,6 +50,9 @@ const schema = a
           allow.group("Admin"),
         ]),
         reserveMet: a.boolean(),
+        // Set when this auction has been re-listed, so it drops out of the
+        // seller's "Unsold" / re-list prompt (avoids duplicate re-lists).
+        relistedAt: a.datetime(),
         winningBid: a.string(),
         winnerEmail: a.string(),
         sellerName: a.string(),

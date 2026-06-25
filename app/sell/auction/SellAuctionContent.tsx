@@ -324,8 +324,17 @@ export default function SellAuctionContent() {
         ended: false,
       });
 
-      // If this is a re-list, notify the original auction's bidders + watchers.
+      // If this is a re-list: mark the original so it drops out of the seller's
+      // "Unsold" / re-list prompt, then notify the original's bidders + watchers.
       if (relistId) {
+        try {
+          await client.models.Auction.update(
+            { id: relistId, relistedAt: new Date().toISOString() },
+            { authMode: "userPool" } as any,
+          );
+        } catch (markErr) {
+          console.warn("MARK_RELISTED_FAILED", markErr);
+        }
         try {
           await client.mutations.notifyRelist(
             { originalAuctionId: relistId, newAuctionId: auction.id },

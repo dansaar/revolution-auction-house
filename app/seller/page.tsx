@@ -574,9 +574,10 @@ function SellerPage() {
 
   const unsoldAuctions = allEndedAuctions.filter(
     (a) =>
-      !a.winnerUserId ||
-      (a.reservePrice &&
-        moneyToNumber(a.price || 0) < moneyToNumber(a.reservePrice || 0)),
+      !a.relistedAt && // already re-listed → don't keep prompting to re-list
+      (!a.winnerUserId ||
+        (a.reservePrice &&
+          moneyToNumber(a.price || 0) < moneyToNumber(a.reservePrice || 0))),
   );
 
   const activeListings = marketplaceListings.filter(
@@ -1964,6 +1965,7 @@ function SellerAuctionCard({
             </div>
 
             {ended &&
+              !auction.relistedAt &&
               (!auction.winnerUserId ||
                 (auction.reservePrice &&
                   moneyToNumber(auction.price || 0) <
