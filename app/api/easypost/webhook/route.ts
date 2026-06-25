@@ -98,13 +98,18 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": apiKey },
       body: JSON.stringify({
-        query: `mutation UpdateShipping($trackingCode: String!, $status: String!, $secret: String!) {
-          updateShippingByTracking(trackingCode: $trackingCode, status: $status, secret: $secret) {
+        query: `mutation UpdateShipping($trackingCode: String!, $status: String!, $secret: String!, $trackingUrl: String) {
+          updateShippingByTracking(trackingCode: $trackingCode, status: $status, secret: $secret, trackingUrl: $trackingUrl) {
             updated
             message
           }
         }`,
-        variables: { trackingCode, status: newStatus, secret },
+        variables: {
+          trackingCode,
+          status: newStatus,
+          secret,
+          trackingUrl: (tracker as any)?.public_url || "",
+        },
       }),
     });
     const data = await res.json();

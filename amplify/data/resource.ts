@@ -717,6 +717,7 @@ const schema = a
         trackingCode: a.string().required(),
         status: a.string().required(),
         secret: a.string().required(),
+        trackingUrl: a.string(), // EasyPost public tracking page (backfill)
       })
       .returns(a.customType({
         updated: a.integer(),

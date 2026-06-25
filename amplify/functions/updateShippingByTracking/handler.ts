@@ -21,7 +21,7 @@ function shouldAdvance(current: string | null | undefined, next: string): boolea
 }
 
 export const handler: Schema["updateShippingByTracking"]["functionHandler"] = async (event) => {
-  const { trackingCode, status, secret } = event.arguments;
+  const { trackingCode, status, secret, trackingUrl } = event.arguments;
 
   // Reject unless the caller knows the shared secret (and one is configured).
   if (!WEBHOOK_SECRET || secret !== WEBHOOK_SECRET) {
@@ -42,12 +42,18 @@ export const handler: Schema["updateShippingByTracking"]["functionHandler"] = as
         limit: 50,
       });
       for (const item of res.data || []) {
-        if (!shouldAdvance(item.shippingStatus, status)) continue;
+        const advance = shouldAdvance(item.shippingStatus, status);
+        // Backfill the EasyPost tracking link on orders that don't have one yet
+        // (e.g. shipped before we captured it at purchase), even if the status
+        // itself isn't advancing on this event.
+        const setUrl = !!trackingUrl && !item.trackingUrl;
+        if (!advance && !setUrl) continue;
         await model.update(
           {
             id: item.id,
-            shippingStatus: status,
-            ...(status === "DELIVERED" ? { deliveredAt: now } : {}),
+            ...(advance ? { shippingStatus: status } : {}),
+            ...(advance && status === "DELIVERED" ? { deliveredAt: now } : {}),
+            ...(setUrl ? { trackingUrl } : {}),
           },
           { authMode: "iam" },
         );
