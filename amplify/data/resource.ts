@@ -529,6 +529,8 @@ const schema = a
         // for the legacy invoicesBySellerEmail lookup index.
         allow.ownerDefinedIn("buyerUserId"),
         allow.ownerDefinedIn("sellerUserId"),
+        // Shared ops: any Seller can read invoices (e.g. ship-to for any order).
+        allow.group("Seller").to(["read"]),
         allow.group("Admin"),
       ]),
 
