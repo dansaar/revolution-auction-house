@@ -45,7 +45,7 @@ export default function BuyerInvoicesPage() {
                 rec = (await client.models.MarketplaceListing.get({ id: inv.listingId }, { authMode: "apiKey" } as any)).data;
               }
               if (!rec) return null;
-              return [inv.id, { status: rec.shippingStatus, trackingNumber: rec.trackingNumber, carrier: rec.carrier }] as const;
+              return [inv.id, { status: rec.shippingStatus, trackingNumber: rec.trackingNumber, carrier: rec.carrier, trackingUrl: rec.trackingUrl }] as const;
             } catch {
               return null;
             }
@@ -238,6 +238,7 @@ export default function BuyerInvoicesPage() {
                   status={shipping[invoice.id]?.status}
                   trackingNumber={shipping[invoice.id]?.trackingNumber}
                   carrier={shipping[invoice.id]?.carrier}
+                  trackingUrl={shipping[invoice.id]?.trackingUrl}
                 />
               </div>
             ))

@@ -66,6 +66,9 @@ export const handler: Schema["purchaseShippingLabel"]["functionHandler"] = async
     const carrier = (purchased as any).selected_rate?.carrier || "";
     const labelUrl = (purchased as any).postage_label?.label_url || "";
     const easypostShipmentId = (purchased as any).id || shipmentId;
+    // EasyPost's universal public tracking page — fallback link when we don't
+    // have a carrier-specific tracking URL.
+    const trackingUrl = (purchased as any).tracker?.public_url || "";
 
     const now = new Date().toISOString();
 
@@ -76,6 +79,7 @@ export const handler: Schema["purchaseShippingLabel"]["functionHandler"] = async
           shippingStatus: "SHIPPED",
           carrier,
           trackingNumber,
+          trackingUrl,
           shippedAt: now,
           easypostShipmentId,
           shippingLabelUrl: labelUrl,
@@ -89,6 +93,7 @@ export const handler: Schema["purchaseShippingLabel"]["functionHandler"] = async
           shippingStatus: "SHIPPED",
           carrier,
           trackingNumber,
+          trackingUrl,
           shippedAt: now,
           easypostShipmentId,
           shippingLabelUrl: labelUrl,

@@ -127,8 +127,8 @@ function viewLabel(url?: string | null) {
   window.open(proxied, "_blank", "noopener,noreferrer");
 }
 
-function trackingUrl(carrier: string, trackingNumber: string) {
-  const c = carrier.toLowerCase();
+function trackingUrl(carrier: string, trackingNumber: string, fallbackUrl?: string) {
+  const c = (carrier || "").toLowerCase();
 
   if (c.includes("ups")) {
     return `https://www.ups.com/track?tracknum=${trackingNumber}`;
@@ -142,7 +142,12 @@ function trackingUrl(carrier: string, trackingNumber: string) {
     return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}`;
   }
 
-  return "";
+  if (c.includes("dhl")) {
+    return `https://www.dhl.com/us-en/home/tracking.html?tracking-id=${trackingNumber}`;
+  }
+
+  // Unknown carrier → EasyPost's universal public tracking page if we have it.
+  return fallbackUrl || "";
 }
 
 export default function SellerPageWrapper() {
@@ -1864,11 +1869,13 @@ function SellerAuctionCard({
                     {trackingUrl(
                       auction.carrier || "",
                       auction.trackingNumber || "",
+                      auction.trackingUrl,
                     ) && (
                       <a
                         href={trackingUrl(
                           auction.carrier || "",
                           auction.trackingNumber || "",
+                          auction.trackingUrl,
                         )}
                         target="_blank"
                         rel="noreferrer"
@@ -2365,11 +2372,13 @@ function MarketplaceSection({
                         {trackingUrl(
                           listing.carrier || "",
                           listing.trackingNumber || "",
+                          listing.trackingUrl,
                         ) && (
                           <a
                             href={trackingUrl(
                               listing.carrier || "",
                               listing.trackingNumber || "",
+                              listing.trackingUrl,
                             )}
                             target="_blank"
                             rel="noreferrer"
@@ -3184,7 +3193,7 @@ function SellerShipping({
 
   function Row({ item, bucket }: { item: any; bucket: "NEEDS" | "TRANSIT" | "DELIVERED" }) {
     const invoice = invoiceFor(item);
-    const track = trackingUrl(item.carrier || "", item.trackingNumber || "");
+    const track = trackingUrl(item.carrier || "", item.trackingNumber || "", item.trackingUrl);
     return (
       <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:flex-row sm:items-center">
         <img

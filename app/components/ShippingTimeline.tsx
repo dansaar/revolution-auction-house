@@ -12,28 +12,35 @@ const STEPS = [
   { code: "DELIVERED", label: "Delivered" },
 ];
 
-function carrierTrackingUrl(carrier?: string | null, tracking?: string | null): string | null {
-  if (!tracking) return null;
+function carrierTrackingUrl(
+  carrier?: string | null,
+  tracking?: string | null,
+  fallbackUrl?: string | null,
+): string | null {
+  if (!tracking) return fallbackUrl || null;
   const c = (carrier || "").toUpperCase();
   if (c.includes("USPS")) return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${tracking}`;
   if (c.includes("UPS")) return `https://www.ups.com/track?tracknum=${tracking}`;
   if (c.includes("FEDEX")) return `https://www.fedex.com/fedextrack/?trknbr=${tracking}`;
   if (c.includes("DHL")) return `https://www.dhl.com/us-en/home/tracking.html?tracking-id=${tracking}`;
-  return null;
+  // Unknown carrier → EasyPost's universal public tracking page if we have it.
+  return fallbackUrl || null;
 }
 
 export default function ShippingTimeline({
   status,
   trackingNumber,
   carrier,
+  trackingUrl,
 }: {
   status?: string | null;
   trackingNumber?: string | null;
   carrier?: string | null;
+  trackingUrl?: string | null;
 }) {
   const current = (status || "PAID").toUpperCase();
   const activeIndex = Math.max(0, STEPS.findIndex((s) => s.code === current));
-  const url = carrierTrackingUrl(carrier, trackingNumber);
+  const url = carrierTrackingUrl(carrier, trackingNumber, trackingUrl);
 
   return (
     <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4">

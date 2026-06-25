@@ -80,6 +80,7 @@ const schema = a
         shippingStatus: a.string(),
         trackingNumber: a.string(),
         carrier: a.string(),
+        trackingUrl: a.string(), // EasyPost public tracking page (fallback link)
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
         startsAt: a.datetime(),
@@ -167,6 +168,7 @@ const schema = a
         shippingStatus: a.string(),
         trackingNumber: a.string(),
         carrier: a.string(),
+        trackingUrl: a.string(), // EasyPost public tracking page (fallback link)
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
         lastOfferSmsAt: a.datetime(),
