@@ -2811,6 +2811,34 @@ function EasyPostModal({
   const [toPhone, setToPhone] = useState("");
   const manualTo = !!(toName || toStreet || toCity || toState || toZip);
 
+  // Pre-fill the Ship To from the buyer's invoice address so the seller can see
+  // (and confirm/edit) where it's going. Owner auth scopes to this seller.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const filter =
+          itemType === "AUCTION" ? { auctionId: { eq: itemId } } : { listingId: { eq: itemId } };
+        const res = await client.models.Invoice.list({ filter, authMode: "userPool", limit: 5 } as any);
+        const inv = (res.data || [])[0] as any;
+        if (cancelled || !inv) return;
+        // Only fill blanks — never clobber what the seller has typed.
+        setToName((v: string) => v || inv.shippingName || "");
+        setToStreet((v: string) => v || inv.shippingLine1 || "");
+        setToStreet2((v: string) => v || inv.shippingLine2 || "");
+        setToCity((v: string) => v || inv.shippingCity || "");
+        setToState((v: string) => v || inv.shippingState || "");
+        setToZip((v: string) => v || inv.shippingZip || "");
+        setToPhone((v: string) => v || inv.shippingPhone || "");
+      } catch {
+        /* non-fatal — backend still falls back to the invoice address */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [itemId, itemType, client]);
+
   async function handleGetRates() {
     if (!weight) { toast.error("Enter package weight"); return; }
     if (!fromName || !fromStreet || !fromCity || !fromState || !fromZip) {
