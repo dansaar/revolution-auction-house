@@ -13,6 +13,7 @@ import { moneyToNumber } from "@/lib/money";
 import { isAdminUser } from "@/lib/sellers";
 import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import * as Sentry from "@sentry/nextjs";
 import { privateBandLabel } from "@/lib/tiers";
 import { DashboardFilterBar, matchesSearch } from "@/app/components/DashboardFilters";
 import AnnouncementEditor from "@/app/components/AnnouncementEditor";
@@ -2860,13 +2861,21 @@ function EasyPostModal({
         { authMode: "userPool" } as any,
       );
       const data = (result as any).data;
-      if (data?.error) { setRatesError(data.error); return; }
+      if (data?.error) {
+        setRatesError(data.error);
+        Sentry.captureMessage(`Shipping rates failed: ${data.error}`, {
+          level: "error",
+          extra: { itemId, itemType },
+        } as any);
+        return;
+      }
       const parsed = JSON.parse(data?.ratesJson || "[]");
       setShipmentId(data?.shipmentId || "");
       setRates(parsed);
       setStep("rates");
     } catch (err: any) {
       setRatesError(err?.message || "Failed to get rates");
+      Sentry.captureException(err, { extra: { itemId, itemType } } as any);
     } finally {
       setFetchingRates(false);
     }
@@ -2874,6 +2883,7 @@ function EasyPostModal({
 
   async function handlePurchase(rate: any) {
     setPurchasing(true);
+    setRatesError("");
     try {
       const result = await client.mutations.purchaseShippingLabel(
         { itemId, itemType, shipmentId, rateId: rate.id },
@@ -2881,13 +2891,22 @@ function EasyPostModal({
       );
       const data = (result as any).data;
       if (!data?.success) {
-        toast.error(data?.error || "Purchase failed");
+        const msg = data?.error || "Purchase failed";
+        setRatesError(msg); // persistent in the modal
+        toast.error(msg);
+        Sentry.captureMessage(`Shipping label purchase failed: ${msg}`, {
+          level: "error",
+          extra: { itemId, itemType, shipmentId, rateId: rate.id, carrier: rate.carrier, service: rate.service },
+        } as any);
         return;
       }
       setPurchasedLabel({ trackingNumber: data.trackingNumber, carrier: data.carrier, labelUrl: data.labelUrl });
       setStep("purchasing");
     } catch (err: any) {
-      toast.error(err?.message || "Purchase failed");
+      const msg = err?.message || "Purchase failed";
+      setRatesError(msg);
+      toast.error(msg);
+      Sentry.captureException(err, { extra: { itemId, itemType, shipmentId, rateId: rate.id } } as any);
     } finally {
       setPurchasing(false);
     }
@@ -3016,6 +3035,13 @@ function EasyPostModal({
                 </div>
               ))}
             </div>
+
+            {ratesError && (
+              <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                <div className="font-semibold">Label purchase failed</div>
+                <div className="mt-1 text-red-300/90">{ratesError}</div>
+              </div>
+            )}
 
             <button type="button" onClick={() => setStep("form")} className="mt-4 text-xs text-gray-500 hover:text-white">← Back</button>
           </>
