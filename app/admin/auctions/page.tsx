@@ -216,8 +216,8 @@ export default function AdminAuctionsPage() {
               onClick={() => setFilterStatus(filterStatus === key ? "ALL" : key)}
               className={`rounded-xl border p-4 text-left transition ${
                 filterStatus === key
-                  ? "border-[#d6aa55]/50 bg-[#1a1408]"
-                  : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                  ? "border-[#d6aa55] bg-gradient-to-b from-[#241a09] to-[#1a1408] ring-1 ring-[#d6aa55]/50 shadow-[0_0_20px_rgba(214,170,85,0.28)]"
+                  : "border-white/10 bg-white/[0.03] opacity-70 hover:opacity-100 hover:border-[#d6aa55]/30"
               }`}
             >
               <div className="text-xs uppercase tracking-[0.18em] text-gray-500">{label}</div>
