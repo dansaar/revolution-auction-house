@@ -683,8 +683,8 @@ function SellerPage() {
             onClick={() => setActiveTab("auctions")}
             className={`w-36 group rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
               activeTab === "auctions"
-                ? "border-[#d6aa55]/60 bg-[#1a1408]"
-                : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
+                ? "border-[#d6aa55] bg-gradient-to-b from-[#2a1d0a] to-[#1a1408] shadow-[0_0_28px_rgba(214,170,85,0.4)] ring-1 ring-[#d6aa55]/50 -translate-y-1"
+                : "border-white/10 bg-white/[0.02] opacity-60 hover:opacity-100 hover:border-[#d6aa55]/40"
             }`}
           >
             <Gavel className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
@@ -696,8 +696,8 @@ function SellerPage() {
             onClick={() => setActiveTab("marketplace")}
             className={`w-36 group relative rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
               activeTab === "marketplace"
-                ? "border-[#d6aa55]/60 bg-[#1a1408]"
-                : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
+                ? "border-[#d6aa55] bg-gradient-to-b from-[#2a1d0a] to-[#1a1408] shadow-[0_0_28px_rgba(214,170,85,0.4)] ring-1 ring-[#d6aa55]/50 -translate-y-1"
+                : "border-white/10 bg-white/[0.02] opacity-60 hover:opacity-100 hover:border-[#d6aa55]/40"
             }`}
           >
             {pendingOfferCount > 0 && (
@@ -714,8 +714,8 @@ function SellerPage() {
             onClick={() => { setReturnToShipping(false); setActiveTab("shipping"); }}
             className={`w-36 group relative rounded-2xl border px-4 py-6 text-center transition hover:-translate-y-1 ${
               activeTab === "shipping"
-                ? "border-[#d6aa55]/60 bg-[#1a1408]"
-                : "border-[#d6aa55]/30 bg-[#1a1408]/60 hover:bg-[#1a1408]"
+                ? "border-[#d6aa55] bg-gradient-to-b from-[#2a1d0a] to-[#1a1408] shadow-[0_0_28px_rgba(214,170,85,0.4)] ring-1 ring-[#d6aa55]/50 -translate-y-1"
+                : "border-white/10 bg-white/[0.02] opacity-60 hover:opacity-100 hover:border-[#d6aa55]/40"
             }`}
           >
             {needsShippingCount > 0 && (
