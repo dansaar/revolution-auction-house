@@ -211,6 +211,39 @@ export default function AdminUsersPage() {
           ))}
         </div>
 
+        {/* Private Client band breakdown */}
+        {tierCounts.PRIVATE > 0 && (
+          <div className="mt-4 rounded-xl border border-purple-400/20 bg-purple-400/[0.04] p-4">
+            <div className="mb-3 text-[10px] uppercase tracking-[0.18em] text-gray-500">
+              Private Client by band
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "$10K–$100K", test: (n: number) => n <= 100_000 },
+                { label: "$100K–$500K", test: (n: number) => n > 100_000 && n <= 500_000 },
+                { label: "$500K–$1M", test: (n: number) => n > 500_000 },
+              ].map((band) => {
+                const count = buyers.filter(
+                  (b: any) =>
+                    (b.verificationTier || "") === "PRIVATE" &&
+                    band.test(Number(b.bidLimit || 0)),
+                ).length;
+                return (
+                  <div
+                    key={band.label}
+                    className="rounded-lg border border-purple-400/20 bg-black/30 p-3 text-center"
+                  >
+                    <div className="font-serif text-xl text-purple-200">{count}</div>
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.12em] text-gray-500">
+                      {band.label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Search + filters */}
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-3">
