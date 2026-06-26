@@ -11,6 +11,30 @@ Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
 
+// Shared secret for the reserveListing mutation (only AMPLIFY_-prefixed vars are
+// readable in the Next.js runtime). Reserving keeps a listing from being bought
+// twice while a buyer is in Stripe checkout.
+const RESERVE_SECRET =
+  process.env.EASYPOST_WEBHOOK_SECRET || process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET || "";
+
+// Abandoned Checkout Sessions expire after this, firing checkout.session.expired
+// so the webhook releases the hold. 30 min is Stripe's minimum.
+const CHECKOUT_EXPIRES_IN = 31 * 60;
+
+async function reserveListings(listingIds: string[], buyerSub: string) {
+  if (!RESERVE_SECRET || listingIds.length === 0) return;
+  try {
+    await client.mutations.reserveListing(
+      { listingIds, action: "RESERVE", buyerSub: buyerSub || undefined, secret: RESERVE_SECRET },
+      { authMode: "apiKey" } as any,
+    );
+  } catch (err) {
+    // Non-fatal: the listing just isn't held. isListingAvailable + the
+    // duplicate-payment refund in verifyPayment still guard against double-sale.
+    console.error("checkout: reserveListing failed", err);
+  }
+}
+
 const { aws_region: region, user_pool_id: userPoolId } = (outputs as any).auth;
 const JWKS = createRemoteJWKSet(
   new URL(
@@ -77,9 +101,14 @@ function calcAuctionAmounts(auction: any) {
 
 // A marketplace listing can only be bought when it's still active — not sold,
 // paid, or reserved by an accepted/pending offer.
-function isListingAvailable(listing: any): boolean {
+function isListingAvailable(listing: any, buyerSub?: string): boolean {
   if (listing.sold === true || listing.paid === true) return false;
-  const blocked = ["SOLD", "OFFER_PENDING", "OFFER_ACCEPTED", "PENDING_PAYMENT"];
+  // A reserved listing is available only to the buyer who placed the hold (so
+  // they can retry their own checkout); everyone else is blocked.
+  if (listing.status === "PENDING_PAYMENT") {
+    return !!buyerSub && listing.pendingBuyerSub === buyerSub;
+  }
+  const blocked = ["SOLD", "OFFER_PENDING", "OFFER_ACCEPTED"];
   if (blocked.includes(listing.status)) return false;
   return true;
 }
@@ -247,7 +276,7 @@ export async function POST(req: Request) {
           if (!listing) continue;
 
           // Skip items that sold / went to an accepted offer since being added.
-          if (!isListingAvailable(listing)) {
+          if (!isListingAvailable(listing, buyerSub)) {
             return NextResponse.json(
               { error: `"${listing.title || "An item"}" is no longer available. Remove it and try again.` },
               { status: 409 },
@@ -307,7 +336,14 @@ export async function POST(req: Request) {
         },
         success_url: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&type=cart`,
         cancel_url: `${siteUrl}/cart`,
+        expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_EXPIRES_IN,
       });
+
+      // Hold the marketplace listings so they can't be bought twice mid-checkout.
+      await reserveListings(
+        cartMeta.filter((m) => m.type === "MARKETPLACE").map((m) => String(m.id)),
+        buyerSub,
+      );
 
       return NextResponse.json({ url: session.url });
     }
@@ -392,7 +428,7 @@ export async function POST(req: Request) {
 
       // Availability check — close the common race where the item sold (or went
       // to an accepted offer) before this buyer checks out.
-      if (!isListingAvailable(listing)) {
+      if (!isListingAvailable(listing, buyerSub)) {
         return NextResponse.json(
           { error: "This item is no longer available." },
           { status: 409 },
@@ -442,7 +478,11 @@ export async function POST(req: Request) {
         },
         success_url: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&type=listing`,
         cancel_url: `${siteUrl}/marketplace/${listingId}`,
+        expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_EXPIRES_IN,
       });
+
+      // Hold the listing so it can't be bought twice mid-checkout.
+      await reserveListings([String(listingId)], buyerSub);
 
       return NextResponse.json({ url: session.url });
     }

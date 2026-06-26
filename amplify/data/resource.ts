@@ -14,6 +14,7 @@ import { saveSellerPrefs } from "../functions/saveSellerPrefs/resource";
 import { getShippingRates } from "../functions/getShippingRates/resource";
 import { purchaseShippingLabel } from "../functions/purchaseShippingLabel/resource";
 import { updateShippingByTracking } from "../functions/updateShippingByTracking/resource";
+import { reserveListing } from "../functions/reserveListing/resource";
 import { sendPhoneOtp } from "../functions/sendPhoneOtp/resource";
 import { verifyPhoneOtp } from "../functions/verifyPhoneOtp/resource";
 import { createFundsSession } from "../functions/createFundsSession/resource";
@@ -174,6 +175,7 @@ const schema = a
         shippedAt: a.datetime(),
         deliveredAt: a.datetime(),
         buyerReceivedAt: a.datetime(), // buyer-confirmed receipt
+        pendingBuyerSub: a.string(), // who holds the PENDING_PAYMENT checkout reservation
         lastOfferSmsAt: a.datetime(),
         easypostShipmentId: a.string(),
         shippingLabelUrl: a.string(),
@@ -733,6 +735,23 @@ const schema = a
       .authorization((allow) => [allow.publicApiKey()])
       .handler(a.handler.function(updateShippingByTracking)),
 
+    // Reserve/release a marketplace listing during checkout. Gated by the shared
+    // secret so a public apiKey caller can't flip listing status.
+    reserveListing: a
+      .mutation()
+      .arguments({
+        listingIds: a.string().array().required(),
+        action: a.string().required(), // "RESERVE" | "RELEASE"
+        buyerSub: a.string(), // reserver, so they can retry their own checkout
+        secret: a.string().required(),
+      })
+      .returns(a.customType({
+        updated: a.integer(),
+        message: a.string(),
+      }))
+      .authorization((allow) => [allow.publicApiKey()])
+      .handler(a.handler.function(reserveListing)),
+
     // Phone verification: send a one-time code by SMS, then verify it.
     sendPhoneOtp: a
       .mutation()
@@ -825,6 +844,7 @@ const schema = a
     allow.resource(getShippingRates),
     allow.resource(purchaseShippingLabel),
     allow.resource(updateShippingByTracking),
+    allow.resource(reserveListing),
     allow.resource(sendPhoneOtp),
     allow.resource(verifyPhoneOtp),
     allow.resource(createFundsSession),

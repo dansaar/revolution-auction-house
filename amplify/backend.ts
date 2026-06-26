@@ -17,6 +17,7 @@ import { saveSellerPrefs } from "./functions/saveSellerPrefs/resource";
 import { getShippingRates } from "./functions/getShippingRates/resource";
 import { purchaseShippingLabel } from "./functions/purchaseShippingLabel/resource";
 import { updateShippingByTracking } from "./functions/updateShippingByTracking/resource";
+import { reserveListing } from "./functions/reserveListing/resource";
 import { sendPhoneOtp } from "./functions/sendPhoneOtp/resource";
 import { verifyPhoneOtp } from "./functions/verifyPhoneOtp/resource";
 import { createFundsSession } from "./functions/createFundsSession/resource";
@@ -46,6 +47,7 @@ const backend = defineBackend({
   getShippingRates,
   purchaseShippingLabel,
   updateShippingByTracking,
+  reserveListing,
   sendPhoneOtp,
   verifyPhoneOtp,
   createFundsSession,
@@ -198,6 +200,15 @@ const updateShippingByTrackingCfn = backend.updateShippingByTracking.resources.l
 // read at runtime, so the Lambda must check against the SAME value or the
 // mutation rejects with "unauthorized".
 updateShippingByTrackingCfn.addPropertyOverride(
+  "Environment.Variables.WEBHOOK_SECRET",
+  process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET || process.env.EASYPOST_WEBHOOK_SECRET || "",
+);
+
+// reserveListing reuses the same shared secret — the /api/checkout route and the
+// Stripe webhook pass it to reserve/release listings during checkout.
+const reserveListingCfn = backend.reserveListing.resources.lambda.node
+  .defaultChild as CfnFunction;
+reserveListingCfn.addPropertyOverride(
   "Environment.Variables.WEBHOOK_SECRET",
   process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET || process.env.EASYPOST_WEBHOOK_SECRET || "",
 );

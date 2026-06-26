@@ -51,6 +51,7 @@ export default function MarketplacePage() {
           listing.paid !== true &&
           (listing.status === "ACTIVE" ||
             listing.status === "OFFER_PENDING" ||
+            listing.status === "PENDING_PAYMENT" ||
             !listing.status)
         );
       });
@@ -178,6 +179,12 @@ export default function MarketplacePage() {
                   {listing.status === "OFFER_PENDING" && (
                     <div className="mt-2 inline-flex rounded bg-yellow-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-yellow-300">
                       Offer Pending
+                    </div>
+                  )}
+
+                  {listing.status === "PENDING_PAYMENT" && (
+                    <div className="mt-2 inline-flex rounded bg-orange-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-orange-300">
+                      Pending Sale
                     </div>
                   )}
 

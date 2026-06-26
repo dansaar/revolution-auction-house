@@ -523,7 +523,8 @@ export default function MarketplaceListingPage() {
                 listing.sold ||
                 listing.status === "SOLD" ||
                 listing.status === "OFFER_PENDING" ||
-                listing.status === "OFFER_ACCEPTED"
+                listing.status === "OFFER_ACCEPTED" ||
+                listing.status === "PENDING_PAYMENT"
               }
               className="mt-8 w-full rounded bg-[#c0c0c0] py-4 font-semibold text-black transition hover:bg-white disabled:opacity-50 md:mt-10"
             >
@@ -531,11 +532,13 @@ export default function MarketplaceListingPage() {
                 ? "Not Available"
                 : listing.sold || listing.status === "SOLD"
                   ? "Sold"
-                  : listing.status === "OFFER_PENDING"
-                    ? "Offer Pending"
-                    : listing.status === "OFFER_ACCEPTED"
-                      ? "Offer Accepted"
-                      : "Buy Now"}
+                  : listing.status === "PENDING_PAYMENT"
+                    ? "Pending Sale"
+                    : listing.status === "OFFER_PENDING"
+                      ? "Offer Pending"
+                      : listing.status === "OFFER_ACCEPTED"
+                        ? "Offer Accepted"
+                        : "Buy Now"}
             </button>
 
             {!isSeller &&
@@ -543,7 +546,8 @@ export default function MarketplaceListingPage() {
               !listing.sold &&
               listing.status !== "SOLD" &&
               listing.status !== "OFFER_PENDING" &&
-              listing.status !== "OFFER_ACCEPTED" && (
+              listing.status !== "OFFER_ACCEPTED" &&
+              listing.status !== "PENDING_PAYMENT" && (
                 <button
                   onClick={handleAddToCart}
                   className="mt-3 w-full rounded border border-[#c0c0c0]/40 bg-transparent py-4 font-semibold text-[#c0c0c0] transition hover:bg-[#c0c0c0]/10"

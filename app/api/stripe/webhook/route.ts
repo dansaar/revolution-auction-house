@@ -13,6 +13,40 @@ const client = generateClient<Schema>();
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const RESERVE_SECRET =
+  process.env.EASYPOST_WEBHOOK_SECRET || process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET || "";
+
+// Pull the marketplace listing ids out of a session's metadata (single buy or cart).
+function listingIdsFromSession(session: Stripe.Checkout.Session): string[] {
+  const ids: string[] = [];
+  if (session.metadata?.listingId) ids.push(String(session.metadata.listingId));
+  if (session.metadata?.cartItems) {
+    try {
+      for (const m of JSON.parse(session.metadata.cartItems)) {
+        if (m?.type === "MARKETPLACE" && m?.id) ids.push(String(m.id));
+      }
+    } catch {
+      /* ignore malformed metadata */
+    }
+  }
+  return ids;
+}
+
+// Release any PENDING_PAYMENT hold we placed when the session was created (only
+// listings still pending are touched — never a paid/sold item).
+async function releaseSessionListings(session: Stripe.Checkout.Session) {
+  const ids = listingIdsFromSession(session);
+  if (!RESERVE_SECRET || ids.length === 0) return;
+  try {
+    await client.mutations.reserveListing(
+      { listingIds: ids, action: "RELEASE", secret: RESERVE_SECRET },
+      { authMode: "apiKey" } as any,
+    );
+  } catch (err) {
+    console.error("webhook: reserveListing RELEASE failed", err);
+  }
+}
+
 export async function POST(request: Request) {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -97,8 +131,17 @@ export async function POST(request: Request) {
           severity: "WARN",
           url: "/api/stripe/webhook",
         });
-        // Nothing was marked sold (we only mark on "paid"), so no rollback
-        // needed. The buyer is notified by Stripe; surfaced here for monitoring.
+        // Nothing was marked sold (we only mark on "paid"), so release the hold
+        // we placed at checkout so the listing returns to the marketplace.
+        await releaseSessionListings(session);
+        break;
+      }
+
+      // Buyer abandoned checkout (or it timed out) — release the reservation.
+      case "checkout.session.expired": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log("WEBHOOK checkout.session.expired:", session.id);
+        await releaseSessionListings(session);
         break;
       }
 
