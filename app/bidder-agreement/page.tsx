@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import BidderAgreementContent from "../components/BidderAgreementContent";
+import BidderAgreementContent, {
+  AGREEMENT_EFFECTIVE_DATE,
+} from "../components/BidderAgreementContent";
 
 export default function BidderAgreementPage() {
   return (
@@ -23,7 +25,9 @@ export default function BidderAgreementPage() {
           </h2>
         </div>
 
-        <p className="mt-4 text-sm text-gray-500">Last updated: May 30, 2026</p>
+        <p className="mt-4 text-sm text-gray-500">
+          Last updated: {AGREEMENT_EFFECTIVE_DATE}
+        </p>
 
         <button
           type="button"
