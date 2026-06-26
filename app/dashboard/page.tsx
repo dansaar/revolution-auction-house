@@ -1168,25 +1168,27 @@ export default function DashboardPage() {
                 )}
               </Panel>
 
-              <Panel title="Marketplace Purchases">
+              <Panel title="Marketplace Purchases" className="lg:col-span-2">
                 {marketplacePurchases.filter((l: any) => matchesSearch(l.title, buyerSearch)).length === 0 ? (
                   <Empty text="No marketplace purchases yet." />
                 ) : (
-                  marketplacePurchases
-                    .filter((l: any) => matchesSearch(l.title, buyerSearch))
-                    .map((listing: any) => (
-                    <MarketplacePurchaseRow
-                      key={listing.id}
-                      listing={listing}
-                      invoice={invoices.find(
-                        (invoice: any) =>
-                          String(invoice.listingId) === String(listing.id),
-                      )}
-                      onViewInvoice={viewInvoicePdf}
-                      onDownloadInvoice={downloadInvoicePdf}
-                      formatInvoiceAmount={formatInvoiceAmount}
-                    />
-                  ))
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {marketplacePurchases
+                      .filter((l: any) => matchesSearch(l.title, buyerSearch))
+                      .map((listing: any) => (
+                      <MarketplacePurchaseRow
+                        key={listing.id}
+                        listing={listing}
+                        invoice={invoices.find(
+                          (invoice: any) =>
+                            String(invoice.listingId) === String(listing.id),
+                        )}
+                        onViewInvoice={viewInvoicePdf}
+                        onDownloadInvoice={downloadInvoicePdf}
+                        formatInvoiceAmount={formatInvoiceAmount}
+                      />
+                    ))}
+                  </div>
                 )}
               </Panel>
             </>
@@ -1209,9 +1211,9 @@ function Stat({ icon: Icon, label, value }: any) {
   );
 }
 
-function Panel({ title, children }: any) {
+function Panel({ title, children, className = "" }: any) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-6">
+    <div className={`rounded-xl border border-white/10 bg-white/[0.03] p-6 ${className}`}>
       <h2 className="mb-5 font-serif text-2xl">{title}</h2>
       {children}
     </div>
@@ -1535,7 +1537,7 @@ function MarketplacePurchaseRow({
   formatInvoiceAmount,
 }: any) {
   return (
-    <div className="mb-3 rounded border border-emerald-500/30 bg-emerald-500/10 p-4">
+    <div className="flex h-full flex-col rounded border border-emerald-500/30 bg-emerald-500/10 p-4">
       <div className="flex items-center justify-between gap-4">
         <Link
           href={`/marketplace/${listing.id}`}
