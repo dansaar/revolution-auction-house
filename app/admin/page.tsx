@@ -331,15 +331,9 @@ export default function AdminPage() {
           />
 
           <AdminCard
-            title="Seller Controls"
-            description="Approve sellers and manage invite-only access."
-            href="/admin/sellers"
-          />
-
-          <AdminCard
-            title="User Management"
-            description="View all buyers, edit tiers, purchase history, and online status."
-            href="/admin/users"
+            title="Accounts"
+            description="Buyers (tiers, history, status) and Sellers (approvals, invite access) in one place."
+            href="/admin/accounts"
           />
 
           <AdminCard
