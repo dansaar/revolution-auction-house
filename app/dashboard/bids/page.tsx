@@ -38,7 +38,7 @@ function makeBidderDisplayName(value: string) {
   return `Bidder ${value.slice(0, 4).toUpperCase()}`;
 }
 
-const STATUS_ORDER = ["outbid", "winning", "pay-now", "paid", "lost"] as const;
+const STATUS_ORDER = ["outbid", "winning", "pay-now", "paid", "reserve-not-met", "lost"] as const;
 type Status = typeof STATUS_ORDER[number];
 
 const STATUS_CONFIG: Record<Status, { label: string; className: string }> = {
@@ -46,6 +46,7 @@ const STATUS_CONFIG: Record<Status, { label: string; className: string }> = {
   winning:  { label: "Winning",   className: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20" },
   "pay-now":{ label: "Won · Pay Now", className: "bg-[#d6aa55]/10 text-[#e7c77f] border-[#d6aa55]/30" },
   paid:     { label: "Won · Paid",    className: "bg-blue-500/10 text-blue-300 border-blue-500/20" },
+  "reserve-not-met": { label: "Reserve Not Met", className: "bg-orange-500/10 text-orange-300 border-orange-500/20" },
   lost:     { label: "Lost",      className: "bg-white/5 text-gray-500 border-white/10" },
 };
 
@@ -136,11 +137,19 @@ export default function MyBidsPage() {
           const isLeading = meValues.has(String(leaderUserId));
           const isPaid = auction.paid === true || invoiceMap[auctionId] === true;
 
+          // A reserve auction that ended below its reserve did NOT sell — the high
+          // bidder doesn't owe payment, so don't show it as "Won · Pay Now".
+          const reservePrice = moneyToNumber(auction.reservePrice || 0);
+          const finalPrice = moneyToNumber(currentPrice);
+          const reserveMet = reservePrice <= 0 || finalPrice >= reservePrice;
+
           let status: Status;
           if (!isEnded) {
             status = isLeading ? "winning" : "outbid";
-          } else if (isLeading) {
+          } else if (isLeading && reserveMet) {
             status = isPaid ? "paid" : "pay-now";
+          } else if (isLeading && !reserveMet) {
+            status = "reserve-not-met";
           } else {
             status = "lost";
           }
@@ -231,6 +240,7 @@ export default function MyBidsPage() {
             ["winning", "Winning"],
             ["pay-now", "Pay Now"],
             ["paid", "Paid"],
+            ["reserve-not-met", "Reserve Not Met"],
             ["lost", "Lost"],
           ] as const).map(([key, label]) => {
             const count = counts[key] ?? 0;
