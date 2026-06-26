@@ -355,15 +355,9 @@ export default function AdminPage() {
           />
 
           <AdminCard
-            title="Stripe Health"
-            description="Confirm keys, ACH, and Financial Connections are wired correctly."
-            href="/admin/stripe"
-          />
-
-          <AdminCard
-            title="Error Log"
-            description="In-app backstop to Sentry — recent server-side failures."
-            href="/admin/errors"
+            title="System Health"
+            description="Stripe wiring checks and the in-app server-error backstop."
+            href="/admin/system"
           />
         </div>
       </div>
