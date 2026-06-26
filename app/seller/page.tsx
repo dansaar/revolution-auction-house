@@ -1591,9 +1591,6 @@ function SellerAuctionCard({
 }: any) {
   const ended =
     auction.ended || (auction.endsAt && new Date(auction.endsAt).getTime() < Date.now());
-  const isOwner =
-    auction.sellerEmail === sellerEmail ||
-    auction.sellerUserId === sellerUserId;
 
   const hasBids = Number(auction.bids || 0) > 0;
 
@@ -1783,7 +1780,9 @@ function SellerAuctionCard({
                     View Auction
                   </Link>
 
-                  {isOwner && !hasBids && !ended && (
+                  {/* Shared-ops: any seller on the team can edit any auction
+                      (while it has no bids and hasn't ended), not just the owner. */}
+                  {!hasBids && !ended && (
                     <Link
                       href={`/sell/auction/${auction.id}/edit`}
                       className="rounded-lg border border-[#d6aa55]/30 bg-white/5 px-4 py-3 text-center text-sm font-medium tracking-wide text-[#e7c77f] backdrop-blur-sm transition hover:border-[#d6aa55]/50 hover:bg-white/10"

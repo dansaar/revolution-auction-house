@@ -52,7 +52,6 @@ export default function CreateAuctionPage() {
   const [hasBids, setHasBids] = useState(false);
   const [currentSellerEmail, setCurrentSellerEmail] = useState("");
   const [currentSellerUserId, setCurrentSellerUserId] = useState("");
-  const [notOwner, setNotOwner] = useState(false);
 
   useEffect(() => {
     async function checkSeller() {
@@ -89,14 +88,8 @@ export default function CreateAuctionPage() {
         const auction = result.data;
 
         if (!auction) return;
-        const sellerMatches =
-          auction.sellerEmail === currentSellerEmail ||
-          auction.sellerUserId === currentSellerUserId;
-
-        if (!sellerMatches) {
-          setNotOwner(true);
-          return;
-        }
+        // Shared-ops: any approved seller (gated by isSeller) can edit any team
+        // auction, not just the original creator.
         const bidCount = Number(auction.bids || 0);
 
         const bidResult = await client.models.Bid.bidsByAuction({ auctionId }, {
@@ -235,18 +228,6 @@ export default function CreateAuctionPage() {
         { id: auctionId },
         { authMode: "apiKey" },
       );
-      const latest = latestAuction.data;
-
-      const sellerMatches =
-        latest?.sellerEmail === currentSellerEmail ||
-        latest?.sellerUserId === currentSellerUserId;
-
-      if (!sellerMatches) {
-        toast.error("You do not have permission to edit this auction.");
-        router.push("/seller");
-        return;
-      }
-
       const latestBidCount = Number(latestAuction.data?.bids || 0);
 
       const bidCheck = await client.models.Bid.bidsByAuction({ auctionId }, {
@@ -345,27 +326,6 @@ export default function CreateAuctionPage() {
             className="mt-6 inline-block rounded bg-[#c0c0c0] px-5 py-3 font-semibold text-black"
           >
             Back Home
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  if (notOwner) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#050607] px-6 text-white">
-        <div className="max-w-lg rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center">
-          <h1 className="font-serif text-3xl text-red-300">Access Denied</h1>
-
-          <p className="mt-3 text-gray-300">
-            You can only edit auctions created by your seller account.
-          </p>
-
-          <Link
-            href="/seller"
-            className="mt-6 inline-block rounded bg-[#c0c0c0] px-5 py-3 font-semibold text-black"
-          >
-            Back to Seller Dashboard
           </Link>
         </div>
       </main>
