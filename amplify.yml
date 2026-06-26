@@ -1,0 +1,36 @@
+version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - npm ci --cache .npm --prefer-offline
+        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+
+frontend:
+  phases:
+    build:
+      commands:
+        # Fail fast if a required runtime secret is missing from the Amplify env.
+        - ': "${STRIPE_SECRET_KEY:?Missing STRIPE_SECRET_KEY in Amplify environment variables}"'
+        - ': "${STRIPE_WEBHOOK_SECRET:?Missing STRIPE_WEBHOOK_SECRET in Amplify environment variables}"'
+        - ': "${NEXT_PUBLIC_SITE_URL:?Missing NEXT_PUBLIC_SITE_URL in Amplify environment variables}"'
+        - ': "${EASYPOST_WEBHOOK_SECRET:?Missing EASYPOST_WEBHOOK_SECRET in Amplify environment variables}"'
+        # Next.js route handlers read process.env at runtime from .env.production —
+        # console env vars are NOT otherwise exposed to the SSR runtime, so every
+        # secret a route/webhook needs must be written here.
+        - rm -f .env.production
+        - printf "STRIPE_SECRET_KEY=%s\n" "$STRIPE_SECRET_KEY" >> .env.production
+        - printf "STRIPE_WEBHOOK_SECRET=%s\n" "$STRIPE_WEBHOOK_SECRET" >> .env.production
+        - printf "NEXT_PUBLIC_SITE_URL=%s\n" "$NEXT_PUBLIC_SITE_URL" >> .env.production
+        - printf "EASYPOST_WEBHOOK_SECRET=%s\n" "$EASYPOST_WEBHOOK_SECRET" >> .env.production
+        - npm run build
+
+  artifacts:
+    baseDirectory: .next
+    files:
+      - "**/*"
+
+  cache:
+    paths:
+      - .next/cache/**/*
+      - .npm/**/*
