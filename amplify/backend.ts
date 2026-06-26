@@ -194,9 +194,12 @@ purchaseShippingLabelCfn.addPropertyOverride("Environment.Variables.EASYPOST_API
 // /api/easypost/webhook route uses to verify EasyPost + call the mutation).
 const updateShippingByTrackingCfn = backend.updateShippingByTracking.resources.lambda.node
   .defaultChild as CfnFunction;
+// Prefer the AMPLIFY_-prefixed value — that's what the Next.js webhook route can
+// read at runtime, so the Lambda must check against the SAME value or the
+// mutation rejects with "unauthorized".
 updateShippingByTrackingCfn.addPropertyOverride(
   "Environment.Variables.WEBHOOK_SECRET",
-  process.env.EASYPOST_WEBHOOK_SECRET || "",
+  process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET || process.env.EASYPOST_WEBHOOK_SECRET || "",
 );
 
 // In-app ErrorLog: the logError Lambda writes directly to its table (so the
@@ -208,7 +211,10 @@ const logErrorCfn = backend.logError.resources.lambda.node.defaultChild as CfnFu
 logErrorCfn.addPropertyOverride("Environment.Variables.ERROR_LOG_TABLE_NAME", errorLogTable.tableName);
 logErrorCfn.addPropertyOverride(
   "Environment.Variables.ERROR_LOG_SECRET",
-  process.env.ERROR_LOG_SECRET || process.env.EASYPOST_WEBHOOK_SECRET || "",
+  process.env.ERROR_LOG_SECRET ||
+    process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET ||
+    process.env.EASYPOST_WEBHOOK_SECRET ||
+    "",
 );
 
 // notifyRelist: emails/texts the original auction's bidders + watchers when an
