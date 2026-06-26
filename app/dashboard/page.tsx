@@ -1123,43 +1123,6 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <Panel title="Marketplace Purchases">
-                {marketplacePurchases.filter((l: any) => matchesSearch(l.title, buyerSearch)).length === 0 ? (
-                  <Empty text="No marketplace purchases yet." />
-                ) : (
-                  marketplacePurchases
-                    .filter((l: any) => matchesSearch(l.title, buyerSearch))
-                    .map((listing: any) => (
-                    <MarketplacePurchaseRow
-                      key={listing.id}
-                      listing={listing}
-                      invoice={invoices.find(
-                        (invoice: any) =>
-                          String(invoice.listingId) === String(listing.id),
-                      )}
-                      onViewInvoice={viewInvoicePdf}
-                      onDownloadInvoice={downloadInvoicePdf}
-                      formatInvoiceAmount={formatInvoiceAmount}
-                    />
-                  ))
-                )}
-              </Panel>
-
-              <Panel title="Accepted Marketplace Offers">
-                {acceptedOffers.filter((l: any) => matchesSearch(l.title, buyerSearch)).length === 0 ? (
-                  <Empty text="No accepted marketplace offers." />
-                ) : (
-                  acceptedOffers
-                    .filter((l: any) => matchesSearch(l.title, buyerSearch))
-                    .map((listing: any) => (
-                    <AcceptedMarketplaceRow
-                      key={listing.id}
-                      listing={listing}
-                    />
-                  ))
-                )}
-              </Panel>
-
               <Panel title="Offer Notifications">
                 {buyerOffers.length === 0 ? (
                   <Empty text="No offer updates yet." />
@@ -1187,6 +1150,43 @@ export default function DashboardPage() {
                         onDismiss={dismissOfferNotification}
                       />
                     ))
+                )}
+              </Panel>
+
+              <Panel title="Accepted Marketplace Offers">
+                {acceptedOffers.filter((l: any) => matchesSearch(l.title, buyerSearch)).length === 0 ? (
+                  <Empty text="No accepted marketplace offers." />
+                ) : (
+                  acceptedOffers
+                    .filter((l: any) => matchesSearch(l.title, buyerSearch))
+                    .map((listing: any) => (
+                    <AcceptedMarketplaceRow
+                      key={listing.id}
+                      listing={listing}
+                    />
+                  ))
+                )}
+              </Panel>
+
+              <Panel title="Marketplace Purchases">
+                {marketplacePurchases.filter((l: any) => matchesSearch(l.title, buyerSearch)).length === 0 ? (
+                  <Empty text="No marketplace purchases yet." />
+                ) : (
+                  marketplacePurchases
+                    .filter((l: any) => matchesSearch(l.title, buyerSearch))
+                    .map((listing: any) => (
+                    <MarketplacePurchaseRow
+                      key={listing.id}
+                      listing={listing}
+                      invoice={invoices.find(
+                        (invoice: any) =>
+                          String(invoice.listingId) === String(listing.id),
+                      )}
+                      onViewInvoice={viewInvoicePdf}
+                      onDownloadInvoice={downloadInvoicePdf}
+                      formatInvoiceAmount={formatInvoiceAmount}
+                    />
+                  ))
                 )}
               </Panel>
             </>
