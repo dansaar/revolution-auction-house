@@ -1892,6 +1892,12 @@ function SellerAuctionCard({
                     </div>
                   )}
 
+                  {auction.buyerReceivedAt && (
+                    <div className="mt-2 text-xs font-semibold text-emerald-400">
+                      ✓ Buyer confirmed receipt on {new Date(auction.buyerReceivedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </div>
+                  )}
+
                   {!auction.shippingLabelUrl && !auction.trackingNumber && (
                     <button
                       type="button"
@@ -2392,6 +2398,12 @@ function MarketplaceSection({
                       {listing.trackingNumber && (
                         <div className="mt-3 text-xs text-gray-500">
                           Tracking: {listing.carrier} {listing.trackingNumber}
+                        </div>
+                      )}
+
+                      {listing.buyerReceivedAt && (
+                        <div className="mt-2 text-xs font-semibold text-emerald-400">
+                          ✓ Buyer confirmed receipt on {new Date(listing.buyerReceivedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </div>
                       )}
 
@@ -3220,6 +3232,11 @@ function SellerShipping({
           {item.trackingNumber && (
             <div className="mt-0.5 text-xs text-gray-500">
               {item.carrier} {item.trackingNumber}
+            </div>
+          )}
+          {item.buyerReceivedAt && (
+            <div className="mt-0.5 text-xs font-semibold text-emerald-400">
+              ✓ Buyer confirmed receipt
             </div>
           )}
         </div>
