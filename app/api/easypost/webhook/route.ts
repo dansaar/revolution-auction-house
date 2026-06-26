@@ -43,6 +43,13 @@ export async function POST(request: NextRequest) {
       console.error(
         `EASYPOST_WEBHOOK: signature mismatch (received len ${received.length}, expected len ${expected.length}) — check the secret matches the EasyPost webhook`,
       );
+      await serverLogError({
+        source: "easypost/webhook",
+        message:
+          "HMAC signature mismatch — the EasyPost webhook's secret must equal AMPLIFY_EASYPOST_WEBHOOK_SECRET / EASYPOST_WEBHOOK_SECRET.",
+        severity: "ERROR",
+        url: "/api/easypost/webhook",
+      });
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
   }

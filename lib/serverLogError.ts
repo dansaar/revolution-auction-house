@@ -14,7 +14,14 @@ export async function serverLogError(params: {
   try {
     const apiUrl = (outputs as any).data?.url as string;
     const apiKey = (outputs as any).data?.api_key as string;
-    const secret = process.env.ERROR_LOG_SECRET || process.env.EASYPOST_WEBHOOK_SECRET || "";
+    // Amplify's Next.js runtime only exposes AMPLIFY_-prefixed env vars, so the
+    // plain ERROR_LOG_SECRET/EASYPOST_WEBHOOK_SECRET are undefined here — include
+    // the AMPLIFY_ fallback or logging silently no-ops.
+    const secret =
+      process.env.ERROR_LOG_SECRET ||
+      process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET ||
+      process.env.EASYPOST_WEBHOOK_SECRET ||
+      "";
     if (!apiUrl || !apiKey || !secret) return;
 
     const context =
