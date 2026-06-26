@@ -130,11 +130,14 @@ export async function POST(request: NextRequest) {
         url: "/api/easypost/webhook",
       });
     } else {
-      // Surface the mutation's business result so a no-op isn't silent:
-      // updated:0 = no matching order, message:"unauthorized" = secret mismatch.
+      // Surface only real problems (secret mismatch, missing args, no result).
+      // A clean "ok" with updated:0 is benign — EasyPost fires several
+      // tracker.updated events per shipment and most don't advance the status —
+      // so don't log those or the backstop fills with noise. (CloudWatch still
+      // has the full result below for debugging.)
       const result = data?.data?.updateShippingByTracking;
       console.log("EASYPOST_WEBHOOK_RESULT", JSON.stringify(result));
-      if (!result || result.updated === 0 || result.message !== "ok") {
+      if (!result || result.message !== "ok") {
         await serverLogError({
           source: "easypost/webhook",
           message: `updateShippingByTracking did not update an order (${result?.message || "no result"})`,
