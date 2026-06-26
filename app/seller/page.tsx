@@ -1924,7 +1924,7 @@ function SellerAuctionCard({
                     </button>
                   )}
 
-                  {auction.shippingLabelUrl && (
+                  {auction.shippingLabelUrl && auction.shippingStatus !== "DELIVERED" && (
                     <button
                       type="button"
                       onClick={() => viewLabel(auction.shippingLabelUrl)}
@@ -1934,21 +1934,28 @@ function SellerAuctionCard({
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShippingCarrier(auction.carrier || "");
-                      setShippingTracking(auction.trackingNumber || "");
-                      setShowShippingModal(true);
-                    }}
-                    className="mt-2 w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white"
-                  >
-                    {auction.trackingNumber
-                      ? "Update Tracking Manually"
-                      : "Enter Tracking Manually"}
-                  </button>
+                  {/* Once delivered there's nothing left to update — hide the
+                      tracking/label actions and the mark-delivered button. */}
+                  {auction.shippingStatus !== "DELIVERED" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShippingCarrier(auction.carrier || "");
+                        setShippingTracking(auction.trackingNumber || "");
+                        setShowShippingModal(true);
+                      }}
+                      className="mt-2 w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white"
+                    >
+                      {auction.trackingNumber
+                        ? "Update Tracking Manually"
+                        : "Enter Tracking Manually"}
+                    </button>
+                  )}
 
-                  {auction.shippingStatus === "SHIPPED" && (
+                  {auction.trackingNumber &&
+                    auction.shippingStatus &&
+                    auction.shippingStatus !== "PAID" &&
+                    auction.shippingStatus !== "DELIVERED" && (
                     <button
                       type="button"
                       onClick={async () => {
@@ -2442,7 +2449,7 @@ function MarketplaceSection({
                         </button>
                       )}
 
-                      {listing.shippingLabelUrl && (
+                      {listing.shippingLabelUrl && listing.shippingStatus !== "DELIVERED" && (
                         <button
                           type="button"
                           onClick={() => viewLabel(listing.shippingLabelUrl)}
@@ -2452,22 +2459,29 @@ function MarketplaceSection({
                         </button>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedListing(listing);
-                          setShippingCarrier(listing.carrier || "");
-                          setShippingTracking(listing.trackingNumber || "");
-                          setShowShippingModal(true);
-                        }}
-                        className="mt-2 w-full rounded border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white"
-                      >
-                        {listing.trackingNumber
-                          ? "Update Tracking Manually"
-                          : "Enter Tracking Manually"}
-                      </button>
+                      {/* Once delivered there's nothing left to update — hide the
+                          tracking/label actions and the mark-delivered button. */}
+                      {listing.shippingStatus !== "DELIVERED" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedListing(listing);
+                            setShippingCarrier(listing.carrier || "");
+                            setShippingTracking(listing.trackingNumber || "");
+                            setShowShippingModal(true);
+                          }}
+                          className="mt-2 w-full rounded border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white"
+                        >
+                          {listing.trackingNumber
+                            ? "Update Tracking Manually"
+                            : "Enter Tracking Manually"}
+                        </button>
+                      )}
 
-                      {listing.shippingStatus === "SHIPPED" && (
+                      {listing.trackingNumber &&
+                        listing.shippingStatus &&
+                        listing.shippingStatus !== "PAID" &&
+                        listing.shippingStatus !== "DELIVERED" && (
                         <button
                           type="button"
                           onClick={async () => {
