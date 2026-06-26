@@ -320,14 +320,8 @@ export default function AdminPage() {
         <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           <AdminCard
             title="Manage Auctions"
-            description="Review active, ended, and reserve-not-met auctions."
+            description="Review auctions, force-end/cancel, and open per-auction bid audits."
             href="/admin/auctions"
-          />
-
-          <AdminCard
-            title="Auction Audits"
-            description="Review admin-only auction bid audit logs."
-            href="/admin/audits"
           />
 
           <AdminCard

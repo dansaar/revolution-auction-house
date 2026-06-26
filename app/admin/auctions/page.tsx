@@ -348,6 +348,12 @@ export default function AdminAuctionsPage() {
                             View
                           </Link>
                           <Link
+                            href={`/auctions/${auction.id}/results`}
+                            className="rounded border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:text-white"
+                          >
+                            Results
+                          </Link>
+                          <Link
                             href={`/auctions/${auction.id}/audit`}
                             className="rounded border border-[#d6aa55]/20 px-3 py-1.5 text-xs text-[#e7c77f] hover:bg-[#1a1408]"
                           >

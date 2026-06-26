@@ -169,10 +169,10 @@ export default function AuctionAuditPage() {
     <main className="min-h-screen bg-[#050607] px-6 py-12 text-white">
       <div className="mx-auto max-w-7xl">
         <Link
-          href="/admin/audits"
+          href="/admin/auctions"
           className="text-sm text-gray-500 hover:text-white"
         >
-          ← Back to Audit
+          ← Back to Manage Auctions
         </Link>
 
         <div className="mt-6">
