@@ -124,9 +124,11 @@ async function finalizeOneAuction(auction: any) {
   const reservePrice = moneyToNumber(auction.reservePrice || 0);
   const reserveMet = reservePrice === 0 || finalPrice >= reservePrice;
 
-  const winnerUserId = state?.leaderUserId || auction.winnerUserId || "";
+  // Below reserve the auction did not sell — clear the winner so no buyer is
+  // shown as having won (or owing payment).
+  const winnerUserId = reserveMet ? (state?.leaderUserId || auction.winnerUserId || "") : "";
 
-  const winnerEmail = state?.leaderEmail || auction.winnerEmail || "";
+  const winnerEmail = reserveMet ? (state?.leaderEmail || auction.winnerEmail || "") : "";
 
   const finalStatus = reserveMet ? "ENDED" : "RESERVE_NOT_MET";
 
@@ -211,9 +213,12 @@ export const handler = async (event: any = {}) => {
       const claims = identity?.claims ?? {};
       const groups: string[] = claims["cognito:groups"] ?? [];
       const isAdmin = groups.includes("Admin");
+      // Sellers operate as one team (shared-ops): any Seller can finalize, not
+      // just the auction's owner. Lock to the owner if independent sellers join.
+      const isSeller = groups.includes("Seller");
       const callerUserId = claims["sub"] as string | undefined;
 
-      if (!isAdmin && !callerUserId) {
+      if (!isAdmin && !isSeller && !callerUserId) {
         return { success: false, message: "Unauthorized", status: "UNAUTHORIZED" };
       }
 
@@ -233,7 +238,7 @@ export const handler = async (event: any = {}) => {
         };
       }
 
-      if (!isAdmin && auction.sellerUserId !== callerUserId) {
+      if (!isAdmin && !isSeller && auction.sellerUserId !== callerUserId) {
         return { success: false, message: "Unauthorized", status: "UNAUTHORIZED" };
       }
 

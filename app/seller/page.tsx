@@ -2158,17 +2158,25 @@ function SellerAuctionCard({
                   setEndingAuction(true);
 
                   try {
-                    await client.models.Auction.update(
-                      {
-                        id: auction.id,
-                        ended: true,
-                        status: "ENDED",
-                        endsAt: new Date().toISOString(),
-                      },
+                    // Use finalizeAuction so the auction settles properly: winner
+                    // set from the live leader and the reserve checked (below
+                    // reserve → RESERVE_NOT_MET, no winner/payment). A raw status
+                    // update left the stale leader as "winner" even with the
+                    // reserve unmet.
+                    const res = await client.mutations.finalizeAuction(
+                      { auctionId: auction.id },
                       { authMode: "userPool" } as any,
                     );
 
-                    toast.success("Auction ended");
+                    if (!res.data?.success) {
+                      throw new Error(res.data?.message || "Finalize failed");
+                    }
+
+                    toast.success(
+                      res.data?.status === "RESERVE_NOT_MET"
+                        ? "Auction ended — reserve not met (no sale)."
+                        : "Auction ended.",
+                    );
                     setShowEndAuctionModal(false);
                     window.location.reload();
                   } catch (err) {

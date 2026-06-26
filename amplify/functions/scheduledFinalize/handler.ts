@@ -81,8 +81,10 @@ export const handler = async () => {
       const reservePrice = moneyToNumber(auction.reservePrice || 0);
       const reserveMet = reservePrice === 0 || finalPrice >= reservePrice;
 
-      const winnerUserId = state?.leaderUserId || auction.winnerUserId || "";
-      const winnerEmail = state?.leaderEmail || auction.winnerEmail || "";
+      // Below reserve the auction did not sell — clear the winner so no buyer is
+      // shown as having won (or owing payment).
+      const winnerUserId = reserveMet ? (state?.leaderUserId || auction.winnerUserId || "") : "";
+      const winnerEmail = reserveMet ? (state?.leaderEmail || auction.winnerEmail || "") : "";
 
       const finalStatus = reserveMet ? "ENDED" : "RESERVE_NOT_MET";
 
