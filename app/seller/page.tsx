@@ -505,6 +505,18 @@ function SellerPage() {
   const shipDelivered = allShippable.filter((it) => shipBucket(it) === "DELIVERED");
   const needsShippingCount = shipNeeds.length;
 
+  // Awaiting payment — won/checked-out but not yet paid (e.g. a bank/ACH payment
+  // still clearing, which can take a few business days). Don't ship until paid;
+  // surfaced so the seller knows it's coming.
+  const shipAwaiting = [
+    ...endedAuctions
+      .filter((a: any) => a.winnerUserId && a.paid !== true)
+      .map((a: any) => ({ ...a, _shipType: "AUCTION" as const })),
+    ...marketplaceListings
+      .filter((l: any) => l.status === "PENDING_PAYMENT" && l.paid !== true)
+      .map((l: any) => ({ ...l, _shipType: "LISTING" as const })),
+  ];
+
   const unpaidAuctions = endedAuctions.filter(
     (a) => a.winnerUserId && a.paid !== true,
   );
@@ -930,6 +942,7 @@ function SellerPage() {
 
         {activeTab === "shipping" && (
           <SellerShipping
+            awaiting={shipAwaiting}
             needs={shipNeeds}
             transit={shipTransit}
             delivered={shipDelivered}
@@ -3174,7 +3187,7 @@ function EasyPostModal({
 
 // ── Shipping tab: unified triage of paid auctions + listings by ship status ──
 function SellerShipping({
-  needs, transit, delivered, invoices, client, onManage,
+  awaiting, needs, transit, delivered, invoices, client, onManage,
   setAuctions, setMarketplaceListings,
 }: any) {
   const [search, setSearch] = useState("");
@@ -3194,6 +3207,7 @@ function SellerShipping({
       return matchesSearch(it.title, search) || matchesSearch(buyer, search);
     });
   };
+  const fAwaiting = filterItems(awaiting || []);
   const fNeeds = filterItems(needs);
   const fTransit = filterItems(transit);
   const fDelivered = filterItems(delivered);
@@ -3236,7 +3250,7 @@ function SellerShipping({
     }
   }
 
-  function Row({ item, bucket }: { item: any; bucket: "NEEDS" | "TRANSIT" | "DELIVERED" }) {
+  function Row({ item, bucket }: { item: any; bucket: "AWAITING" | "NEEDS" | "TRANSIT" | "DELIVERED" }) {
     const invoice = invoiceFor(item);
     const track = trackingUrl(item.carrier || "", item.trackingNumber || "", item.trackingUrl);
     return (
@@ -3274,6 +3288,11 @@ function SellerShipping({
           )}
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {bucket === "AWAITING" && (
+            <span className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
+              ⏳ Awaiting payment
+            </span>
+          )}
           {bucket === "NEEDS" && (
             <button
               type="button"
@@ -3323,13 +3342,14 @@ function SellerShipping({
     );
   }
 
-  function Group({ title, items, bucket, accent }: any) {
+  function Group({ title, items, bucket, accent, note }: any) {
     return (
       <section className="mt-8">
-        <h3 className="mb-3 flex items-center gap-2 font-serif text-xl text-[#c0c0c0]">
+        <h3 className="mb-1 flex items-center gap-2 font-serif text-xl text-[#c0c0c0]">
           {title}
           <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${accent}`}>{items.length}</span>
         </h3>
+        {note && <p className="mb-3 text-xs text-gray-500">{note}</p>}
         {items.length === 0 ? (
           <p className="text-sm text-gray-600">Nothing here.</p>
         ) : (
@@ -3353,6 +3373,13 @@ function SellerShipping({
         search={search}
         setSearch={setSearch}
         placeholder="Search by item or buyer…"
+      />
+      <Group
+        title="Awaiting Payment"
+        items={fAwaiting}
+        bucket="AWAITING"
+        accent="bg-amber-500/20 text-amber-300"
+        note="Won or checked out but not paid yet — bank (ACH) payments take a few business days to clear. Don't ship until paid."
       />
       <Group title="Needs Shipping" items={fNeeds} bucket="NEEDS" accent="bg-amber-500 text-black" />
       <Group title="In Transit" items={fTransit} bucket="TRANSIT" accent="bg-sky-500/20 text-sky-300" />
