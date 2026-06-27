@@ -21,6 +21,13 @@ const RESERVE_SECRET =
 // so the webhook releases the hold. 30 min is Stripe's minimum.
 const CHECKOUT_EXPIRES_IN = 31 * 60;
 
+// Stripe Tax computes destination-based sales tax at checkout. Off until the
+// Stripe Tax dashboard is configured (origin address + registrations); flip
+// AMPLIFY_STRIPE_TAX_ENABLED=true to turn it on. While off, no tax is added.
+const STRIPE_TAX_ENABLED =
+  (process.env.STRIPE_TAX_ENABLED || process.env.AMPLIFY_STRIPE_TAX_ENABLED) === "true";
+const automaticTax = STRIPE_TAX_ENABLED ? { automatic_tax: { enabled: true } } : {};
+
 async function reserveListings(listingIds: string[], buyerSub: string) {
   if (!RESERVE_SECRET || listingIds.length === 0) return;
   try {
@@ -84,18 +91,15 @@ function fmt(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
+// Sales tax is computed by Stripe Tax at checkout (destination-based), not here.
 function calcAuctionAmounts(auction: any) {
   const hammerPrice = moneyToNumber(auction.price || auction.winningBid || 0);
   const buyerPremiumRate = Number(auction.buyerPremiumRate ?? 18);
   const buyerPremium = hammerPrice * (buyerPremiumRate / 100);
-  const taxableAmount = hammerPrice + buyerPremium;
-  const taxRate = Number(auction.taxRate ?? 6.625);
-  const tax = auction.chargeTax ? taxableAmount * (taxRate / 100) : 0;
   return {
     hammerPrice,
     buyerPremium,
-    tax,
-    total: hammerPrice + buyerPremium + tax,
+    total: hammerPrice + buyerPremium,
   };
 }
 
@@ -117,48 +121,33 @@ function calcListingAmounts(listing: any) {
   const price = moneyToNumber(
     listing.acceptedOfferAmount || listing.price || 0,
   );
-  const taxRate = Number(listing.taxRate ?? 6.625);
-  const tax = listing.chargeTax ? price * (taxRate / 100) : 0;
-  return { price, tax, total: price + tax };
+  return { price, total: price };
+}
+
+// General tangible-goods tax code; tax_behavior "exclusive" = Stripe Tax adds
+// tax on top of these amounts at checkout (only when automatic_tax is enabled).
+const GOODS_TAX_CODE = "txcd_99999999";
+
+function priceLine(name: string, dollars: number) {
+  return {
+    price_data: {
+      currency: "usd",
+      product_data: { name, tax_code: GOODS_TAX_CODE },
+      unit_amount: toCents(dollars),
+      tax_behavior: "exclusive" as const,
+    },
+    quantity: 1,
+  };
 }
 
 function buildAuctionLineItems(
   title: string,
   amounts: ReturnType<typeof calcAuctionAmounts>,
 ) {
-  const items: any[] = [
-    {
-      price_data: {
-        currency: "usd",
-        product_data: { name: title },
-        unit_amount: toCents(amounts.hammerPrice),
-      },
-      quantity: 1,
-    },
-  ];
-
+  const items: any[] = [priceLine(title, amounts.hammerPrice)];
   if (amounts.buyerPremium > 0) {
-    items.push({
-      price_data: {
-        currency: "usd",
-        product_data: { name: `${title} — Buyer Premium` },
-        unit_amount: toCents(amounts.buyerPremium),
-      },
-      quantity: 1,
-    });
+    items.push(priceLine(`${title} — Buyer Premium`, amounts.buyerPremium));
   }
-
-  if (amounts.tax > 0) {
-    items.push({
-      price_data: {
-        currency: "usd",
-        product_data: { name: `${title} — NJ Sales Tax` },
-        unit_amount: toCents(amounts.tax),
-      },
-      quantity: 1,
-    });
-  }
-
   return items;
 }
 
@@ -166,29 +155,7 @@ function buildListingLineItems(
   title: string,
   amounts: ReturnType<typeof calcListingAmounts>,
 ) {
-  const items: any[] = [
-    {
-      price_data: {
-        currency: "usd",
-        product_data: { name: title },
-        unit_amount: toCents(amounts.price),
-      },
-      quantity: 1,
-    },
-  ];
-
-  if (amounts.tax > 0) {
-    items.push({
-      price_data: {
-        currency: "usd",
-        product_data: { name: `${title} — NJ Sales Tax` },
-        unit_amount: toCents(amounts.tax),
-      },
-      quantity: 1,
-    });
-  }
-
-  return items;
+  return [priceLine(title, amounts.price)];
 }
 
 export async function POST(req: Request) {
@@ -263,9 +230,7 @@ export async function POST(req: Request) {
             type: "AUCTION",
             title,
             subtotal: fmt(amounts.hammerPrice),
-            buyerPremium: fmt(amounts.buyerPremium),
-            tax: fmt(amounts.tax),
-            amount: fmt(amounts.total),
+            buyerPremium: fmt(amounts.buyerPremium),            amount: fmt(amounts.total),
           });
         } else if (item.type === "MARKETPLACE") {
           const result = await client.models.MarketplaceListing.get(
@@ -304,9 +269,7 @@ export async function POST(req: Request) {
             type: "MARKETPLACE",
             title,
             subtotal: fmt(amounts.price),
-            buyerPremium: "$0.00",
-            tax: fmt(amounts.tax),
-            amount: fmt(amounts.total),
+            buyerPremium: "$0.00",            amount: fmt(amounts.total),
           });
         }
       }
@@ -328,6 +291,7 @@ export async function POST(req: Request) {
         customer_email: buyerEmail || undefined,
         line_items: lineItems,
         shipping_address_collection: { allowed_countries: ["US"] },
+        ...automaticTax,
         phone_number_collection: { enabled: true },
         metadata: {
           buyerEmail: buyerEmail || "",
@@ -395,15 +359,14 @@ export async function POST(req: Request) {
         customer_email: buyerEmail || undefined,
         line_items: buildAuctionLineItems(title, amounts),
         shipping_address_collection: { allowed_countries: ["US"] },
+        ...automaticTax,
         phone_number_collection: { enabled: true },
         metadata: {
           auctionId,
           buyerEmail: buyerEmail || "",
           buyerSub: buyerSub || "",
           subtotal: fmt(amounts.hammerPrice),
-          buyerPremium: fmt(amounts.buyerPremium),
-          tax: fmt(amounts.tax),
-        },
+          buyerPremium: fmt(amounts.buyerPremium),        },
         success_url: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&type=auction`,
         cancel_url: `${siteUrl}/auctions/${auctionId}/results`,
       });
@@ -467,15 +430,14 @@ export async function POST(req: Request) {
         customer_email: buyerEmail || undefined,
         line_items: buildListingLineItems(title, amounts),
         shipping_address_collection: { allowed_countries: ["US"] },
+        ...automaticTax,
         phone_number_collection: { enabled: true },
         metadata: {
           listingId,
           buyerEmail: buyerEmail || "",
           buyerSub: buyerSub || "",
           subtotal: fmt(amounts.price),
-          buyerPremium: "$0.00",
-          tax: fmt(amounts.tax),
-        },
+          buyerPremium: "$0.00",        },
         success_url: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&type=listing`,
         cancel_url: `${siteUrl}/marketplace/${listingId}`,
         expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_EXPIRES_IN,

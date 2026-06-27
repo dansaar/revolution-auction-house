@@ -571,22 +571,21 @@ export default function MarketplaceListingPage() {
                   </span>
                 </div>
 
-                {listing?.chargeTax && (
-                  <div className="flex justify-between gap-4">
-                    <span>NJ Sales Tax ({taxRate}%)</span>
-                    <span className="text-white">
-                      {formatCurrency(taxAmount)}
-                    </span>
-                  </div>
-                )}
+                <div className="flex justify-between gap-4">
+                  <span>Sales tax</span>
+                  <span className="text-gray-500">Calculated at checkout</span>
+                </div>
 
                 <div className="border-t border-white/10 pt-2">
                   <div className="flex justify-between gap-4 font-semibold">
-                    <span className="text-[#e7c77f]">Estimated Total</span>
+                    <span className="text-[#e7c77f]">Subtotal</span>
                     <span className="text-[#f0d28c]">
-                      {formatCurrency(estimatedTotal)}
+                      {formatCurrency(basePrice)}
                     </span>
                   </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Sales tax and shipping are calculated at checkout.
+                  </p>
                 </div>
               </div>
             </div>

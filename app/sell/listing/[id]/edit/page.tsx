@@ -209,8 +209,6 @@ export default function EditListingPage() {
           price: `$${Number(form.price).toLocaleString()}`,
           status: form.status,
 
-          chargeTax: form.chargeTax,
-          taxRate: form.chargeTax ? 6.625 : 0,
 
           image: mainImage,
           images: finalFullImages,
@@ -449,32 +447,6 @@ export default function EditListingPage() {
             </select>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4">
-            <label className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={form.chargeTax}
-                  onChange={(e) =>
-                    setForm((prev: any) => ({
-                      ...prev,
-                      chargeTax: e.target.checked,
-                      taxRate: "6.625",
-                    }))
-                  }
-                  className="h-5 w-5 accent-[#d6aa55]"
-                />
-
-                <div className="font-semibold text-white">
-                  Charge NJ Sales Tax
-                </div>
-              </div>
-
-              <div className="text-sm text-gray-500">
-                Adds 6.625% sales tax at checkout
-              </div>
-            </label>
-          </div>
 
           <button
             onClick={handleSubmit}

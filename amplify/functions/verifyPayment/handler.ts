@@ -115,12 +115,24 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
       }
     }
 
-    const amount = session.amount_total
-      ? `$${(session.amount_total / 100).toFixed(2)}`
-      : "$0.00";
-    const subtotal = session.metadata?.subtotal || amount;
+    // Sales tax is whatever Stripe Tax actually charged on this session.
+    const totalCents = session.amount_total ?? 0;
+    const taxCents = (session as any).total_details?.amount_tax ?? 0;
+    const amount = `$${(totalCents / 100).toFixed(2)}`;
+    const tax = `$${(taxCents / 100).toFixed(2)}`;
+    const subtotal =
+      session.metadata?.subtotal || `$${((totalCents - taxCents) / 100).toFixed(2)}`;
     const buyerPremium = session.metadata?.buyerPremium || "$0.00";
-    const tax = session.metadata?.tax || "$0.00";
+
+    // Cart: split the session-level tax across items by their pre-tax amount so
+    // each per-item invoice reflects its share.
+    const itemCents = (it: any) =>
+      Math.round(Number(String(it.amount || "0").replace(/[$,]/g, "")) * 100);
+    const cartSubtotalCents = cartItems.reduce((s: number, it: any) => s + itemCents(it), 0) || 1;
+    const itemTax = (it: any) =>
+      `$${((Math.round((taxCents * itemCents(it)) / cartSubtotalCents)) / 100).toFixed(2)}`;
+    const itemTotal = (it: any) =>
+      `$${((itemCents(it) + Math.round((taxCents * itemCents(it)) / cartSubtotalCents)) / 100).toFixed(2)}`;
 
     const shippingObj = (session as any).shipping_details
       || (session as any).collected_information?.shipping_details
@@ -179,8 +191,8 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
               sellerUserId: auctionResult.data?.sellerUserId || "",
               subtotal: item.subtotal || item.amount,
               buyerPremium: item.buyerPremium || "$0.00",
-              tax: item.tax || "$0.00",
-              amount: item.amount,
+              tax: itemTax(item),
+              amount: itemTotal(item),
               status: "PAID",
               stripeSessionId: session.id,
               paidAt: new Date().toISOString(),
@@ -228,8 +240,8 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
               sellerUserId: listingResult.data?.sellerUserId || "",
               subtotal: item.subtotal || item.amount,
               buyerPremium: "$0.00",
-              tax: item.tax || "$0.00",
-              amount: item.amount,
+              tax: itemTax(item),
+              amount: itemTotal(item),
               status: "PAID",
               stripeSessionId: session.id,
               paidAt: new Date().toISOString(),

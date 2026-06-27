@@ -35,33 +35,28 @@ function formatMoney(amount: number) {
   });
 }
 
+// Sales tax is computed by Stripe Tax at checkout (destination-based), not here.
 function calculateAuctionTotals(item: any) {
   const hammerPrice = moneyToNumber(item.amount || 0);
   const buyerPremiumRate = Number(item.buyerPremiumRate || 18);
   const buyerPremium = hammerPrice * (buyerPremiumRate / 100);
 
-  const taxableAmount = hammerPrice + buyerPremium;
-  const taxRate = item.chargeTax ? Number(item.taxRate || 6.625) : 0;
-  const tax = item.chargeTax ? taxableAmount * (taxRate / 100) : 0;
-
   return {
     subtotal: hammerPrice,
     buyerPremium,
-    tax,
-    total: hammerPrice + buyerPremium + tax,
+    tax: 0,
+    total: hammerPrice + buyerPremium,
   };
 }
 
 function calculateMarketplaceTotals(item: any) {
   const subtotal = moneyToNumber(item.amount || 0);
-  const taxRate = item.chargeTax ? Number(item.taxRate || 6.625) : 0;
-  const tax = item.chargeTax ? subtotal * (taxRate / 100) : 0;
 
   return {
     subtotal,
     buyerPremium: 0,
-    tax,
-    total: subtotal + tax,
+    tax: 0,
+    total: subtotal,
   };
 }
 
@@ -317,12 +312,16 @@ export default function CartPage() {
 
           <div className="rounded-2xl border border-[#d6aa55]/20 bg-[#1a1408] px-6 py-5">
             <div className="text-xs uppercase tracking-[0.25em] text-[#b89b61]">
-              Selected Total
+              Selected Subtotal
             </div>
 
             <div className="mt-2 font-serif text-4xl text-[#f0d28c]">
               {formatMoney(total)}
             </div>
+
+            <p className="mt-2 text-xs text-gray-500">
+              Sales tax and shipping are calculated at checkout.
+            </p>
           </div>
         </div>
 

@@ -1136,30 +1136,25 @@ export default function LiveAuctionPage() {
                         </span>
                       </div>
 
-                      {auction?.chargeTax && (
-                        <div className="flex justify-between gap-4">
-                          <span>NJ Sales Tax ({taxRate}%)</span>
-                          <span className="text-white">
-                            {formatCurrency(taxAmount)}
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex justify-between gap-4">
+                        <span>Sales tax</span>
+                        <span className="text-gray-500">Calculated at checkout</span>
+                      </div>
 
                       <div className="border-t border-white/10 pt-2">
                         <div className="flex justify-between gap-4 font-semibold">
                           <span className="text-[#e7c77f]">
-                            Estimated Total
+                            Estimated Subtotal
                           </span>
                           <span className="text-[#f0d28c]">
-                            {formatCurrency(estimatedTotalDue)}
+                            {formatCurrency(estimateBaseAmount + buyerPremiumAmount)}
                           </span>
                         </div>
                       </div>
                     </div>
 
                     <p className="mt-3 text-xs text-gray-500">
-                      Final invoice may include shipping or other applicable
-                      charges.
+                      Sales tax and shipping are calculated at checkout.
                     </p>
                   </div>
                 </div>

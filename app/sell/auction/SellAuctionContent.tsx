@@ -279,8 +279,6 @@ export default function SellAuctionContent() {
           ? `$${Number(form.reservePrice).toLocaleString()}`
           : null,
 
-        chargeTax: form.chargeTax,
-        taxRate: form.chargeTax ? 6.625 : 0,
         buyerPremiumRate: 18,
 
         ...(form.increment ? { increment: Number(form.increment) } : {}),
@@ -656,33 +654,6 @@ export default function SellAuctionContent() {
                 18% added to the winning auction price at checkout
               </div>
             </div>
-          </div>
-
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4">
-            <label className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={form.chargeTax}
-                  onChange={(e) =>
-                    setForm((prev: any) => ({
-                      ...prev,
-                      chargeTax: e.target.checked,
-                      taxRate: "6.625",
-                    }))
-                  }
-                  className="h-5 w-5 accent-[#d6aa55]"
-                />
-
-                <div className="font-semibold text-white">
-                  Charge NJ Sales Tax
-                </div>
-              </div>
-
-              <div className="text-sm text-gray-500">
-                Adds 6.625% sales tax at checkout
-              </div>
-            </label>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
