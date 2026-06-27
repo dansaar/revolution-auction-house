@@ -82,10 +82,33 @@ const HIGH_VALUE_MESSAGE =
 
 // Offer card AND bank debit (ACH via Financial Connections). ACH suits larger
 // lots (lower fees, higher acceptance) but settles over several days.
-const PAYMENT_METHOD_OPTIONS = {
-  payment_method_types: ["card", "us_bank_account"] as Array<"card" | "us_bank_account">,
-  customer_creation: "always" as const,
-};
+// Card processing (2.9% + 30¢) dwarfs ACH (0.8%, $5 cap) on big-ticket sales, so
+// for orders over this amount we surface bank payment first (preselected) and
+// add a gentle nudge. Card is still available.
+const ACH_NUDGE_OVER = 1000;
+
+function paymentOptions(totalDollars: number) {
+  const types: Array<"card" | "us_bank_account"> =
+    totalDollars > ACH_NUDGE_OVER
+      ? ["us_bank_account", "card"]
+      : ["card", "us_bank_account"];
+  const base = {
+    payment_method_types: types,
+    customer_creation: "always" as const,
+  };
+  if (totalDollars > ACH_NUDGE_OVER) {
+    return {
+      ...base,
+      custom_text: {
+        submit: {
+          message:
+            "Tip: paying by bank account (ACH) avoids card fees and helps us keep prices low.",
+        },
+      },
+    };
+  }
+  return base;
+}
 
 function fmt(amount: number): string {
   return `$${amount.toFixed(2)}`;
@@ -287,7 +310,7 @@ export async function POST(req: Request) {
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
-        ...PAYMENT_METHOD_OPTIONS,
+        ...paymentOptions(cartTotalCents / 100),
         customer_email: buyerEmail || undefined,
         line_items: lineItems,
         shipping_address_collection: { allowed_countries: ["US"] },
@@ -355,7 +378,7 @@ export async function POST(req: Request) {
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
-        ...PAYMENT_METHOD_OPTIONS,
+        ...paymentOptions(amounts.total),
         customer_email: buyerEmail || undefined,
         line_items: buildAuctionLineItems(title, amounts),
         shipping_address_collection: { allowed_countries: ["US"] },
@@ -426,7 +449,7 @@ export async function POST(req: Request) {
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
-        ...PAYMENT_METHOD_OPTIONS,
+        ...paymentOptions(amounts.total),
         customer_email: buyerEmail || undefined,
         line_items: buildListingLineItems(title, amounts),
         shipping_address_collection: { allowed_countries: ["US"] },
