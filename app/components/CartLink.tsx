@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
 import { CART_EVENT } from "@/lib/cart";
 import { fetchCartCountDetail, localTotalFrom, type CartCountDetail } from "@/lib/cartCount";
@@ -9,35 +10,36 @@ import { fetchCartCountDetail, localTotalFrom, type CartCountDetail } from "@/li
 export default function CartLink({ onNavigate }: { onNavigate?: () => void }) {
   const [count, setCount] = useState(0);
   const detailRef = useRef<CartCountDetail | null>(null);
+  const pathname = usePathname();
+
+  // Full refresh: re-fetches payment obligations + recomputes total.
+  const fullRefresh = useCallback(async () => {
+    const detail = await fetchCartCountDetail();
+    detailRef.current = detail;
+    setCount(detail.total);
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    // Full refresh: re-fetches payment obligations + recomputes total.
-    async function fullRefresh() {
-      const detail = await fetchCartCountDetail();
-      if (cancelled) return;
-      detailRef.current = detail;
-      setCount(detail.total);
-    }
-
     // Local refresh: cheap recompute on add/remove using cached obligations.
     function localRefresh() {
       if (detailRef.current) setCount(localTotalFrom(detailRef.current));
       else fullRefresh();
     }
-
-    fullRefresh();
     window.addEventListener(CART_EVENT, localRefresh); // this tab added/removed
     window.addEventListener("storage", fullRefresh); // another tab changed it
     window.addEventListener("focus", fullRefresh); // returning to the tab
     return () => {
-      cancelled = true;
       window.removeEventListener(CART_EVENT, localRefresh);
       window.removeEventListener("storage", fullRefresh);
       window.removeEventListener("focus", fullRefresh);
     };
-  }, []);
+  }, [fullRefresh]);
+
+  // Re-sync on every in-app navigation so the badge reflects server-side changes
+  // (a purchase, an item selling) without waiting for the tab to lose/regain focus.
+  useEffect(() => {
+    fullRefresh();
+  }, [pathname, fullRefresh]);
 
   return (
     <Link
