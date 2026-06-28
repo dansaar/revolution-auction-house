@@ -6,6 +6,8 @@ import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtim
 import { env } from "$amplify/env/finalizeAuction";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 
 const { resourceConfig, libraryOptions } =
   await getAmplifyDataClientConfig(env);
@@ -15,6 +17,11 @@ Amplify.configure(resourceConfig, libraryOptions);
 const client = generateClient<Schema>();
 const sesClient = new SESClient({});
 const snsClient = new SNSClient({});
+
+// Direct DynamoDB read so the Lambda sees field-restricted attributes (reservePrice)
+// without needing an API key.
+const ddbDoc = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const AUCTION_TABLE_NAME = (env as any).AUCTION_TABLE_NAME as string;
 
 const FROM_EMAIL = (env as any).FROM_EMAIL || "";
 const SITE_URL = (env as any).SITE_URL || "https://www.revolutionauctionhouse.com";
@@ -222,13 +229,14 @@ export const handler = async (event: any = {}) => {
         return { success: false, message: "Unauthorized", status: "UNAUTHORIZED" };
       }
 
-      // apiKey read so reservePrice (now field-restricted) comes back — reserve
-      // gates whether the auction actually sells.
-      const auctionResult = await client.models.Auction.get(
-        { id: auctionId },
-        { authMode: "apiKey" } as any,
-      );
-      const auction = auctionResult.data;
+      // Direct DynamoDB read so reservePrice (field-restricted) comes back —
+      // reserve gates whether the auction actually sells. (A Lambda has no API
+      // key, so an apiKey read would throw "No api-key configured".)
+      const auction = (
+        await ddbDoc.send(
+          new GetCommand({ TableName: AUCTION_TABLE_NAME, Key: { id: auctionId } }),
+        )
+      ).Item as any;
 
       if (!auction) {
         return {
@@ -248,12 +256,11 @@ export const handler = async (event: any = {}) => {
     // Scheduled/background behavior: finalize all auctions whose end time passed.
     const now = Date.now();
 
-    const result = await client.models.Auction.list({
-      limit: 1000,
-      authMode: "apiKey",
-    } as any);
+    const scan = await ddbDoc.send(
+      new ScanCommand({ TableName: AUCTION_TABLE_NAME, Limit: 1000 }),
+    );
 
-    const endedOpenAuctions = (result.data || []).filter((auction: any) => {
+    const endedOpenAuctions = (scan.Items || []).filter((auction: any) => {
       if (!auction.endsAt || auction.ended) return false;
       return new Date(auction.endsAt).getTime() <= now;
     });

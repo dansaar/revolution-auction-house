@@ -4,6 +4,8 @@ import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
 import { env } from "$amplify/env/scheduledFinalize";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 
 const { resourceConfig, libraryOptions } =
   await getAmplifyDataClientConfig(env);
@@ -11,6 +13,11 @@ const { resourceConfig, libraryOptions } =
 Amplify.configure(resourceConfig, libraryOptions);
 
 const client = generateClient<Schema>();
+
+// Direct DynamoDB so reservePrice (field-restricted) is returned without an API
+// key — a Lambda has none, so the old apiKey read threw "No api-key configured".
+const ddbDoc = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const AUCTION_TABLE_NAME = (env as any).AUCTION_TABLE_NAME as string;
 
 function moneyToNumber(value: string | number | null | undefined) {
   if (!value) return 0;
@@ -30,17 +37,17 @@ function makeBidderDisplayName(value: string) {
 
 async function listAllAuctions(): Promise<any[]> {
   const all: any[] = [];
-  let nextToken: string | undefined;
+  let lastKey: Record<string, any> | undefined;
   do {
-    const result: any = await client.models.Auction.list({
-      limit: 1000,
-      // apiKey so reservePrice (field-restricted) is returned — reserve gates the sale.
-      authMode: "apiKey",
-      ...(nextToken ? { nextToken } : {}),
-    } as any);
-    all.push(...(result.data || []));
-    nextToken = result.nextToken ?? undefined;
-  } while (nextToken);
+    const result = await ddbDoc.send(
+      new ScanCommand({
+        TableName: AUCTION_TABLE_NAME,
+        ...(lastKey ? { ExclusiveStartKey: lastKey } : {}),
+      }),
+    );
+    all.push(...(result.Items || []));
+    lastKey = result.LastEvaluatedKey;
+  } while (lastKey);
   return all;
 }
 

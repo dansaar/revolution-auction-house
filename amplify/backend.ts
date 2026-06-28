@@ -141,6 +141,25 @@ finalizeAuctionCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_
 finalizeAuctionCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
 finalizeAuctionCfn.addPropertyOverride("Environment.Variables.SMS_AUDIENCE", SMS_AUDIENCE);
 
+// Read the auction straight from DynamoDB so the Lambda gets reservePrice (a
+// field-restricted attribute that iam/apiKey reads via AppSync don't return for
+// a function). A Lambda has no API key, so the old apiKey read threw
+// "No api-key configured".
+auctionTable.grantReadData(backend.finalizeAuction.resources.lambda);
+finalizeAuctionCfn.addPropertyOverride(
+  "Environment.Variables.AUCTION_TABLE_NAME",
+  auctionTable.tableName,
+);
+
+// Same fix for the scheduled (cron) finalizer.
+const scheduledFinalizeCfn = backend.scheduledFinalize.resources.lambda.node
+  .defaultChild as CfnFunction;
+auctionTable.grantReadData(backend.scheduledFinalize.resources.lambda);
+scheduledFinalizeCfn.addPropertyOverride(
+  "Environment.Variables.AUCTION_TABLE_NAME",
+  auctionTable.tableName,
+);
+
 const notifyOfferSmsCfn = backend.notifyOfferSms.resources.lambda.node
   .defaultChild as CfnFunction;
 
