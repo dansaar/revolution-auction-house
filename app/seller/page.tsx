@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser, fetchAuthSession } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
+import { authedGraphql } from "@/lib/authedGraphql";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
@@ -2177,30 +2178,32 @@ function SellerAuctionCard({
                   setEndingAuction(true);
 
                   try {
-                    // Use finalizeAuction so the auction settles properly: winner
-                    // set from the live leader and the reserve checked (below
-                    // reserve → RESERVE_NOT_MET, no winner/payment). A raw status
-                    // update left the stale leader as "winner" even with the
-                    // reserve unmet.
-                    const res = await client.mutations.finalizeAuction(
-                      { auctionId: auction.id },
-                      { authMode: "userPool" } as any,
+                    // finalizeAuction settles the auction (winner from live leader,
+                    // reserve checked → RESERVE_NOT_MET means no sale). Called via
+                    // authedGraphql to dodge the Amplify Data client resolving this
+                    // to apiKey auth in the deployed build.
+                    const data = await authedGraphql<{
+                      finalizeAuction: { success: boolean; message: string; status: string };
+                    }>(
+                      "mutation Fin($id:String!){finalizeAuction(auctionId:$id){success message status}}",
+                      { id: auction.id },
                     );
+                    const r = data.finalizeAuction;
 
-                    if (!res.data?.success) {
-                      throw new Error(res.data?.message || "Finalize failed");
+                    if (!r?.success) {
+                      throw new Error(r?.message || "Finalize failed");
                     }
 
                     toast.success(
-                      res.data?.status === "RESERVE_NOT_MET"
+                      r.status === "RESERVE_NOT_MET"
                         ? "Auction ended — reserve not met (no sale)."
                         : "Auction ended.",
                     );
                     setShowEndAuctionModal(false);
                     window.location.reload();
                   } catch (err) {
-                    console.error(err);
-                    toast.error("Failed to end auction");
+                    console.error("END_AUCTION_ERROR", err);
+                    toast.error(err instanceof Error ? err.message : "Failed to end auction");
                   } finally {
                     setEndingAuction(false);
                   }

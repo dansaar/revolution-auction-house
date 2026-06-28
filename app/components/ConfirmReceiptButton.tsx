@@ -1,12 +1,8 @@
 "use client";
 
-import "@/lib/amplifyclient"; // ensure Amplify is configured (apiKey + Cognito cookie storage)
 import { useState } from "react";
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
+import { authedGraphql } from "@/lib/authedGraphql";
 import { toast } from "sonner";
-
-const client = generateClient<Schema>();
 
 // Buyer confirms they received an order. Self-contained: calls confirmReceipt,
 // then shows a confirmed badge. Render only after the order has shipped.
@@ -34,18 +30,20 @@ export default function ConfirmReceiptButton({
   async function confirm() {
     setBusy(true);
     try {
-      const res = await client.mutations.confirmReceipt(
+      const data = await authedGraphql<{
+        confirmReceipt: { success: boolean; message: string };
+      }>(
+        "mutation CR($itemId:String!,$itemType:String!){confirmReceipt(itemId:$itemId,itemType:$itemType){success message}}",
         { itemId, itemType },
-        { authMode: "userPool" } as any,
       );
-      if (!res.data?.success) {
-        toast.error(res.data?.message || "Could not confirm receipt.");
+      if (!data.confirmReceipt?.success) {
+        toast.error(data.confirmReceipt?.message || "Could not confirm receipt.");
         return;
       }
       setConfirmedAt(new Date().toISOString());
       toast.success("Receipt confirmed.");
-    } catch {
-      toast.error("Could not confirm receipt.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not confirm receipt.");
     } finally {
       setBusy(false);
     }
