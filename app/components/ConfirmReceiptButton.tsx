@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/amplifyclient"; // ensure Amplify is configured (apiKey + Cognito cookie storage)
 import { useState } from "react";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
