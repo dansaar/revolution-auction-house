@@ -51,6 +51,7 @@ export function resolveBid(
   maxBid: number,
   minimumBid: number,
   customIncrement?: number | null,
+  reserve?: number | null,
 ): BidResolution {
   const { currentPrice, leaderUserId, leaderMaxBid, secondUserId, secondMaxBid } = state;
 
@@ -89,6 +90,15 @@ export function resolveBid(
     newSecondMaxBid = Math.max(secondMaxBid, maxBid);
     visiblePrice = Math.min(leaderMaxBid, maxBid + getIncrement(maxBid, customIncrement));
     proxyUserId = leaderUserId;
+  }
+
+  // Reserve-aware proxy (eBay-style): if the leader's max covers the reserve,
+  // advance the visible price to at least the reserve so the lot actually sells
+  // (the reserve is "met"). Never exceeds the leader's max. If the leader's max
+  // is below the reserve, nothing changes and the reserve stays unmet.
+  const reservePrice = reserve || 0;
+  if (reservePrice > 0 && newLeaderMaxBid >= reservePrice) {
+    visiblePrice = Math.max(visiblePrice, reservePrice);
   }
 
   return {

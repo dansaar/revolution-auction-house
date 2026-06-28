@@ -103,4 +103,27 @@ describe("resolveBid", () => {
     const r = resolveBid(state, "B", 5000, 525, 500); // custom 500 > default 50
     expect(r.visiblePrice).toBe(1500); // 1000 + 500
   });
+
+  // ── Reserve-aware proxy ──
+  it("lone bidder whose max covers the reserve jumps the price to the reserve", () => {
+    const r = resolveBid({ ...empty, currentPrice: 10 }, "B", 1200, 15, null, 1000);
+    expect(r.newLeaderUserId).toBe("B");
+    expect(r.visiblePrice).toBe(1000); // jumps to reserve instead of staying at 15
+  });
+
+  it("lone bidder whose max is below the reserve does not move to the reserve", () => {
+    const r = resolveBid({ ...empty, currentPrice: 10 }, "B", 15, 15, null, 1000);
+    expect(r.visiblePrice).toBe(15); // reserve stays unmet
+  });
+
+  it("never pushes the visible price above the leader's max to reach the reserve", () => {
+    const r = resolveBid({ ...empty, currentPrice: 10 }, "B", 1000, 15, null, 1000);
+    expect(r.visiblePrice).toBe(1000); // exactly the reserve, == max
+  });
+
+  it("keeps the higher of the normal proxy price and the reserve", () => {
+    const state: BidState = { currentPrice: 500, leaderUserId: "L", leaderMaxBid: 1000, secondUserId: "", secondMaxBid: 0 };
+    const r = resolveBid(state, "B", 2000, 525, null, 800); // proxy → 1050, reserve 800
+    expect(r.visiblePrice).toBe(1050); // proxy price already above reserve
+  });
 });

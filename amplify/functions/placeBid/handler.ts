@@ -855,6 +855,7 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         maxBid,
         minimumBid,
         customIncrement,
+        moneyToNumber(auctionOwnerCheck?.reservePrice || 0),
       );
 
       const newBidCount = (state.bidCount || 0) + (proxyUserId ? 2 : 1);
