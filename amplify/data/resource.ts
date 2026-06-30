@@ -326,7 +326,10 @@ const schema = a
           allow.group("Admin"),
         ]),
         // PII — restrict to owner/Admin/Seller (not all authenticated users).
-        email: a.string().required().authorization((allow) => [
+        // Optional (not required) so the validator allows a restricted read rule
+        // — a required field must stay authenticated-readable. Always set in
+        // practice, so this doesn't change behavior.
+        email: a.string().authorization((allow) => [
           allow.ownerDefinedIn("userId"),
           allow.group("Admin"),
           allow.group("Seller").to(["read"]),
