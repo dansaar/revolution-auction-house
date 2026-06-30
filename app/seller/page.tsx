@@ -12,7 +12,7 @@ import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
 import { isAdminUser } from "@/lib/sellers";
-import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp } from "lucide-react";
+import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp, Bell } from "lucide-react";
 import { toast } from "sonner";
 import * as Sentry from "@sentry/nextjs";
 import { privateBandLabel } from "@/lib/tiers";
@@ -785,6 +785,14 @@ function SellerPage() {
           >
             <ShieldCheck className="mx-auto mb-4 h-9 w-9 text-yellow-400" />
             <div className="text-lg font-bold text-white">Verifications</div>
+          </Link>
+
+          <Link
+            href="/seller/notifications"
+            className="w-36 group rounded-2xl border border-[#d6aa55]/30 bg-[#d6aa55]/10 px-4 py-6 text-center transition hover:-translate-y-1 hover:bg-[#d6aa55]/20"
+          >
+            <Bell className="mx-auto mb-4 h-9 w-9 text-[#e7c77f]" />
+            <div className="text-lg font-bold text-white">Notifications</div>
           </Link>
 
           {isAdmin && (
