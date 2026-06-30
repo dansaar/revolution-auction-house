@@ -56,9 +56,24 @@ const schema = a
         // seller's "Unsold" / re-list prompt (avoids duplicate re-lists).
         relistedAt: a.datetime(),
         winningBid: a.string(),
-        winnerEmail: a.string(),
-        sellerName: a.string(),
-        sellerEmail: a.string(),
+        // PII — not public. Written by placeBid via direct DynamoDB (bypasses
+        // field auth); the public browses with the display-name/public-id fields.
+        winnerEmail: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("sellerUserId").to(["read"]),
+        ]),
+        // PII — restrict reads; sellers still create/read these.
+        sellerName: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller"),
+          allow.ownerDefinedIn("sellerUserId").to(["read"]),
+        ]),
+        sellerEmail: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller"),
+          allow.ownerDefinedIn("sellerUserId").to(["read"]),
+        ]),
         sellerUserId: a.string(),
         sellerPublicId: a.string(),
         sellerDisplayName: a.string(),
@@ -166,7 +181,12 @@ const schema = a
 
         sellerUserId: a.string(),
         sellerDisplayName: a.string(),
-        sellerEmail: a.string(),
+        // PII — restrict reads; sellers still create/read these.
+        sellerEmail: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller"),
+          allow.ownerDefinedIn("sellerUserId").to(["read"]),
+        ]),
         sellerPublicId: a.string(),
         shippingStatus: a.string(),
         trackingNumber: a.string(),
