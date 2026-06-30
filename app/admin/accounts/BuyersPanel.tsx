@@ -9,7 +9,6 @@ import type { Schema } from "@/amplify/data/resource";
 import { isAdminUser } from "@/lib/sellers";
 import { BUYER_TIERS, getTier, formatTierLimit, privateBandLabel } from "@/lib/tiers";
 import { toast } from "sonner";
-import { fetchAuthSession } from "aws-amplify/auth";
 
 const client = generateClient<Schema>();
 
@@ -76,16 +75,14 @@ export default function BuyersPanel() {
 
   async function loadGroupMembers() {
     try {
-      const session = await fetchAuthSession();
-      const token = session.tokens?.idToken?.toString();
-      if (!token) return;
-      const res = await fetch("/api/admin/group-members", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      setAdminEmails(new Set((data.admin ?? []).map((e: string) => e.toLowerCase())));
-      setSellerEmails(new Set((data.seller ?? []).map((e: string) => e.toLowerCase())));
+      // Cognito admin read runs in a Lambda (the SSR runtime has no AWS creds).
+      const res = await client.queries.listGroupMembers(
+        { authMode: "userPool" } as any,
+      );
+      const data = res.data;
+      if (!data) return;
+      setAdminEmails(new Set((data.admin ?? []).map((e: any) => String(e).toLowerCase())));
+      setSellerEmails(new Set((data.seller ?? []).map((e: any) => String(e).toLowerCase())));
     } catch {
       // non-fatal
     }

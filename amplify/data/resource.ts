@@ -6,6 +6,7 @@ import { verifyPayment } from "../functions/verifyPayment/resource";
 import { reviewBuyerVerification } from "../functions/reviewBuyerVerification/resource";
 import { notifyOfferSms } from "../functions/notifyOfferSms/resource";
 import { manageSellerGroup } from "../functions/manageSellerGroup/resource";
+import { listGroupMembers } from "../functions/listGroupMembers/resource";
 import { autoVerifyBuyer } from "../functions/autoVerifyBuyer/resource";
 import { submitVerificationRequest } from "../functions/submitVerificationRequest/resource";
 import { getRevenueStats } from "../functions/getRevenueStats/resource";
@@ -334,7 +335,13 @@ const schema = a
         lastSeenAt: a.datetime(),
         lastSeenPage: a.string(),
 
-        phoneNumber: a.string(),
+        // PII — restrict to owner/Admin/Seller (not all authenticated users).
+        // Optional field, so this doesn't trigger the required-field auth rule.
+        phoneNumber: a.string().authorization((allow) => [
+          allow.ownerDefinedIn("userId"),
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+        ]),
         smsOptIn: a.boolean().default(false),
 
         // Phone OTP verification. phoneVerified is owner-readable (so the UI can
@@ -621,6 +628,18 @@ const schema = a
       .authorization((allow) => [allow.group("Admin")])
       .handler(a.handler.function(manageSellerGroup)),
 
+    listGroupMembers: a
+      .query()
+      .returns(
+        a.customType({
+          admin: a.string().array(),
+          seller: a.string().array(),
+          error: a.string(),
+        }),
+      )
+      .authorization((allow) => [allow.group("Admin")])
+      .handler(a.handler.function(listGroupMembers)),
+
     notifySellerOfferSms: a
       .mutation()
       .arguments({
@@ -862,6 +881,7 @@ const schema = a
     allow.resource(verifyPayment),
     allow.resource(reviewBuyerVerification),
     allow.resource(manageSellerGroup),
+    allow.resource(listGroupMembers),
     allow.resource(notifyOfferSms),
     allow.resource(autoVerifyBuyer),
     allow.resource(submitVerificationRequest),

@@ -8,6 +8,7 @@ import { scheduledFinalize } from "./functions/scheduledFinalize/resource";
 import { verifyPayment } from "./functions/verifyPayment/resource";
 import { reviewBuyerVerification } from "./functions/reviewBuyerVerification/resource";
 import { manageSellerGroup } from "./functions/manageSellerGroup/resource";
+import { listGroupMembers } from "./functions/listGroupMembers/resource";
 import { notifyOfferSms } from "./functions/notifyOfferSms/resource";
 import { autoVerifyBuyer } from "./functions/autoVerifyBuyer/resource";
 import { submitVerificationRequest } from "./functions/submitVerificationRequest/resource";
@@ -38,6 +39,7 @@ const backend = defineBackend({
   verifyPayment,
   reviewBuyerVerification,
   manageSellerGroup,
+  listGroupMembers,
   notifyOfferSms,
   autoVerifyBuyer,
   submitVerificationRequest,
@@ -192,6 +194,17 @@ const manageSellerGroupCfn = backend.manageSellerGroup.resources.lambda.node
   .defaultChild as CfnFunction;
 
 manageSellerGroupCfn.addPropertyOverride("Environment.Variables.USER_POOL_ID", userPool.userPoolId);
+
+// listGroupMembers: read Admin/Seller group membership from Cognito.
+backend.listGroupMembers.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["cognito-idp:ListUsersInGroup"],
+    resources: [userPool.userPoolArn],
+  }),
+);
+const listGroupMembersCfn = backend.listGroupMembers.resources.lambda.node
+  .defaultChild as CfnFunction;
+listGroupMembersCfn.addPropertyOverride("Environment.Variables.USER_POOL_ID", userPool.userPoolId);
 
 const autoVerifyBuyerCfn = backend.autoVerifyBuyer.resources.lambda.node
   .defaultChild as CfnFunction;
