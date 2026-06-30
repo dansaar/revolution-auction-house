@@ -47,21 +47,55 @@ export async function POST(req: Request) {
 
   const stripe = new Stripe(stripeSecretKey);
 
-  const session = await stripe.identity.verificationSessions.create({
-    type: "document",
-    metadata: {
-      buyerEmail,
-      buyerUserId,
-    },
-    options: {
-      document: {
-        allowed_types: ["driving_license", "passport", "id_card"],
-        require_live_capture: true,
-        require_matching_selfie: true,
+  // Guard against racking up paid verifications: Stripe bills ~$1.50 per
+  // *submitted* verification session. A per-buyer idempotency key (cached by
+  // Stripe for 24h) makes repeated "Verify" clicks — double-clicks, rapid
+  // retries, accidental repeats — return the SAME session instead of creating
+  // new billable ones. The buyer can retry within that one session for free;
+  // a genuinely new session can only be created after the 24h window.
+  let session;
+  try {
+    session = await stripe.identity.verificationSessions.create(
+      {
+        type: "document",
+        metadata: {
+          buyerEmail,
+          buyerUserId,
+        },
+        options: {
+          document: {
+            allowed_types: ["driving_license", "passport", "id_card"],
+            require_live_capture: true,
+            require_matching_selfie: true,
+          },
+        },
+        return_url: `${siteUrl}/verify?identity=complete`,
       },
-    },
-    return_url: `${siteUrl}/verify?identity=complete`,
-  });
+      { idempotencyKey: `identity-verify-${buyerUserId}` },
+    );
+  } catch (err: any) {
+    // If a prior request with this key used different params, Stripe rejects it.
+    // Surface a clean message instead of a 500.
+    return NextResponse.json(
+      { error: err?.message || "Could not start verification. Please try again later." },
+      { status: 409 },
+    );
+  }
+
+  // If Stripe already returned a terminal result for this cached session, don't
+  // send the buyer back into a flow that can't proceed.
+  if (session.status === "verified") {
+    return NextResponse.json(
+      { error: "Your identity is already verified.", status: "verified" },
+      { status: 409 },
+    );
+  }
+  if (session.status === "processing") {
+    return NextResponse.json(
+      { error: "Your verification is still processing — please check back shortly.", status: "processing" },
+      { status: 409 },
+    );
+  }
 
   return NextResponse.json({ url: session.url, sessionId: session.id });
 }
