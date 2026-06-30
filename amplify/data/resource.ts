@@ -317,18 +317,8 @@ const schema = a
 
     BuyerProfile: a
       .model({
-        // Required fields need explicit field-level rules once any field on the
-        // model uses field-level auth. Owner + Admin + Seller-read (PII).
-        userId: a.string().required().authorization((allow) => [
-          allow.ownerDefinedIn("userId"),
-          allow.group("Admin"),
-          allow.group("Seller").to(["read"]),
-        ]),
-        email: a.string().required().authorization((allow) => [
-          allow.ownerDefinedIn("userId"),
-          allow.group("Admin"),
-          allow.group("Seller").to(["read"]),
-        ]),
+        userId: a.string().required(),
+        email: a.string().required(),
 
         displayName: a.string(),
 
@@ -407,11 +397,7 @@ const schema = a
       ])
       .authorization((allow) => [
         allow.ownerDefinedIn("userId"),
-        // Was allow.authenticated().to(["read"]) — that exposed every buyer's
-        // email/phone to any logged-in user. Sellers (verification review) and
-        // Admins still read; the buyer reads their own. The non-sensitive
-        // `status` field keeps its own authenticated-read rule.
-        allow.group("Seller").to(["read"]),
+        allow.authenticated().to(["read"]),
         allow.group("Admin"),
       ]),
 
