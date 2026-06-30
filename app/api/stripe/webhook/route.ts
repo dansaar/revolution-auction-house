@@ -123,11 +123,12 @@ export async function POST(request: Request) {
 
       case "checkout.session.async_payment_failed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        console.error("WEBHOOK bank payment failed (ACH):", session.id, session.metadata);
+        console.error("WEBHOOK bank payment failed (ACH):", session.id);
         await serverLogError({
           source: "stripe/webhook",
           message: `ACH bank payment failed: ${session.id}`,
-          context: session.metadata,
+          // Redacted — don't log buyerEmail; the sub is enough to trace.
+          context: { sessionId: session.id, buyerSub: session.metadata?.buyerSub },
           severity: "WARN",
           url: "/api/stripe/webhook",
         });
@@ -160,13 +161,14 @@ export async function POST(request: Request) {
         );
 
         if (result.data?.success) {
-          console.log("WEBHOOK identity.verified: buyer upgraded to VERIFIED", buyerEmail);
+          console.log("WEBHOOK identity.verified: buyer upgraded to VERIFIED", session.id);
         } else {
-          console.error("WEBHOOK identity.verified: autoVerifyBuyer failed", buyerEmail);
+          console.error("WEBHOOK identity.verified: autoVerifyBuyer failed", session.id);
           await serverLogError({
             source: "stripe/webhook",
-            message: `identity.verified: autoVerifyBuyer failed for ${buyerEmail}`,
-            context: result.data,
+            // Redacted — log the session id, not the buyer's email.
+            message: `identity.verified: autoVerifyBuyer failed (session ${session.id})`,
+            context: { success: result.data?.success, message: result.data?.message },
             severity: "ERROR",
             url: "/api/stripe/webhook",
           });
