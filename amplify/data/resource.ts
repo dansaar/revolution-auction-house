@@ -317,8 +317,18 @@ const schema = a
 
     BuyerProfile: a
       .model({
-        userId: a.string().required(),
-        email: a.string().required(),
+        // Required fields need explicit field-level rules once any field on the
+        // model uses field-level auth. Owner + Admin + Seller-read (PII).
+        userId: a.string().required().authorization((allow) => [
+          allow.ownerDefinedIn("userId"),
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+        ]),
+        email: a.string().required().authorization((allow) => [
+          allow.ownerDefinedIn("userId"),
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+        ]),
 
         displayName: a.string(),
 
