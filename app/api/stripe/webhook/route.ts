@@ -168,7 +168,7 @@ export async function POST(request: Request) {
             source: "stripe/webhook",
             // Redacted — log the session id, not the buyer's email.
             message: `identity.verified: autoVerifyBuyer failed (session ${session.id})`,
-            context: { success: result.data?.success, message: result.data?.message },
+            context: { success: result.data?.success },
             severity: "ERROR",
             url: "/api/stripe/webhook",
           });
