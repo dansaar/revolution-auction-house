@@ -415,7 +415,11 @@ const schema = a
       ])
       .authorization((allow) => [
         allow.ownerDefinedIn("userId"),
-        allow.authenticated().to(["read"]),
+        // Was allow.authenticated().to(["read"]) — narrowed so email/phone aren't
+        // exposed to every logged-in user. Sellers (verification review) + Admin
+        // still read; the buyer reads their own. Required fields (userId/email)
+        // carry field-level rules that cover these same readers.
+        allow.group("Seller").to(["read"]),
         allow.group("Admin"),
       ]),
 
