@@ -318,8 +318,19 @@ const schema = a
 
     BuyerProfile: a
       .model({
-        userId: a.string().required(),
-        email: a.string().required(),
+        // userId (the Cognito sub) stays broadly readable; an explicit rule is
+        // needed once email (a required field) carries field-level auth.
+        userId: a.string().required().authorization((allow) => [
+          allow.ownerDefinedIn("userId"),
+          allow.authenticated().to(["read"]),
+          allow.group("Admin"),
+        ]),
+        // PII — restrict to owner/Admin/Seller (not all authenticated users).
+        email: a.string().required().authorization((allow) => [
+          allow.ownerDefinedIn("userId"),
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+        ]),
 
         displayName: a.string(),
 
