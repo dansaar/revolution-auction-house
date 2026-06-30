@@ -213,7 +213,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
             paid: true,
             paidAt: new Date().toISOString(),
             stripeSessionId: session.id,
-            buyerEmail,
+            buyerUserId,
             status: "SOLD",
             featured: false, // sold items shouldn't stay featured
           });
@@ -270,7 +270,7 @@ export const handler: Schema["verifyPayment"]["functionHandler"] = async (
         paid: true,
         paidAt: new Date().toISOString(),
         stripeSessionId: session.id,
-        buyerEmail,
+        buyerUserId,
         status: "SOLD",
         featured: false, // sold items shouldn't stay featured
       });

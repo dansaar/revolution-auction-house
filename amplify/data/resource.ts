@@ -172,7 +172,14 @@ const schema = a
         status: a.string().default("ACTIVE"),
         sold: a.boolean().default(false),
 
-        buyerEmail: a.string(),
+        // Buyer identity is keyed on the Cognito sub (not PII) so the buyer can
+        // query their own purchases; buyerEmail is restricted (PII).
+        buyerUserId: a.string(),
+        buyerEmail: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("sellerUserId").to(["read"]),
+        ]),
         paid: a.boolean().default(false),
         paidAt: a.datetime(),
         stripeSessionId: a.string(),
@@ -390,7 +397,11 @@ const schema = a
       ])
       .authorization((allow) => [
         allow.ownerDefinedIn("userId"),
-        allow.authenticated().to(["read"]),
+        // Was allow.authenticated().to(["read"]) — that exposed every buyer's
+        // email/phone to any logged-in user. Sellers (verification review) and
+        // Admins still read; the buyer reads their own. The non-sensitive
+        // `status` field keeps its own authenticated-read rule.
+        allow.group("Seller").to(["read"]),
         allow.group("Admin"),
       ]),
 

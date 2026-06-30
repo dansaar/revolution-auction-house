@@ -2375,16 +2375,23 @@ function MarketplaceSection({
                     </div>
                   </div>
 
-                  {listing.paid && (
-                    <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
-                      Paid
-                      {listing.buyerEmail && (
-                        <div className="mt-1 text-xs text-gray-300">
-                          Buyer: {listing.buyerEmail}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {listing.paid && (() => {
+                    const buyerEmail =
+                      listing.buyerEmail ||
+                      invoices?.find(
+                        (inv: any) => String(inv.listingId) === String(listing.id),
+                      )?.buyerEmail;
+                    return (
+                      <div className="mt-3 rounded border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+                        Paid
+                        {buyerEmail && (
+                          <div className="mt-1 text-xs text-gray-300">
+                            Buyer: {buyerEmail}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {listing.paid && (
                     <div className="mt-3 rounded-xl border border-white/10 bg-black/30 p-4">

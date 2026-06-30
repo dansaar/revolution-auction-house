@@ -237,7 +237,7 @@ export default function DashboardPage() {
         });
         const marketplaceResult = await client.models.MarketplaceListing.list({
           filter: {
-            buyerEmail: { eq: userKeyLower },
+            buyerUserId: { eq: userId },
           },
           authMode: "apiKey",
         } as any);
