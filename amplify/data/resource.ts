@@ -661,7 +661,9 @@ const schema = a
     notifySellerOfferSms: a
       .mutation()
       .arguments({
-        sellerEmail: a.string().required(),
+        // Legacy, ignored: the handler resolves the seller from the listing
+        // (buyers can't read the field-restricted sellerEmail to pass it).
+        sellerEmail: a.string(),
         listingId: a.string().required(),
         listingTitle: a.string().required(),
         offerAmount: a.string().required(),

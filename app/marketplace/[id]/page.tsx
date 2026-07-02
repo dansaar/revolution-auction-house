@@ -272,8 +272,9 @@ export default function MarketplaceListingPage() {
           buyerEmail,
           buyerDisplayName: buyerEmail,
 
+          // sellerEmail is field-restricted (null on public reads), so the
+          // buyer can't denormalize it here; consumers key on sellerUserId.
           sellerUserId: listing.sellerUserId,
-          sellerEmail: listing.sellerEmail || "",
 
           amount: amountFormatted,
 
@@ -292,10 +293,10 @@ export default function MarketplaceListingPage() {
       // Optimistically update local state so the page reflects OFFER_PENDING immediately
       setListing((prev: any) => ({ ...prev, status: "OFFER_PENDING" }));
 
-      // Notify seller + update listing status in DynamoDB (fire-and-forget via Lambda with IAM)
+      // Notify seller + update listing status in DynamoDB (fire-and-forget via
+      // Lambda with IAM). The Lambda resolves the seller from the listing.
       client.mutations.notifySellerOfferSms(
         {
-          sellerEmail: listing.sellerEmail || "",
           listingId: listing.id,
           listingTitle: listing.title || "your listing",
           offerAmount: amountFormatted,

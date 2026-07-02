@@ -22,25 +22,34 @@ const FROM_EMAIL = (env as any).FROM_EMAIL || "";
 const SELLER_SMS_ENABLED = ((env as any).SMS_AUDIENCE || "all") !== "none";
 
 export const handler: Schema["notifySellerOfferSms"]["functionHandler"] = async (event) => {
-  const { sellerEmail, listingId, listingTitle, offerAmount } = event.arguments;
+  const { listingId, listingTitle, offerAmount } = event.arguments;
 
   try {
-    // Verify the listing exists and actually belongs to the claimed seller
     const listingResult = await client.models.MarketplaceListing.get(
       { id: listingId },
       { authMode: "iam" } as any,
     );
     const listing = listingResult.data;
-    if (!listing || (sellerEmail && listing.sellerEmail?.toLowerCase() !== sellerEmail?.toLowerCase())) {
-      console.warn("NOTIFY_OFFER_SMS: listing/seller mismatch", { listingId, sellerEmail });
+    if (!listing) {
+      console.warn("NOTIFY_OFFER_SMS: listing not found", { listingId });
       return { sent: false };
     }
+
+    // Resolve the seller from the listing itself (IAM reads bypass field
+    // auth). Buyers can't read the restricted sellerEmail, so the caller's
+    // sellerEmail argument is always empty — never use it.
+    const sellerEmail = String(listing.sellerEmail || "");
 
     // Always mark listing as OFFER_PENDING so the UI updates for all viewers
     await client.models.MarketplaceListing.update(
       { id: listingId, status: "OFFER_PENDING" },
       { authMode: "iam" } as any,
     );
+
+    if (!sellerEmail) {
+      console.warn("NOTIFY_OFFER_SMS: listing has no sellerEmail", { listingId });
+      return { sent: false };
+    }
 
     // 5-minute per-listing notification cooldown to prevent spam
     if (listing.lastOfferSmsAt) {
