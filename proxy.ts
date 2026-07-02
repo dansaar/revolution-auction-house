@@ -2,17 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchAuthSession } from "aws-amplify/auth/server";
 import { runWithAmplifyServerContext } from "@/lib/amplifyServerUtils";
 
-export async function middleware(request: NextRequest) {
+// Coarse gate for the admin UI. Real enforcement stays in the data layer
+// (Amplify auth rules) and the admin API routes, which verify the JWT's
+// Admin group themselves.
+export async function proxy(request: NextRequest) {
   const response = NextResponse.next();
 
-  const authenticated = await runWithAmplifyServerContext({
+  const { authenticated, isAdmin } = await runWithAmplifyServerContext({
     nextServerContext: { request, response },
     operation: async (contextSpec) => {
       try {
         const session = await fetchAuthSession(contextSpec);
-        return session.tokens !== undefined;
+        const groups =
+          (session.tokens?.idToken?.payload?.["cognito:groups"] as string[]) ||
+          [];
+        return {
+          authenticated: session.tokens !== undefined,
+          isAdmin: groups.includes("Admin"),
+        };
       } catch {
-        return false;
+        return { authenticated: false, isAdmin: false };
       }
     },
   });
@@ -21,6 +30,10 @@ export async function middleware(request: NextRequest) {
     const signInUrl = new URL("/signin", request.url);
     signInUrl.searchParams.set("redirect", request.nextUrl.pathname);
     return NextResponse.redirect(signInUrl);
+  }
+
+  if (!isAdmin) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return response;
