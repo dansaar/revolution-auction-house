@@ -11,6 +11,7 @@ import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
 import { getCart, removeManyFromCart } from "@/lib/cart";
+import { MARKETPLACE_PUBLIC_FIELDS } from "@/lib/marketplaceSelection";
 
 const client = generateClient<Schema>();
 
@@ -88,6 +89,7 @@ export default function CartPage() {
         const listingResult = await client.models.MarketplaceListing.list({
           authMode: "apiKey",
           limit: 1000,
+          selectionSet: MARKETPLACE_PUBLIC_FIELDS,
         } as any);
 
         const unpaidAuctionWins: CartItem[] = (auctionResult.data || [])

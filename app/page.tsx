@@ -21,6 +21,7 @@ import "@/lib/amplifyclient";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
+import { MARKETPLACE_PUBLIC_FIELDS } from "@/lib/marketplaceSelection";
 
 const client = generateClient<Schema>();
 
@@ -246,6 +247,7 @@ export default function RevolutionAuctionHouseHomepage() {
         const result = await client.models.MarketplaceListing.list({
           authMode: "apiKey",
           limit: 100,
+          selectionSet: MARKETPLACE_PUBLIC_FIELDS,
         } as any);
 
         const featured = (result.data || [])

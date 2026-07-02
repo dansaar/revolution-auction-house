@@ -15,6 +15,7 @@ import { moneyToNumber } from "@/lib/money";
 import { addToCart, isInCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { confirmDialog } from "@/lib/confirm";
+import { MARKETPLACE_PUBLIC_FIELDS } from "@/lib/marketplaceSelection";
 
 const client = generateClient<Schema>();
 
@@ -124,7 +125,8 @@ export default function MarketplaceListingPage() {
           { id },
           {
             authMode: "apiKey",
-          },
+            selectionSet: MARKETPLACE_PUBLIC_FIELDS,
+          } as any,
         );
 
         if (!result.data) {
@@ -301,7 +303,7 @@ export default function MarketplaceListingPage() {
         { authMode: "userPool" } as any,
       ).catch(() => {});
 
-      toast.success(`Offer submitted! The seller (${listing.sellerEmail}) will review your offer and respond.`);
+      toast.success("Offer submitted! The seller will review your offer and respond.");
       setOfferAmount("");
     } catch (err) {
       console.error(err);
