@@ -17,8 +17,8 @@ const ACCOUNT_LINKS = [
 export default function Footer() {
   return (
     <footer className="border-t border-white/10 bg-[#050607] text-white">
-      <div className="mx-auto grid max-w-[1500px] gap-10 px-6 py-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
-        <div>
+      <div className="mx-auto grid max-w-[1500px] gap-10 px-6 py-12 sm:grid-cols-3 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="sm:col-span-3 lg:col-span-1">
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"
@@ -26,7 +26,7 @@ export default function Footer() {
               className="h-12 w-auto object-contain"
             />
             <div className="leading-tight">
-              <div className="font-serif text-lg tracking-[0.4em] text-[#c0c0c0]">
+              <div className="font-serif text-base tracking-[0.3em] text-[#c0c0c0]">
                 REVOLUTION
               </div>
               <div className="text-[10px] uppercase tracking-[0.3em] text-[#c8a96b]">
@@ -47,7 +47,11 @@ export default function Footer() {
         <FooterColumn title="Account" links={ACCOUNT_LINKS} />
         <FooterColumn
           title="Legal"
-          links={[{ href: "/bidder-agreement", label: "Bidder Agreement" }]}
+          links={[
+            { href: "/bidder-agreement", label: "Bidder Agreement" },
+            { href: "/terms", label: "Terms of Service" },
+            { href: "/privacy", label: "Privacy Policy" },
+          ]}
         />
       </div>
 
