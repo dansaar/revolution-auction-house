@@ -532,7 +532,7 @@ export default function MarketplaceListingPage() {
               className="mt-8 w-full rounded bg-[#c0c0c0] py-4 font-semibold text-black transition hover:bg-white disabled:opacity-50 md:mt-10"
             >
               {isSeller || isAdmin
-                ? "Not Available"
+                ? "Not Available to Sellers and Admins"
                 : listing.sold || listing.status === "SOLD"
                   ? "Sold"
                   : listing.status === "PENDING_PAYMENT"
