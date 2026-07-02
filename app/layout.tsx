@@ -6,10 +6,28 @@ import SellerNotificationBanner from "./components/SellerNotificationBanner";
 import AmplifyProvider from "./amplify-provider";
 import ConfirmHost from "./components/ConfirmHost";
 import { Toaster } from "sonner";
+import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
-export const metadata = {
-  title: "Revolution Auction House",
-  description: "Luxury Pokémon Auction Platform",
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Revolution Auction House — Premium Pokémon Card Auctions",
+    template: "%s | Revolution Auction House",
+  },
+  description:
+    "High-end Pokémon card auctions and marketplace. Verified buyers, authenticated cards, insured shipping. For collectors, by collectors.",
+  openGraph: {
+    type: "website",
+    siteName: "Revolution Auction House",
+    title: "Revolution Auction House — Premium Pokémon Card Auctions",
+    description:
+      "High-end Pokémon card auctions and marketplace. Verified buyers, authenticated cards, insured shipping.",
+    images: ["/logo.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({
