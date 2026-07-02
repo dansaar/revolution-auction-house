@@ -478,6 +478,13 @@ export default function LiveAuctionPage() {
   // Timer
   useEffect(() => {
     if (!auction?.endsAt) return;
+    // An early-ended auction can keep a future endsAt (ended by the seller,
+    // then re-listed as a new lot) — the ended flag beats the clock.
+    if (auction.ended || auctionEnded) {
+      setTimeLeft("Ended");
+      setTimeColor("text-red-500");
+      return;
+    }
     const interval = setInterval(async () => {
       const diff = new Date(auction.endsAt).getTime() - Date.now();
 
@@ -520,7 +527,7 @@ export default function LiveAuctionPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [auction?.id, auction?.endsAt, auction?.ended, auction?.price]);
+  }, [auction?.id, auction?.endsAt, auction?.ended, auction?.price, auctionEnded]);
 
   // FIX #2 â€“ bidderMap + actualWinner in useMemo (not bare component body)
   const actualWinnerUserId =
@@ -1174,25 +1181,30 @@ export default function LiveAuctionPage() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                disabled={watchBusy}
-                onClick={toggleWatchlist}
-                className={`mt-5 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-4 text-sm font-bold uppercase tracking-[0.16em] transition disabled:opacity-50 ${
-                  isWatching
-                    ? "border-red-500/40 bg-red-600/15 text-red-300"
-                    : "border-white/15 bg-white/[0.03] text-[#c0c0c0] hover:border-[#c0c0c0]/50 hover:bg-white/[0.06]"
-                }`}
-              >
-                <span className="text-lg">
-                  {Boolean(isWatching) ? "♥" : "♡"}
-                </span>
-                {watchBusy
-                  ? "Updating..."
-                  : Boolean(isWatching)
-                    ? "Watching This Auction"
-                    : "Add To Watchlist"}
-              </button>
+              {/* Ended lots can't be watched; only offer removal if already watching. */}
+              {(!auctionEnded || isWatching) && (
+                <button
+                  type="button"
+                  disabled={watchBusy}
+                  onClick={toggleWatchlist}
+                  className={`mt-5 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-4 text-sm font-bold uppercase tracking-[0.16em] transition disabled:opacity-50 ${
+                    isWatching
+                      ? "border-red-500/40 bg-red-600/15 text-red-300"
+                      : "border-white/15 bg-white/[0.03] text-[#c0c0c0] hover:border-[#c0c0c0]/50 hover:bg-white/[0.06]"
+                  }`}
+                >
+                  <span className="text-lg">
+                    {Boolean(isWatching) ? "♥" : "♡"}
+                  </span>
+                  {watchBusy
+                    ? "Updating..."
+                    : auctionEnded
+                      ? "Remove From Watchlist"
+                      : Boolean(isWatching)
+                        ? "Watching This Auction"
+                        : "Add To Watchlist"}
+                </button>
+              )}
 
               <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-xs uppercase tracking-[0.18em]">
                 <span className="text-gray-500">Reserve Status</span>

@@ -654,7 +654,11 @@ export default function DashboardPage() {
 
     if (!auction) return false;
 
-    const isEnded = auction.endsAt && new Date(auction.endsAt).getTime() <= now;
+    // An early-ended auction keeps its original (future) endsAt, so the
+    // ended flag must win over the clock.
+    const isEnded =
+      auction.ended ||
+      (auction.endsAt && new Date(auction.endsAt).getTime() <= now);
 
     return !isEnded;
   });
