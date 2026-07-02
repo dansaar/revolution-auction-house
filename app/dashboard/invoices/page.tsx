@@ -10,6 +10,8 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { moneyToNumber } from "@/lib/money";
+import { MARKETPLACE_PUBLIC_FIELDS } from "@/lib/marketplaceSelection";
+import { AUCTION_PUBLIC_FIELDS } from "@/lib/auctionSelection";
 import ShippingTimeline from "@/app/components/ShippingTimeline";
 
 export default function BuyerInvoicesPage() {
@@ -66,9 +68,9 @@ export default function BuyerInvoicesPage() {
             try {
               let rec: any = null;
               if (inv.auctionId) {
-                rec = (await client.models.Auction.get({ id: inv.auctionId }, { authMode: "apiKey" } as any)).data;
+                rec = (await client.models.Auction.get({ id: inv.auctionId }, { authMode: "apiKey", selectionSet: AUCTION_PUBLIC_FIELDS } as any)).data;
               } else if (inv.listingId) {
-                rec = (await client.models.MarketplaceListing.get({ id: inv.listingId }, { authMode: "apiKey" } as any)).data;
+                rec = (await client.models.MarketplaceListing.get({ id: inv.listingId }, { authMode: "apiKey", selectionSet: MARKETPLACE_PUBLIC_FIELDS } as any)).data;
               }
               if (!rec) return null;
               return [inv.id, {

@@ -6,6 +6,11 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Trophy, Gavel, ExternalLink } from "lucide-react";
 import { cdnUrl } from "@/lib/cdn";
+import {
+  AUCTION_PUBLIC_FIELDS,
+  AUCTION_STATE_PUBLIC_FIELDS,
+  BID_PUBLIC_FIELDS,
+} from "@/lib/auctionSelection";
 
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
@@ -89,14 +94,22 @@ export default function AuctionResultsPage() {
     async function loadResults() {
       try {
         const [auctionResult, stateResult, bidResult] = await Promise.all([
-          client.models.Auction.get({ id }, { authMode: "apiKey" } as any),
+          client.models.Auction.get(
+            { id },
+            { authMode: "apiKey", selectionSet: AUCTION_PUBLIC_FIELDS } as any,
+          ),
           client.models.AuctionState.get(
             { auctionId: id },
-            { authMode: "apiKey" } as any,
+            { authMode: "apiKey", selectionSet: AUCTION_STATE_PUBLIC_FIELDS } as any,
           ),
           client.models.Bid.bidsByAuction(
             { auctionId: id },
-            { authMode: "apiKey", limit: 100, sortDirection: "DESC" } as any,
+            {
+              authMode: "apiKey",
+              selectionSet: BID_PUBLIC_FIELDS,
+              limit: 100,
+              sortDirection: "DESC",
+            } as any,
           ),
         ]);
 

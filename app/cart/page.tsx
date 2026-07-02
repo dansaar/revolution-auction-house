@@ -12,6 +12,7 @@ import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
 import { getCart, removeManyFromCart } from "@/lib/cart";
 import { MARKETPLACE_PUBLIC_FIELDS } from "@/lib/marketplaceSelection";
+import { AUCTION_PUBLIC_FIELDS } from "@/lib/auctionSelection";
 
 const client = generateClient<Schema>();
 
@@ -83,6 +84,7 @@ export default function CartPage() {
 
         const auctionResult = await client.models.Auction.list({
           authMode: "apiKey",
+          selectionSet: AUCTION_PUBLIC_FIELDS,
           limit: 1000,
         } as any);
 

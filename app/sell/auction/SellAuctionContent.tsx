@@ -15,6 +15,7 @@ import imageCompression from "browser-image-compression";
 import { cdnUrl } from "@/lib/cdn";
 import { uploadData } from "aws-amplify/storage";
 import { isApprovedSeller } from "@/lib/sellers";
+import { AUCTION_PUBLIC_FIELDS } from "@/lib/auctionSelection";
 
 export default function SellAuctionContent() {
   const clientRef = React.useRef(generateClient<Schema>());
@@ -82,7 +83,7 @@ export default function SellAuctionContent() {
       try {
         const result = await client.models.Auction.get(
           { id: relistId },
-          { authMode: "apiKey" },
+          { authMode: "apiKey", selectionSet: AUCTION_PUBLIC_FIELDS } as any,
         );
 
         const auction = result.data;

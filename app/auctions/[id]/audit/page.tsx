@@ -74,7 +74,9 @@ export default function AuctionAuditPage() {
         const [auctionResult, auditResult] = await Promise.all([
           client.models.Auction.get(
             { id: auctionId },
-            { authMode: "apiKey" } as any,
+            // Admin-gated page: userPool auth so field-restricted attributes
+            // (winnerEmail, sellerEmail) actually come back.
+            { authMode: "userPool" } as any,
           ),
           client.models.BidAuditLog.bidAuditByAuction(
             { auctionId },

@@ -6,6 +6,8 @@ import type { Schema } from "@/amplify/data/resource";
 import outputs from "@/amplify_outputs.json";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { serverLogError } from "@/lib/serverLogError";
+import { MARKETPLACE_PUBLIC_FIELDS } from "@/lib/marketplaceSelection";
+import { AUCTION_PUBLIC_FIELDS } from "@/lib/auctionSelection";
 
 Amplify.configure(outputs);
 
@@ -227,15 +229,17 @@ export async function POST(req: Request) {
         if (item.type === "AUCTION") {
           const result = await client.models.Auction.get(
             { id: item.id },
-            { authMode: "apiKey" } as any,
+            { authMode: "apiKey", selectionSet: AUCTION_PUBLIC_FIELDS } as any,
           );
           const auction = result.data;
           if (!auction) continue;
 
+          // Compare subs, not emails: sellerEmail is field-restricted and
+          // always null on apiKey reads, so an email check never fires.
           if (
-            buyerEmail &&
-            auction.sellerEmail &&
-            buyerEmail.toLowerCase() === auction.sellerEmail.toLowerCase()
+            buyerSub &&
+            auction.sellerUserId &&
+            buyerSub === auction.sellerUserId
           ) {
             return NextResponse.json(
               { error: "Sellers cannot purchase their own auctions." },
@@ -258,7 +262,7 @@ export async function POST(req: Request) {
         } else if (item.type === "MARKETPLACE") {
           const result = await client.models.MarketplaceListing.get(
             { id: item.id },
-            { authMode: "apiKey" } as any,
+            { authMode: "apiKey", selectionSet: MARKETPLACE_PUBLIC_FIELDS } as any,
           );
           const listing = result.data;
           if (!listing) continue;
@@ -272,9 +276,9 @@ export async function POST(req: Request) {
           }
 
           if (
-            buyerEmail &&
-            listing.sellerEmail &&
-            buyerEmail.toLowerCase() === listing.sellerEmail.toLowerCase()
+            buyerSub &&
+            listing.sellerUserId &&
+            buyerSub === listing.sellerUserId
           ) {
             return NextResponse.json(
               { error: "Sellers cannot purchase their own listings." },
@@ -339,7 +343,7 @@ export async function POST(req: Request) {
     if (auctionId) {
       const result = await client.models.Auction.get(
         { id: auctionId },
-        { authMode: "apiKey" } as any,
+        { authMode: "apiKey", selectionSet: AUCTION_PUBLIC_FIELDS } as any,
       );
       const auction = result.data;
 
@@ -351,9 +355,9 @@ export async function POST(req: Request) {
       }
 
       if (
-        buyerEmail &&
-        auction.sellerEmail &&
-        buyerEmail.toLowerCase() === auction.sellerEmail.toLowerCase()
+        buyerSub &&
+        auction.sellerUserId &&
+        buyerSub === auction.sellerUserId
       ) {
         return NextResponse.json(
           { error: "Sellers cannot purchase their own auctions." },
@@ -401,7 +405,7 @@ export async function POST(req: Request) {
     if (listingId) {
       const result = await client.models.MarketplaceListing.get(
         { id: listingId },
-        { authMode: "apiKey" } as any,
+        { authMode: "apiKey", selectionSet: MARKETPLACE_PUBLIC_FIELDS } as any,
       );
       const listing = result.data;
 
@@ -422,9 +426,9 @@ export async function POST(req: Request) {
       }
 
       if (
-        buyerEmail &&
-        listing.sellerEmail &&
-        buyerEmail.toLowerCase() === listing.sellerEmail.toLowerCase()
+        buyerSub &&
+        listing.sellerUserId &&
+        buyerSub === listing.sellerUserId
       ) {
         return NextResponse.json(
           { error: "Sellers cannot purchase their own listings." },

@@ -24,6 +24,12 @@ import { cdnUrl } from "@/lib/cdn";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
 import { isAdminUser } from "@/lib/sellers";
 import { getTier } from "@/lib/tiers";
+import { MARKETPLACE_PUBLIC_FIELDS } from "@/lib/marketplaceSelection";
+import {
+  AUCTION_PUBLIC_FIELDS,
+  AUCTION_STATE_PUBLIC_FIELDS,
+  BID_PUBLIC_FIELDS,
+} from "@/lib/auctionSelection";
 import { DashboardFilterBar, matchesSearch } from "@/app/components/DashboardFilters";
 import ConfirmReceiptButton from "@/app/components/ConfirmReceiptButton";
 
@@ -165,6 +171,7 @@ export default function DashboardPage() {
           { bidderUserId: userId },
           {
             authMode: "apiKey",
+            selectionSet: BID_PUBLIC_FIELDS,
             limit: 1000,
           } as any,
         );
@@ -173,16 +180,19 @@ export default function DashboardPage() {
           { bidderEmail: userKey },
           {
             authMode: "apiKey",
+            selectionSet: BID_PUBLIC_FIELDS,
             limit: 1000,
           } as any,
         );
 
         const auctionResult = await client.models.Auction.list({
           authMode: "apiKey",
+          selectionSet: AUCTION_PUBLIC_FIELDS,
         } as any);
 
         const stateResult = await client.models.AuctionState.list({
           authMode: "apiKey",
+          selectionSet: AUCTION_STATE_PUBLIC_FIELDS,
         } as any);
 
         let profile = null;
@@ -240,6 +250,7 @@ export default function DashboardPage() {
             buyerUserId: { eq: userId },
           },
           authMode: "apiKey",
+          selectionSet: MARKETPLACE_PUBLIC_FIELDS,
         } as any);
 
         const resolvedMarketplacePurchases = (marketplaceResult.data || []).map(
@@ -278,6 +289,7 @@ export default function DashboardPage() {
           offerListingIds.map((listingId: any) =>
             client.models.MarketplaceListing.get({ id: listingId }, {
               authMode: "apiKey",
+              selectionSet: MARKETPLACE_PUBLIC_FIELDS,
             } as any).catch(() => null),
           ),
         );
@@ -315,6 +327,7 @@ export default function DashboardPage() {
               status: { eq: "OFFER_ACCEPTED" },
             },
             authMode: "apiKey",
+            selectionSet: MARKETPLACE_PUBLIC_FIELDS,
           } as any);
 
         const resolvedAcceptedOffers = (

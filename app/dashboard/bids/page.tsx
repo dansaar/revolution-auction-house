@@ -9,6 +9,11 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
+import {
+  AUCTION_PUBLIC_FIELDS,
+  AUCTION_STATE_PUBLIC_FIELDS,
+  BID_PUBLIC_FIELDS,
+} from "@/lib/auctionSelection";
 
 const client = generateClient<Schema>();
 
@@ -75,14 +80,20 @@ export default function MyBidsPage() {
           await Promise.all([
             client.models.Bid.bidsByBidder(
               { bidderUserId: userId },
-              { authMode: "apiKey", limit: 1000 } as any,
+              { authMode: "apiKey", selectionSet: BID_PUBLIC_FIELDS, limit: 1000 } as any,
             ),
             client.models.Bid.bidsByBidderEmail(
               { bidderEmail: userEmail },
-              { authMode: "apiKey", limit: 1000 } as any,
+              { authMode: "apiKey", selectionSet: BID_PUBLIC_FIELDS, limit: 1000 } as any,
             ),
-            client.models.Auction.list({ authMode: "apiKey" } as any),
-            client.models.AuctionState.list({ authMode: "apiKey" } as any),
+            client.models.Auction.list({
+              authMode: "apiKey",
+              selectionSet: AUCTION_PUBLIC_FIELDS,
+            } as any),
+            client.models.AuctionState.list({
+              authMode: "apiKey",
+              selectionSet: AUCTION_STATE_PUBLIC_FIELDS,
+            } as any),
             client.models.Invoice.list({ authMode: "userPool" } as any),
           ]);
 

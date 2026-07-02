@@ -8,6 +8,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
+import { AUCTION_PUBLIC_FIELDS } from "@/lib/auctionSelection";
 
 const client = generateClient<Schema>();
 
@@ -20,6 +21,7 @@ export default function AuctionResultsArchivePage() {
       try {
         const result = await client.models.Auction.list({
           authMode: "apiKey",
+          selectionSet: AUCTION_PUBLIC_FIELDS,
         } as any);
 
         const ended = (result.data || [])

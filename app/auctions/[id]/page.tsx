@@ -12,6 +12,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { moneyToNumber } from "@/lib/money";
 import { cdnUrl } from "@/lib/cdn";
 import { updateBuyerPresence } from "@/lib/updateBuyerPresence";
+import {
+  AUCTION_PUBLIC_FIELDS,
+  AUCTION_STATE_PUBLIC_FIELDS,
+  BID_PUBLIC_FIELDS,
+} from "@/lib/auctionSelection";
 
 function GradeBadge({ grade }: { grade?: string | null }) {
   if (!grade) return null;
@@ -78,6 +83,7 @@ function formatCurrency(amount: number): string {
 async function listRecentBids(client: any, auctionId: string): Promise<any[]> {
   const response: any = await client.models.Bid.bidsByAuction({ auctionId }, {
     authMode: "apiKey",
+    selectionSet: BID_PUBLIC_FIELDS,
     limit: 50,
     sortDirection: "DESC",
   } as any);
@@ -99,6 +105,7 @@ async function listMyAuctionBids(
     { bidderUserId: userId },
     {
       authMode: "apiKey",
+      selectionSet: BID_PUBLIC_FIELDS,
       limit: 1000,
     } as any,
   );
@@ -107,6 +114,7 @@ async function listMyAuctionBids(
     { bidderEmail: userEmail },
     {
       authMode: "apiKey",
+      selectionSet: BID_PUBLIC_FIELDS,
       limit: 1000,
     } as any,
   );
@@ -216,7 +224,7 @@ export default function LiveAuctionPage() {
     async function loadAuction() {
       const result = await client.models.Auction.get(
         { id },
-        { authMode: "apiKey" },
+        { authMode: "apiKey", selectionSet: AUCTION_PUBLIC_FIELDS } as any,
       );
       setAuction(result.data);
       setDisplayPrice(moneyToNumber(result.data?.price || 0));
@@ -696,6 +704,7 @@ export default function LiveAuctionPage() {
       } as any,
       {
         authMode: "apiKey",
+        selectionSet: AUCTION_STATE_PUBLIC_FIELDS,
       } as any,
     );
 

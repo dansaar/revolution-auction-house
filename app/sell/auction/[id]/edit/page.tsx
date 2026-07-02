@@ -12,6 +12,7 @@ import { uploadData } from "aws-amplify/storage";
 import { cdnUrl } from "@/lib/cdn";
 import Link from "next/link";
 import { isApprovedSeller } from "@/lib/sellers";
+import { AUCTION_PUBLIC_FIELDS, BID_PUBLIC_FIELDS } from "@/lib/auctionSelection";
 import imageCompression from "browser-image-compression";
 
 export default function CreateAuctionPage() {
@@ -82,7 +83,7 @@ export default function CreateAuctionPage() {
       try {
         const result = await client.models.Auction.get(
           { id: auctionId },
-          { authMode: "apiKey" },
+          { authMode: "apiKey", selectionSet: AUCTION_PUBLIC_FIELDS } as any,
         );
 
         const auction = result.data;
@@ -94,6 +95,7 @@ export default function CreateAuctionPage() {
 
         const bidResult = await client.models.Bid.bidsByAuction({ auctionId }, {
           authMode: "apiKey",
+          selectionSet: BID_PUBLIC_FIELDS,
           limit: 1,
         } as any);
 
@@ -226,12 +228,13 @@ export default function CreateAuctionPage() {
       }
       const latestAuction = await client.models.Auction.get(
         { id: auctionId },
-        { authMode: "apiKey" },
+        { authMode: "apiKey", selectionSet: AUCTION_PUBLIC_FIELDS } as any,
       );
       const latestBidCount = Number(latestAuction.data?.bids || 0);
 
       const bidCheck = await client.models.Bid.bidsByAuction({ auctionId }, {
         authMode: "apiKey",
+        selectionSet: BID_PUBLIC_FIELDS,
         limit: 1,
       } as any);
 

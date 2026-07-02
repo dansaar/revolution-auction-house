@@ -6,6 +6,7 @@ import type { Schema } from "@/amplify/data/resource";
 import { getCart } from "@/lib/cart";
 import { moneyToNumber } from "@/lib/money";
 import { MARKETPLACE_PUBLIC_FIELDS } from "@/lib/marketplaceSelection";
+import { AUCTION_PUBLIC_FIELDS } from "@/lib/auctionSelection";
 
 const client = generateClient<Schema>();
 
@@ -34,7 +35,11 @@ export async function fetchCartCountDetail(): Promise<CartCountDetail> {
 
   try {
     const [auctionRes, listingRes] = await Promise.all([
-      client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any),
+      client.models.Auction.list({
+        authMode: "apiKey",
+        selectionSet: AUCTION_PUBLIC_FIELDS,
+        limit: 1000,
+      } as any),
       client.models.MarketplaceListing.list({
         authMode: "apiKey",
         limit: 1000,

@@ -11,6 +11,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { moneyToNumber } from "@/lib/money";
+import { AUCTION_PUBLIC_FIELDS, AUCTION_STATE_PUBLIC_FIELDS } from "@/lib/auctionSelection";
 
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "";
@@ -290,6 +291,7 @@ export default function AuctionsPage() {
           do {
             const res: any = await client.models.AuctionState.list({
               authMode: "apiKey",
+              selectionSet: AUCTION_STATE_PUBLIC_FIELDS,
               filter: { ended: { eq: false } },
               limit: 500,
               ...(nextToken ? { nextToken } : {}),
@@ -303,6 +305,7 @@ export default function AuctionsPage() {
         const [auctionData, stateData] = await Promise.all([
           fetchAllPages({
             authMode: "apiKey",
+            selectionSet: AUCTION_PUBLIC_FIELDS,
             filter: { ended: { eq: false } },
           }),
           fetchAllStates(),

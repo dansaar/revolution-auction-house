@@ -22,6 +22,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { MARKETPLACE_PUBLIC_FIELDS } from "@/lib/marketplaceSelection";
+import { AUCTION_PUBLIC_FIELDS, AUCTION_STATE_PUBLIC_FIELDS } from "@/lib/auctionSelection";
 
 const client = generateClient<Schema>();
 
@@ -138,6 +139,7 @@ export default function RevolutionAuctionHouseHomepage() {
       try {
         const result = await client.models.AuctionState.list({
           authMode: "apiKey",
+          selectionSet: AUCTION_STATE_PUBLIC_FIELDS,
         } as any);
         for (const state of result.data || []) {
           const sid = state.auctionId as string | undefined;
@@ -173,6 +175,7 @@ export default function RevolutionAuctionHouseHomepage() {
           do {
             const res: any = await client.models.Auction.list({
               authMode: "apiKey",
+              selectionSet: AUCTION_PUBLIC_FIELDS,
               filter: { ended: { eq: false } },
               limit: 500,
               ...(nextToken ? { nextToken } : {}),
@@ -187,6 +190,7 @@ export default function RevolutionAuctionHouseHomepage() {
           fetchLiveAuctions(),
           client.models.Auction.list({
             authMode: "apiKey",
+            selectionSet: AUCTION_PUBLIC_FIELDS,
             filter: { ended: { eq: true } },
             limit: 100,
           } as any),

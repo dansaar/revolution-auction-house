@@ -16,6 +16,8 @@ import { Gavel, Tag, Archive, BarChart2, Clock, ShieldCheck, TrendingUp, Bell } 
 import { toast } from "sonner";
 import * as Sentry from "@sentry/nextjs";
 import { privateBandLabel } from "@/lib/tiers";
+import { MARKETPLACE_PUBLIC_FIELDS } from "@/lib/marketplaceSelection";
+import { AUCTION_PUBLIC_FIELDS } from "@/lib/auctionSelection";
 import { DashboardFilterBar, matchesSearch } from "@/app/components/DashboardFilters";
 import AnnouncementEditor from "@/app/components/AnnouncementEditor";
 
@@ -231,8 +233,16 @@ function SellerPage() {
       // see ALL items (shared ops model) — shipping actions are allowed for any
       // seller via the Seller-group auth on the models.
       const [listingResult, auctionResult] = await Promise.all([
-        client.models.MarketplaceListing.list({ authMode: "apiKey", limit: 1000 } as any).catch(() => ({ data: [] })),
-        client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any).catch(() => ({ data: [] })),
+        client.models.MarketplaceListing.list({
+          authMode: "apiKey",
+          selectionSet: MARKETPLACE_PUBLIC_FIELDS,
+          limit: 1000,
+        } as any).catch(() => ({ data: [] })),
+        client.models.Auction.list({
+          authMode: "apiKey",
+          selectionSet: AUCTION_PUBLIC_FIELDS,
+          limit: 1000,
+        } as any).catch(() => ({ data: [] })),
       ]);
 
       const resolvedListings = (listingResult.data || []).map((listing: any) => ({
