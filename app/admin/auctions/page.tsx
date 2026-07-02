@@ -38,7 +38,9 @@ export default function AdminAuctionsPage() {
 
   async function loadData() {
     const [auctionResult, allInvoices] = await Promise.all([
-      client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any),
+      // userPool: sellerEmail/winnerEmail are field-restricted and come back
+      // null on apiKey reads, which blanked the seller/winner columns.
+      client.models.Auction.list({ authMode: "userPool", limit: 1000 } as any),
       adminFetchAllInvoices(),
     ]);
 

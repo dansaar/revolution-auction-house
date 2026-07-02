@@ -80,10 +80,12 @@ export default function AdminPage() {
 
         setIsAdmin(true);
 
+        // Admin-gated: userPool auth avoids the per-field auth errors that
+        // apiKey reads produce on field-restricted attributes.
         const [auctions, marketplace, bids, watchlist] = await Promise.all([
-          client.models.Auction.list({ authMode: "apiKey" }),
-          client.models.MarketplaceListing.list({ authMode: "apiKey" }),
-          client.models.Bid.list({ authMode: "apiKey" }),
+          client.models.Auction.list({ authMode: "userPool" }),
+          client.models.MarketplaceListing.list({ authMode: "userPool" }),
+          client.models.Bid.list({ authMode: "userPool" }),
           client.models.WatchlistItem.list({ authMode: "userPool" }),
         ]);
 

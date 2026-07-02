@@ -31,7 +31,9 @@ export default function AdminMarketplacePage() {
 
   async function loadData() {
     const [listingResult, allInvoices] = await Promise.all([
-      client.models.MarketplaceListing.list({ authMode: "apiKey", limit: 1000 } as any),
+      // userPool: sellerEmail is field-restricted and comes back null on
+      // apiKey reads, which blanked the seller column.
+      client.models.MarketplaceListing.list({ authMode: "userPool", limit: 1000 } as any),
       adminFetchAllInvoices(),
     ]);
 

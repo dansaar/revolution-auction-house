@@ -28,7 +28,9 @@ export default function ShillDetectionPage() {
         if (!admin) return;
 
         const [auctionResult, sellerResult] = await Promise.all([
-          client.models.Auction.list({ authMode: "apiKey", limit: 1000 } as any),
+          // userPool: sellerEmail is field-restricted and comes back null on
+          // apiKey reads, which silently disabled email/domain shill matching.
+          client.models.Auction.list({ authMode: "userPool", limit: 1000 } as any),
           client.models.SellerProfile.list({ authMode: "userPool", limit: 1000 } as any),
         ]);
 
