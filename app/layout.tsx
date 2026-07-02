@@ -1,6 +1,7 @@
 import "./globals.css";
 import Providers from "./providers";
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import AnnouncementTicker from "./components/AnnouncementTicker";
 import SellerNotificationBanner from "./components/SellerNotificationBanner";
 import AmplifyProvider from "./amplify-provider";
@@ -45,6 +46,8 @@ export default function RootLayout({
           <SellerNotificationBanner />
 
           {children}
+
+          <Footer />
 
           <ConfirmHost />
 

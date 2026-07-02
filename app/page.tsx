@@ -22,7 +22,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 import { cdnUrl } from "@/lib/cdn";
 import { MARKETPLACE_PUBLIC_FIELDS } from "@/lib/marketplaceSelection";
-import { AUCTION_PUBLIC_FIELDS, AUCTION_STATE_PUBLIC_FIELDS } from "@/lib/auctionSelection";
+import { AUCTION_PUBLIC_FIELDS } from "@/lib/auctionSelection";
 
 const client = generateClient<Schema>();
 
@@ -129,39 +129,6 @@ export default function RevolutionAuctionHouseHomepage() {
       setLiveBids((prev) => prev.filter((b) => b.ts > cutoff));
     }, 30_000);
     return () => clearInterval(cleanup);
-  }, []);
-
-  // Dedicated ticker: polls AuctionState every 5s and fires on any price change
-  useEffect(() => {
-    const prevTickerPrices: Record<string, string> = {};
-
-    async function checkPrices() {
-      try {
-        const result = await client.models.AuctionState.list({
-          authMode: "apiKey",
-          selectionSet: AUCTION_STATE_PUBLIC_FIELDS,
-        } as any);
-        for (const state of result.data || []) {
-          const sid = state.auctionId as string | undefined;
-          const price = state.currentPrice as string | undefined;
-          if (!sid || !price || state.ended) continue;
-          const prev = prevTickerPrices[sid];
-          if (prev !== undefined && prev !== price) {
-            const auction = auctionsRef.current.find((a) => a.id === sid);
-            const title = auction?.title || "Live Auction";
-            setLiveBids((prevBids) => {
-              const entry = { id: sid, title, price, ts: Date.now() };
-              return [entry, ...prevBids.filter((b) => b.id !== sid)].slice(0, 20);
-            });
-          }
-          prevTickerPrices[sid] = price;
-        }
-      } catch {}
-    }
-
-    checkPrices();
-    const interval = setInterval(checkPrices, 5_000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -282,7 +249,10 @@ export default function RevolutionAuctionHouseHomepage() {
     loadAuctions();
     loadFeaturedListings();
 
-    const pollInterval = setInterval(loadAuctions, 8_000);
+    // The AppSync subscriptions below deliver price/end updates in real time;
+    // this slow poll only reconciles what they can miss (new auctions, dropped
+    // sockets). It previously ran every 8s and dominated AppSync query volume.
+    const pollInterval = setInterval(loadAuctions, 60_000);
 
     const auctionSub = client.models.Auction.onUpdate({
       authMode: "apiKey",
