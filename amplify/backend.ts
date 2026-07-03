@@ -348,6 +348,16 @@ const cfnUserPool = backend.auth.resources.cfnResources.cfnUserPool;
 cfnUserPool.userPoolTier = "PLUS";
 cfnUserPool.userPoolAddOns = { advancedSecurityMode: "ENFORCED" };
 
+// Amplify's senders.email generates a SourceArn for the noreply@ EMAIL-ADDRESS
+// identity, but only the DOMAIN identity is verified in SES (an address
+// identity would need a clickable mailbox). Cognito validates the exact
+// identity ARN on every pool update — it failed deploys until pointed at the
+// verified domain. The branded From address still works under the domain.
+cfnUserPool.addPropertyOverride(
+  "EmailConfiguration.SourceArn",
+  `arn:aws:ses:${Stack.of(cfnUserPool).region}:${Stack.of(cfnUserPool).account}:identity/revolutionauctionhouse.com`,
+);
+
 new CfnUserPoolRiskConfigurationAttachment(
   Stack.of(cfnUserPool),
   "UserPoolRiskConfig",
