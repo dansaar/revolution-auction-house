@@ -281,6 +281,18 @@ confirmReceiptCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL
 confirmReceiptCfn.addPropertyOverride("Environment.Variables.SMS_AUDIENCE", SMS_AUDIENCE);
 
 // ---------------------------------------------------------------------------
+// Point-in-time recovery on every data table: continuous backups with
+// restore-to-any-second over the trailing 35 days. These tables hold the
+// financial records (bids, auctions, invoices, audit log) — without PITR a
+// bad script or buggy migration is unrecoverable.
+// ---------------------------------------------------------------------------
+for (const table of Object.values(
+  backend.data.resources.cfnResources.amplifyDynamoDbTables,
+)) {
+  table.pointInTimeRecoveryEnabled = true;
+}
+
+// ---------------------------------------------------------------------------
 // WAF in front of AppSync. The public API key ships in the JS bundle by
 // design, so the GraphQL endpoint needs its own flood protection: a per-IP
 // rate limit (3000 requests / 5 min ≈ 10 rps sustained — far above any real
