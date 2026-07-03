@@ -16,6 +16,9 @@ export default function SignInPage() {
   const [newPassword, setNewPassword] = useState("");
   const [needsNewPassword, setNeedsNewPassword] = useState(false);
 
+  const [totpCode, setTotpCode] = useState("");
+  const [needsTotp, setNeedsTotp] = useState(false);
+
   const [error, setError] = useState("");
 
   function goNext() {
@@ -46,6 +49,11 @@ export default function SignInPage() {
           return;
         }
 
+        if (result.nextStep.signInStep === "CONFIRM_SIGN_IN_WITH_TOTP_CODE") {
+          setNeedsTotp(true);
+          return;
+        }
+
         setError(`Sign in not complete: ${result.nextStep.signInStep}`);
         return;
       }
@@ -54,6 +62,25 @@ export default function SignInPage() {
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Sign in failed");
+    }
+  }
+
+  async function handleTotp(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    try {
+      const result = await confirmSignIn({
+        challengeResponse: totpCode.trim(),
+      });
+
+      if (result.isSignedIn) {
+        goNext();
+      } else {
+        setError("Invalid code. Try again.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Invalid authenticator code");
     }
   }
 
@@ -119,6 +146,32 @@ export default function SignInPage() {
             Forgot password?
           </Link>
         </form>
+
+        {needsTotp && (
+          <form onSubmit={handleTotp} className="mt-6 flex flex-col gap-4">
+            <div className="text-sm text-gray-400">
+              Enter the 6-digit code from your authenticator app.
+            </div>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="123456"
+              value={totpCode}
+              onChange={(e) => setTotpCode(e.target.value)}
+              className="rounded border border-white/10 bg-black px-4 py-3 tracking-[0.3em]"
+              maxLength={6}
+              required
+            />
+
+            <button
+              type="submit"
+              className="rounded bg-[#c0c0c0] py-3 font-semibold text-black"
+            >
+              Verify Code
+            </button>
+          </form>
+        )}
 
         {needsNewPassword && (
           <form

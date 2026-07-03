@@ -28,6 +28,9 @@ import { notifyRelist } from "./functions/notifyRelist/resource";
 import { confirmReceipt } from "./functions/confirmReceipt/resource";
 import { CfnFunction } from "aws-cdk-lib/aws-lambda";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { CfnWebACL, CfnWebACLAssociation } from "aws-cdk-lib/aws-wafv2";
+import { CfnUserPoolRiskConfigurationAttachment } from "aws-cdk-lib/aws-cognito";
+import { Stack } from "aws-cdk-lib";
 
 const backend = defineBackend({
   auth,
@@ -276,3 +279,90 @@ const confirmReceiptCfn = backend.confirmReceipt.resources.lambda.node.defaultCh
 confirmReceiptCfn.addPropertyOverride("Environment.Variables.FROM_EMAIL", FROM_EMAIL);
 confirmReceiptCfn.addPropertyOverride("Environment.Variables.SITE_URL", SITE_URL);
 confirmReceiptCfn.addPropertyOverride("Environment.Variables.SMS_AUDIENCE", SMS_AUDIENCE);
+
+// ---------------------------------------------------------------------------
+// WAF in front of AppSync. The public API key ships in the JS bundle by
+// design, so the GraphQL endpoint needs its own flood protection: a per-IP
+// rate limit (3000 requests / 5 min ≈ 10 rps sustained — far above any real
+// user, well below a scraper/flood) plus AWS's known-bad-IP reputation list.
+// Subscriptions ride the realtime endpoint and aren't throttled by this.
+// ---------------------------------------------------------------------------
+const wafStack = backend.createStack("waf");
+
+const appsyncWebAcl = new CfnWebACL(wafStack, "AppSyncWebAcl", {
+  scope: "REGIONAL",
+  defaultAction: { allow: {} },
+  visibilityConfig: {
+    cloudWatchMetricsEnabled: true,
+    metricName: "appsync-web-acl",
+    sampledRequestsEnabled: true,
+  },
+  rules: [
+    {
+      name: "RateLimitPerIp",
+      priority: 1,
+      action: { block: {} },
+      statement: {
+        rateBasedStatement: {
+          aggregateKeyType: "IP",
+          limit: 3000,
+        },
+      },
+      visibilityConfig: {
+        cloudWatchMetricsEnabled: true,
+        metricName: "appsync-rate-limit-per-ip",
+        sampledRequestsEnabled: true,
+      },
+    },
+    {
+      name: "AwsIpReputationList",
+      priority: 2,
+      overrideAction: { none: {} },
+      statement: {
+        managedRuleGroupStatement: {
+          vendorName: "AWS",
+          name: "AWSManagedRulesAmazonIpReputationList",
+        },
+      },
+      visibilityConfig: {
+        cloudWatchMetricsEnabled: true,
+        metricName: "appsync-ip-reputation",
+        sampledRequestsEnabled: true,
+      },
+    },
+  ],
+});
+
+new CfnWebACLAssociation(wafStack, "AppSyncWebAclAssociation", {
+  resourceArn: backend.data.resources.cfnResources.cfnGraphqlApi.attrArn,
+  webAclArn: appsyncWebAcl.attrArn,
+});
+
+// ---------------------------------------------------------------------------
+// Cognito threat protection. Requires the PLUS feature tier. ENFORCED blocks
+// sign-ins with credentials known to be breached and applies adaptive
+// (risk-based) responses to takeover attempts. MFA_IF_CONFIGURED is a no-op
+// for users who haven't enrolled TOTP, so this can't lock anyone out.
+// ---------------------------------------------------------------------------
+const cfnUserPool = backend.auth.resources.cfnResources.cfnUserPool;
+cfnUserPool.userPoolTier = "PLUS";
+cfnUserPool.userPoolAddOns = { advancedSecurityMode: "ENFORCED" };
+
+new CfnUserPoolRiskConfigurationAttachment(
+  Stack.of(cfnUserPool),
+  "UserPoolRiskConfig",
+  {
+    userPoolId: cfnUserPool.ref,
+    clientId: "ALL",
+    compromisedCredentialsRiskConfiguration: {
+      actions: { eventAction: "BLOCK" },
+    },
+    accountTakeoverRiskConfiguration: {
+      actions: {
+        highAction: { eventAction: "BLOCK", notify: false },
+        mediumAction: { eventAction: "MFA_IF_CONFIGURED", notify: false },
+        lowAction: { eventAction: "NO_ACTION", notify: false },
+      },
+    },
+  },
+);
