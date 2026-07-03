@@ -43,12 +43,14 @@ const schema = a
         endsAt: a.datetime(),
         ended: a.boolean().default(false),
         status: a.string(),
-        // Explicit field auth so the owning seller can set/edit reserve (mirrors
-        // the model rules — otherwise updates fail with "Unauthorized"). The
-        // finalize functions read reserve via apiKey (public read below).
+        // Explicit field auth mirroring the model rules. Shared-ops model: any
+        // Seller can read/update (not just the creator) — with create-only,
+        // the edit page's update was rejected as Unauthorized for sellers
+        // editing a teammate's auction. The finalize functions read reserve
+        // via apiKey (public read below).
         reservePrice: a.string().authorization((allow) => [
           allow.publicApiKey().to(["read"]),
-          allow.group("Seller").to(["create"]),
+          allow.group("Seller").to(["create", "read", "update"]),
           allow.ownerDefinedIn("sellerUserId").to(["read", "update"]),
           allow.group("Admin"),
         ]),
@@ -105,7 +107,7 @@ const schema = a
         startsAt: a.datetime(),
         increment: a.integer().authorization((allow) => [
           allow.publicApiKey().to(["read"]),
-          allow.group("Seller").to(["create"]),
+          allow.group("Seller").to(["create", "read", "update"]),
           allow.ownerDefinedIn("sellerUserId").to(["read", "update"]),
           allow.group("Admin"),
         ]),
