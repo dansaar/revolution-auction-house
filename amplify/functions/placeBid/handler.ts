@@ -11,6 +11,7 @@ import {
   GetCommand,
   PutCommand,
   UpdateCommand,
+  TransactWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
@@ -346,90 +347,6 @@ async function getAuctionDirect(auctionId: string) {
   return result.Item || null;
 }
 
-async function writeBidDirect(bid: {
-  auctionId: string;
-  bidderUserId: string;
-  bidderEmail: string;
-  bidderName: string;
-  amount: string;
-  maxBid: string;
-  isProxy: boolean;
-  createdAt: string;
-}) {
-  const id = crypto.randomUUID();
-  await dynamoClient.send(
-    new PutCommand({
-      TableName: BID_TABLE_NAME,
-      Item: {
-        __typename: "Bid",
-        id,
-        ...bid,
-        updatedAt: bid.createdAt,
-      },
-    }),
-  );
-  return id;
-}
-
-async function updateAuctionPriceDirect({
-  auctionId,
-  price,
-  bids,
-  winnerUserId,
-  winnerDisplayName,
-  winnerEmail,
-  winningBid,
-  endsAt,
-  stateVersion,
-}: {
-  auctionId: string;
-  price: string;
-  bids: number;
-  winnerUserId: string;
-  winnerDisplayName: string;
-  winnerEmail: string;
-  winningBid: string;
-  endsAt: string | null | undefined;
-  stateVersion: number;
-}) {
-  try {
-    await dynamoClient.send(
-      new UpdateCommand({
-        TableName: AUCTION_TABLE_NAME,
-        Key: { id: auctionId },
-        UpdateExpression: `SET price = :price,
-          bids = :bids,
-          winnerUserId = :winnerUserId,
-          winnerDisplayName = :winnerDisplayName,
-          winnerEmail = :winnerEmail,
-          winningBid = :winningBid,
-          endsAt = :endsAt,
-          updatedAt = :updatedAt,
-          stateVersion = :stateVersion`,
-        ConditionExpression:
-          "attribute_not_exists(stateVersion) OR stateVersion < :stateVersion",
-        ExpressionAttributeValues: {
-          ":price": price,
-          ":bids": bids,
-          ":winnerUserId": winnerUserId,
-          ":winnerDisplayName": winnerDisplayName,
-          ":winnerEmail": winnerEmail,
-          ":winningBid": winningBid,
-          ":endsAt": endsAt ?? null,
-          ":updatedAt": new Date().toISOString(),
-          ":stateVersion": stateVersion,
-        },
-      }),
-    );
-  } catch (err: any) {
-    if (err?.name === "ConditionalCheckFailedException") {
-      // A later bid already wrote a higher stateVersion — our update is stale, skip it
-      return;
-    }
-    throw err;
-  }
-}
-
 async function writeBidAuditLogDirect(log: {
   bidRequestId: string;
   auctionId: string;
@@ -505,87 +422,6 @@ async function writeBidAuditLogDirect(log: {
   );
 }
 
-async function updateAuctionStateDirect({
-  auctionId,
-  visiblePrice,
-  newLeaderUserId,
-  leaderEmail,
-  newLeaderMaxBid,
-  newSecondUserId,
-  secondEmail,
-  newSecondMaxBid,
-  newBidCount,
-  expectedVersion,
-  updatedEndsAt,
-  ended,
-}: {
-  auctionId: string;
-  visiblePrice: number;
-  newLeaderUserId: string;
-  leaderEmail?: string | null;
-  newLeaderMaxBid: number;
-  newSecondUserId: string;
-  secondEmail?: string | null;
-  newSecondMaxBid: number;
-  newBidCount: number;
-  expectedVersion: number;
-  updatedEndsAt?: string | null;
-  ended: boolean;
-}) {
-  try {
-    const result = await dynamoClient.send(
-      new UpdateCommand({
-        TableName: AUCTION_STATE_TABLE_NAME,
-        Key: {
-          auctionId,
-        },
-        UpdateExpression: `
-          SET currentPrice = :currentPrice,
-              leaderUserId = :leaderUserId,
-              leaderEmail = :leaderEmail,
-              leaderMaxBid = :leaderMaxBid,
-              secondUserId = :secondUserId,
-              secondEmail = :secondEmail,
-              secondMaxBid = :secondMaxBid,
-              bidCount = :bidCount,
-              version = :nextVersion,
-              endsAt = :endsAt,
-              ended = :ended,
-              updatedAt = :updatedAt
-        `,
-        ConditionExpression: "#version = :expectedVersion",
-        ExpressionAttributeNames: {
-          "#version": "version",
-        },
-        ExpressionAttributeValues: {
-          ":currentPrice": formatMoney(visiblePrice),
-          ":leaderUserId": newLeaderUserId || null,
-          ":leaderEmail": leaderEmail || null,
-          ":leaderMaxBid": formatMoney(newLeaderMaxBid),
-          ":secondUserId": newSecondUserId || null,
-          ":secondEmail": secondEmail || null,
-          ":secondMaxBid": formatMoney(newSecondMaxBid),
-          ":bidCount": newBidCount,
-          ":nextVersion": expectedVersion + 1,
-          ":endsAt": updatedEndsAt || null,
-          ":ended": ended,
-          ":updatedAt": new Date().toISOString(),
-          ":expectedVersion": expectedVersion,
-        },
-        ReturnValues: "ALL_NEW",
-      }),
-    );
-
-    return result.Attributes || null;
-  } catch (err: any) {
-    if (err?.name === "ConditionalCheckFailedException") {
-      return null;
-    }
-
-    throw err;
-  }
-}
-
 export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
   try {
     const { auctionId, maxBid } = event.arguments;
@@ -631,6 +467,29 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       };
     }
 
+    if (auctionOwnerCheck?.status === "CANCELLED") {
+      return {
+        success: false,
+        message: "This auction has been cancelled.",
+        currentPrice: 0,
+        winner: "",
+      };
+    }
+
+    // Scheduled auctions: the UI hides the bid console, but the mutation is
+    // callable directly — enforce the start time server-side too.
+    if (
+      auctionOwnerCheck?.startsAt &&
+      new Date(auctionOwnerCheck.startsAt).getTime() > Date.now()
+    ) {
+      return {
+        success: false,
+        message: "This auction has not started yet.",
+        currentPrice: 0,
+        winner: "",
+      };
+    }
+
     const customIncrement: number | null =
       typeof auctionOwnerCheck?.increment === "number" && auctionOwnerCheck.increment > 0
         ? auctionOwnerCheck.increment
@@ -657,6 +516,32 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
     const buyerBidLimit = Number(buyerProfile?.bidLimit || 1000);
     const buyerTier = String(buyerProfile?.verificationTier || "BASIC");
+
+    if (buyerProfile?.status === "DECLINED") {
+      const message =
+        "Your account is not approved for bidding. Please contact support.";
+
+      await writeBidAuditLogDirect({
+        bidRequestId,
+        auctionId,
+        bidderUserId,
+        bidderEmail,
+        bidderName: bidderDisplayName,
+        requestedMaxBid: formatMoney(maxBid),
+        accepted: false,
+        rejectionReason: "BUYER_DECLINED",
+        buyerTier,
+        buyerBidLimit,
+        resultMessage: message,
+      });
+
+      return {
+        success: false,
+        message,
+        currentPrice: 0,
+        winner: "",
+      };
+    }
 
     if (maxBid > buyerBidLimit) {
       const message = `Your ${buyerTier} bidding limit is ${formatMoney(
@@ -883,29 +768,180 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       }
 
       const expectedVersion = state.version || 1;
+      const nextVersion = expectedVersion + 1;
+      const nowIso = new Date().toISOString();
 
-      const updateResult = await updateAuctionStateDirect({
-        auctionId,
-        visiblePrice,
+      // One atomic commit: state CAS + bid rows + auction projection + audit
+      // record succeed or fail together, so a bidder can never become leader
+      // while the response reports failure, and a concurrently retried
+      // bidRequestId can't double-apply (the audit Put doubles as the
+      // idempotency lock). The projection update carries no condition of its
+      // own — the state version check is the single serialization gate.
+      const transactItems: any[] = [
+        {
+          Update: {
+            TableName: AUCTION_STATE_TABLE_NAME,
+            Key: { auctionId },
+            UpdateExpression: `
+              SET currentPrice = :currentPrice,
+                  leaderUserId = :leaderUserId,
+                  leaderEmail = :leaderEmail,
+                  leaderMaxBid = :leaderMaxBid,
+                  secondUserId = :secondUserId,
+                  secondEmail = :secondEmail,
+                  secondMaxBid = :secondMaxBid,
+                  bidCount = :bidCount,
+                  version = :nextVersion,
+                  endsAt = :endsAt,
+                  ended = :ended,
+                  updatedAt = :updatedAt
+            `,
+            ConditionExpression: "#version = :expectedVersion",
+            ExpressionAttributeNames: { "#version": "version" },
+            ExpressionAttributeValues: {
+              ":currentPrice": formatMoney(visiblePrice),
+              ":leaderUserId": newLeaderUserId || null,
+              ":leaderEmail":
+                (newLeaderUserId === bidderUserId
+                  ? bidderEmail
+                  : state.leaderEmail) || null,
+              ":leaderMaxBid": formatMoney(newLeaderMaxBid),
+              ":secondUserId": newSecondUserId || null,
+              ":secondEmail":
+                (newSecondUserId === bidderUserId
+                  ? bidderEmail
+                  : state.secondEmail) || null,
+              ":secondMaxBid": formatMoney(newSecondMaxBid),
+              ":bidCount": newBidCount,
+              ":nextVersion": nextVersion,
+              ":endsAt": updatedEndsAt || null,
+              ":ended": state.ended || false,
+              ":updatedAt": nowIso,
+              ":expectedVersion": expectedVersion,
+            },
+          },
+        },
+        {
+          Put: {
+            TableName: BID_TABLE_NAME,
+            Item: {
+              __typename: "Bid",
+              id: crypto.randomUUID(),
+              auctionId,
+              bidderUserId,
+              bidderEmail,
+              bidderName: bidderDisplayName,
+              amount: formatMoney(visiblePrice),
+              maxBid: formatMoney(maxBid),
+              isProxy: false,
+              createdAt: nowIso,
+              updatedAt: nowIso,
+            },
+          },
+        },
+        ...(proxyUserId
+          ? [
+              {
+                Put: {
+                  TableName: BID_TABLE_NAME,
+                  Item: {
+                    __typename: "Bid",
+                    id: crypto.randomUUID(),
+                    auctionId,
+                    bidderUserId: proxyUserId,
+                    bidderEmail: "proxy-bid",
+                    bidderName: makeBidderDisplayName(proxyUserId),
+                    amount: formatMoney(visiblePrice),
+                    maxBid: formatMoney(leaderMaxBid),
+                    isProxy: true,
+                    createdAt: nowIso,
+                    updatedAt: nowIso,
+                  },
+                },
+              },
+            ]
+          : []),
+        {
+          Update: {
+            TableName: AUCTION_TABLE_NAME,
+            Key: { id: auctionId },
+            UpdateExpression: `SET price = :price,
+              bids = :bids,
+              winnerUserId = :winnerUserId,
+              winnerDisplayName = :winnerDisplayName,
+              winnerEmail = :winnerEmail,
+              winningBid = :winningBid,
+              endsAt = :endsAt,
+              updatedAt = :updatedAt,
+              stateVersion = :stateVersion`,
+            ExpressionAttributeValues: {
+              ":price": formatMoney(visiblePrice),
+              ":bids": newBidCount,
+              ":winnerUserId": newLeaderUserId,
+              ":winnerDisplayName": makeBidderDisplayName(newLeaderUserId),
+              ":winnerEmail":
+                newLeaderUserId === bidderUserId ? bidderEmail : "",
+              ":winningBid": formatMoney(visiblePrice),
+              ":endsAt": updatedEndsAt ?? null,
+              ":updatedAt": nowIso,
+              ":stateVersion": nextVersion,
+            },
+          },
+        },
+        {
+          Put: {
+            TableName: BID_AUDIT_LOG_TABLE_NAME,
+            Item: {
+              __typename: "BidAuditLog",
+              bidRequestId,
+              auctionId,
+              bidderUserId,
+              bidderEmail,
+              bidderName: bidderDisplayName,
+              requestedMaxBid: formatMoney(maxBid),
+              accepted: true,
+              rejectionReason: null,
+              previousPrice: state.currentPrice ?? null,
+              newPrice: formatMoney(visiblePrice),
+              previousLeaderUserId: leaderUserId || "",
+              newLeaderUserId,
+              buyerTier,
+              buyerBidLimit,
+              attemptCount: attempt + 1,
+              resultMessage: "Bid placed",
+              createdAt: nowIso,
+              updatedAt: nowIso,
+            },
+            ConditionExpression: "attribute_not_exists(bidRequestId)",
+          },
+        },
+      ];
+      const auditItemIndex = transactItems.length - 1;
 
-        newLeaderUserId,
-        leaderEmail:
-          newLeaderUserId === bidderUserId ? bidderEmail : state.leaderEmail,
-        newLeaderMaxBid,
+      try {
+        await dynamoClient.send(
+          new TransactWriteCommand({ TransactItems: transactItems }),
+        );
+      } catch (err: any) {
+        if (err?.name !== "TransactionCanceledException") throw err;
 
-        newSecondUserId,
-        secondEmail:
-          newSecondUserId === bidderUserId ? bidderEmail : state.secondEmail,
-        newSecondMaxBid,
+        const reasons: any[] = err.CancellationReasons || [];
 
-        newBidCount,
-        expectedVersion,
+        // A concurrent retry of the same bidRequestId already committed —
+        // return the recorded outcome instead of double-applying.
+        if (reasons[auditItemIndex]?.Code === "ConditionalCheckFailed") {
+          const dup = await getBidAuditLogDirect(bidRequestId);
+          return {
+            success: Boolean(dup?.accepted),
+            message: dup?.resultMessage || "Bid already processed",
+            currentPrice: moneyToNumber(dup?.newPrice),
+            winner: dup?.newLeaderUserId
+              ? makeBidderDisplayName(dup.newLeaderUserId)
+              : "",
+          };
+        }
 
-        updatedEndsAt,
-        ended: state.ended || false,
-      });
-
-      if (!updateResult) {
+        // Otherwise the state version moved under us — classic conflict.
         console.warn("PLACE_BID_CONFLICT", {
           auctionId,
           attempt: attempt + 1,
@@ -958,61 +994,6 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
 
         continue;
       }
-
-      const now = new Date().toISOString();
-      await writeBidDirect({
-        auctionId,
-        bidderUserId,
-        bidderEmail,
-        bidderName: bidderDisplayName,
-        amount: formatMoney(visiblePrice),
-        maxBid: formatMoney(maxBid),
-        isProxy: false,
-        createdAt: now,
-      });
-
-      if (proxyUserId) {
-        await writeBidDirect({
-          auctionId,
-          bidderUserId: proxyUserId,
-          bidderEmail: "proxy-bid",
-          bidderName: makeBidderDisplayName(proxyUserId),
-          amount: formatMoney(visiblePrice),
-          maxBid: formatMoney(leaderMaxBid),
-          isProxy: true,
-          createdAt: now,
-        });
-      }
-
-      await updateAuctionPriceDirect({
-        auctionId,
-        price: formatMoney(visiblePrice),
-        bids: newBidCount,
-        winnerUserId: newLeaderUserId,
-        winnerDisplayName: makeBidderDisplayName(newLeaderUserId),
-        winnerEmail: newLeaderUserId === bidderUserId ? bidderEmail : "",
-        winningBid: formatMoney(visiblePrice),
-        endsAt: updatedEndsAt,
-        stateVersion: expectedVersion + 1,
-      });
-
-      await writeBidAuditLogDirect({
-        bidRequestId,
-        auctionId,
-        bidderUserId,
-        bidderEmail,
-        bidderName: bidderDisplayName,
-        requestedMaxBid: formatMoney(maxBid),
-        accepted: true,
-        previousPrice: state.currentPrice,
-        newPrice: formatMoney(visiblePrice),
-        previousLeaderUserId: leaderUserId || "",
-        newLeaderUserId,
-        buyerTier,
-        buyerBidLimit,
-        attemptCount: attempt + 1,
-        resultMessage: "Bid placed",
-      });
 
       const auctionTitle = auctionOwnerCheck?.title || "this auction";
       const formattedPrice = formatMoney(visiblePrice);

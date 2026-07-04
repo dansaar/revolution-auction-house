@@ -37,7 +37,11 @@ function GradeBadge({ grade }: { grade?: string | null }) {
   );
 }
 
-function getIncrement(amount: number): number {
+// Mirrors the server bidEngine: a per-lot custom increment beats the tiers.
+function getIncrement(amount: number, customIncrement?: number | null): number {
+  if (typeof customIncrement === "number" && customIncrement > 0) {
+    return customIncrement;
+  }
   if (amount < 100) return 5;
   if (amount < 500) return 10;
   if (amount < 1000) return 25;
@@ -170,7 +174,9 @@ export default function LiveAuctionPage() {
   // price + increment) so it matches the "Min $X" placeholder — not the raw
   // current price, which a buyer can no longer bid at.
   const minNextBid =
-    displayPrice > 0 ? displayPrice + getIncrement(displayPrice) : displayPrice;
+    displayPrice > 0
+      ? displayPrice + getIncrement(displayPrice, auction?.increment)
+      : displayPrice;
   const estimateBaseAmount =
     enteredBidAmount > 0 ? enteredBidAmount : minNextBid;
 
@@ -256,7 +262,16 @@ export default function LiveAuctionPage() {
 
         const sorted = await listRecentBids(client, id);
         setHistory(sorted);
+      } catch (err) {
+        console.error("LIVE POLL ERROR", err);
+      }
+    }
 
+    // My-bids restore runs once per auth/id change, not on every poll — it's
+    // two large queries and the value only changes when *this* user bids
+    // (which updates the state locally anyway).
+    async function restoreMyMaxBid() {
+      try {
         const myBids = await listMyAuctionBids(
           client,
           id,
@@ -272,15 +287,19 @@ export default function LiveAuctionPage() {
         const storedMax = localStorage.getItem(`maxBid:${id}`);
         const storedAmount = storedMax ? moneyToNumber(storedMax) : 0;
         const finalMax = Math.max(myMaxAmount, storedAmount);
-        setMyMaxBid(finalMax > 0 ? formatMoney(finalMax) : "");
-      } catch (err) {
-        console.error("LIVE POLL ERROR", err);
+        if (active && finalMax > 0) setMyMaxBid(formatMoney(finalMax));
+      } catch {
+        // non-critical; localStorage still covers the common case
       }
     }
 
     refreshLiveAuction();
+    if (rawUserKey) restoreMyMaxBid();
 
-    const interval = setInterval(refreshLiveAuction, 5000);
+    // Subscriptions deliver price/bid updates in real time; this poll only
+    // reconciles what they can miss (dropped sockets). It ran every 5s with
+    // four queries — the single largest AppSync consumer per open tab.
+    const interval = setInterval(refreshLiveAuction, 30_000);
 
     return () => {
       active = false;
@@ -604,7 +623,7 @@ export default function LiveAuctionPage() {
   if (!auction) return <div className="text-white p-10">Not found</div>;
 
   const currentAmount = moneyToNumber(auction?.price || 0);
-  const increment = getIncrement(currentAmount);
+  const increment = getIncrement(currentAmount, auction?.increment);
   const nextBid = currentAmount + increment;
 
   const userHasBid = !!myMaxBid;
@@ -796,13 +815,24 @@ export default function LiveAuctionPage() {
         flashPrice();
       }
 
+      // A successful bid doesn't mean WE lead — the previous leader's proxy
+      // max may have absorbed it. Trust the winner the server returned.
+      const returnedWinner = result.data.winner || "";
+      const iAmLeading = returnedWinner === makeBidderDisplayName(rawUserKey);
+
       setAuction((prev: any) => ({
         ...(prev || {}),
         price: formatMoney(newPrice),
-        winnerUserId: rawUserKey,
-        winnerDisplayName: makeBidderDisplayName(rawUserKey),
-        winnerEmail: rawUserKey,
+        winnerUserId: iAmLeading ? rawUserKey : prev?.winnerUserId,
+        winnerDisplayName: returnedWinner || prev?.winnerDisplayName,
+        winnerEmail: iAmLeading ? rawUserKey : prev?.winnerEmail,
       }));
+
+      if (!iAmLeading) {
+        toast.error(
+          "Bid placed, but a higher maximum bid is still leading. Raise your max to take the lead.",
+        );
+      }
 
       setMyMaxBid(formatMoney(enteredMaxBid));
       localStorage.setItem(`maxBid:${auctionIdForBid}`, String(enteredMaxBid));
