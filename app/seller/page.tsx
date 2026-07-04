@@ -228,21 +228,33 @@ function SellerPage() {
 
   useEffect(() => {
     async function loadSellerAuctions() {
-      // Fetch public data (apiKey) independently so a userPool auth failure
-      // can't prevent the main auction/listing content from loading. Sellers
-      // see ALL items (shared ops model) — shipping actions are allowed for any
-      // seller via the Seller-group auth on the models.
+      // userPool first: shippingLabelUrl (and other seller-only fields) are
+      // field-restricted, so the Print Label buttons need a Seller-group read.
+      // Fall back to the public apiKey selection if the session is missing so
+      // the page still renders content. Sellers see ALL items (shared ops
+      // model) — shipping actions are allowed for any seller via the
+      // Seller-group auth on the models.
       const [listingResult, auctionResult] = await Promise.all([
         client.models.MarketplaceListing.list({
-          authMode: "apiKey",
-          selectionSet: MARKETPLACE_PUBLIC_FIELDS,
+          authMode: "userPool",
           limit: 1000,
-        } as any).catch(() => ({ data: [] })),
+        } as any).catch(() =>
+          client.models.MarketplaceListing.list({
+            authMode: "apiKey",
+            selectionSet: MARKETPLACE_PUBLIC_FIELDS,
+            limit: 1000,
+          } as any),
+        ).catch(() => ({ data: [] })),
         client.models.Auction.list({
-          authMode: "apiKey",
-          selectionSet: AUCTION_PUBLIC_FIELDS,
+          authMode: "userPool",
           limit: 1000,
-        } as any).catch(() => ({ data: [] })),
+        } as any).catch(() =>
+          client.models.Auction.list({
+            authMode: "apiKey",
+            selectionSet: AUCTION_PUBLIC_FIELDS,
+            limit: 1000,
+          } as any),
+        ).catch(() => ({ data: [] })),
       ]);
 
       const resolvedListings = (listingResult.data || []).map((listing: any) => ({

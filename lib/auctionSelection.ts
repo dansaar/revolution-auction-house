@@ -3,7 +3,9 @@
 // auth, which return a per-item "Not Authorized" error when requested under
 // apiKey. Keep in sync with amplify/data/resource.ts.
 
-// Excludes winnerEmail, sellerName, sellerEmail (Admin/Seller/owner only).
+// Excludes winnerEmail, sellerName, sellerEmail, stripeSessionId,
+// easypostShipmentId, shippingLabelUrl (Admin/Seller/owner only — the label
+// URL is a PDF with the buyer's address).
 export const AUCTION_PUBLIC_FIELDS = [
   "id",
   "title",
@@ -29,7 +31,6 @@ export const AUCTION_PUBLIC_FIELDS = [
   "sellerDisplayName",
   "paid",
   "paidAt",
-  "stripeSessionId",
   "chargeTax",
   "taxRate",
   "buyerPremiumRate",
@@ -50,21 +51,17 @@ export const AUCTION_PUBLIC_FIELDS = [
   "buyerReceivedAt",
   "startsAt",
   "increment",
-  "easypostShipmentId",
-  "shippingLabelUrl",
   "createdAt",
   "updatedAt",
 ] as const;
 
-// Excludes leaderMaxBid, secondMaxBid (Admin only).
+// Excludes leaderMaxBid, secondMaxBid, leaderEmail, secondEmail (Admin only).
 export const AUCTION_STATE_PUBLIC_FIELDS = [
   "auctionId",
   "currentPrice",
   "leaderUserId",
   "leaderDisplayName",
-  "leaderEmail",
   "secondUserId",
-  "secondEmail",
   "bidCount",
   "version",
   "endsAt",

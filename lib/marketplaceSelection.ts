@@ -1,7 +1,9 @@
-// Every MarketplaceListing field EXCEPT buyerEmail and sellerEmail, which carry
-// field-level auth (Admin/Seller/owner only). Requesting them under apiKey
-// returns a per-field "Not Authorized" error on every item, so public reads
-// must select around them. Keep in sync with amplify/data/resource.ts.
+// Every MarketplaceListing field EXCEPT buyerEmail, sellerEmail,
+// stripeSessionId, easypostShipmentId, and shippingLabelUrl, which carry
+// field-level auth (Admin/Seller/owner only — the label URL is a PDF with the
+// buyer's address). Requesting them under apiKey returns a per-field "Not
+// Authorized" error on every item, so public reads must select around them.
+// Keep in sync with amplify/data/resource.ts.
 export const MARKETPLACE_PUBLIC_FIELDS = [
   "id",
   "title",
@@ -24,7 +26,6 @@ export const MARKETPLACE_PUBLIC_FIELDS = [
   "buyerUserId",
   "paid",
   "paidAt",
-  "stripeSessionId",
   "chargeTax",
   "taxRate",
   "sellerUserId",
@@ -39,8 +40,6 @@ export const MARKETPLACE_PUBLIC_FIELDS = [
   "buyerReceivedAt",
   "pendingBuyerSub",
   "lastOfferSmsAt",
-  "easypostShipmentId",
-  "shippingLabelUrl",
   "createdAt",
   "updatedAt",
 ] as const;

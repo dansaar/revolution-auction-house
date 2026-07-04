@@ -686,10 +686,13 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
     }
 
     if (BID_COOLDOWN_MS > 0) {
+      // Newest first — without the sort this returned the user's 5 OLDEST
+      // bids, so the cooldown never fired for anyone with bid history.
       const recentUserBids = await client.models.Bid.bidsByBidder(
         { bidderUserId },
         {
           limit: 5,
+          sortDirection: "DESC",
         } as any,
       );
 
@@ -768,7 +771,12 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
         };
       }
 
-      if (state.ended) {
+      // The ended flag is flipped by the finalizer (runs every minute), so on
+      // its own it leaves a late-bid window — enforce the deadline here too.
+      const deadlinePassed =
+        state.endsAt && new Date(state.endsAt).getTime() <= Date.now();
+
+      if (state.ended || deadlinePassed) {
         const message = "Auction has ended";
 
         await writeBidAuditLogDirect({
@@ -1009,30 +1017,42 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
       const auctionTitle = auctionOwnerCheck?.title || "this auction";
       const formattedPrice = formatMoney(visiblePrice);
 
-      // Notify displaced leader (fire-and-forget)
+      // Notifications must complete before the handler returns — Lambda
+      // freezes the execution environment at return, so fire-and-forget
+      // promises silently stall until (maybe) a later invocation. Failures
+      // stay non-fatal to the bid itself.
+      const notifyTasks: Promise<unknown>[] = [];
+
+      // Notify displaced leader
       if (leaderUserId && leaderUserId !== bidderUserId && newLeaderUserId === bidderUserId) {
-        getBuyerProfileDirect(leaderUserId).then(async (profile) => {
-          if (!profile) return;
-          const notifyOutbid = (profile.notifyOutbid as string) ?? (profile.smsOptIn ? "sms" : "none");
-          const leaderEmail = (profile.email as string) || state?.leaderEmail || "";
-          const sends: Promise<any>[] = [];
-          if (BUYER_SMS_ENABLED && (notifyOutbid === "sms" || notifyOutbid === "both") && profile.phoneNumber && profile.phoneVerified) {
-            sends.push(sendOutbidSms({ to: profile.phoneNumber as string, auctionTitle, auctionId, newPrice: formattedPrice }));
-          }
-          if ((notifyOutbid === "email" || notifyOutbid === "both") && leaderEmail) {
-            sends.push(sendOutbidEmail({ to: leaderEmail, auctionTitle, auctionId, newPrice: formattedPrice }));
-          }
-          if (sends.length) await Promise.all(sends);
-        }).catch((err: unknown) => console.warn("OUTBID_NOTIFY_FAILED", err));
+        notifyTasks.push(
+          getBuyerProfileDirect(leaderUserId).then(async (profile) => {
+            if (!profile) return;
+            const notifyOutbid = (profile.notifyOutbid as string) ?? (profile.smsOptIn ? "sms" : "none");
+            const leaderEmail = (profile.email as string) || state?.leaderEmail || "";
+            const sends: Promise<any>[] = [];
+            if (BUYER_SMS_ENABLED && (notifyOutbid === "sms" || notifyOutbid === "both") && profile.phoneNumber && profile.phoneVerified) {
+              sends.push(sendOutbidSms({ to: profile.phoneNumber as string, auctionTitle, auctionId, newPrice: formattedPrice }));
+            }
+            if ((notifyOutbid === "email" || notifyOutbid === "both") && leaderEmail) {
+              sends.push(sendOutbidEmail({ to: leaderEmail, auctionTitle, auctionId, newPrice: formattedPrice }));
+            }
+            if (sends.length) await Promise.all(sends);
+          }).catch((err: unknown) => console.warn("OUTBID_NOTIFY_FAILED", err)),
+        );
       }
 
-      // Notify watchlist watchers (fire-and-forget)
-      notifyWatchers({
-        auctionId,
-        auctionTitle,
-        newPrice: formattedPrice,
-        excludeUserIds: new Set([bidderUserId, leaderUserId].filter(Boolean) as string[]),
-      }).catch((err: unknown) => console.warn("WATCHLIST_NOTIFY_FAILED", err));
+      // Notify watchlist watchers
+      notifyTasks.push(
+        notifyWatchers({
+          auctionId,
+          auctionTitle,
+          newPrice: formattedPrice,
+          excludeUserIds: new Set([bidderUserId, leaderUserId].filter(Boolean) as string[]),
+        }).catch((err: unknown) => console.warn("WATCHLIST_NOTIFY_FAILED", err)),
+      );
+
+      await Promise.allSettled(notifyTasks);
 
       return {
         success: true,

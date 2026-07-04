@@ -82,7 +82,12 @@ const schema = a
         sellerDisplayName: a.string(),
         paid: a.boolean().default(false),
         paidAt: a.datetime(),
-        stripeSessionId: a.string(),
+        // Internal payment reference — not public.
+        stripeSessionId: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("sellerUserId").to(["read"]),
+        ]),
 
         chargeTax: a.boolean().default(false),
         taxRate: a.float().default(6.625),
@@ -111,8 +116,17 @@ const schema = a
           allow.ownerDefinedIn("sellerUserId").to(["read", "update"]),
           allow.group("Admin"),
         ]),
-        easypostShipmentId: a.string(),
-        shippingLabelUrl: a.string(),
+        easypostShipmentId: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("sellerUserId").to(["read"]),
+        ]),
+        // The label PDF contains the buyer's name and address — never public.
+        shippingLabelUrl: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("sellerUserId").to(["read"]),
+        ]),
       })
       .secondaryIndexes((index) => [
         index("sellerUserId").queryField("auctionsBySellerUserId"),
@@ -134,11 +148,13 @@ const schema = a
 
         leaderUserId: a.string(),
         leaderDisplayName: a.string(),
-        leaderEmail: a.string(),
+        // Usually a user-{sub} placeholder, but restrict anyway — the public
+        // never needs it (display names derive from leaderUserId).
+        leaderEmail: a.string().authorization((allow) => [allow.group("Admin")]),
         leaderMaxBid: a.string().authorization((allow) => [allow.group("Admin")]),
 
         secondUserId: a.string(),
-        secondEmail: a.string(),
+        secondEmail: a.string().authorization((allow) => [allow.group("Admin")]),
         secondMaxBid: a.string().authorization((allow) => [allow.group("Admin")]),
 
         bidCount: a.integer().default(0),
@@ -151,7 +167,11 @@ const schema = a
       .identifier(["auctionId"])
       .authorization((allow) => [
         allow.publicApiKey().to(['read']),
-        allow.authenticated().to(['create']),
+        // Sellers seed the state row when creating an auction; placeBid
+        // initializes missing rows via DynamoDB. A broad authenticated-create
+        // grant let any buyer pre-seed a hostile state (ended/price) — never
+        // widen this past the trusted seller team.
+        allow.group("Seller").to(['create']),
         allow.group("Admin"),
       ]),
 
@@ -185,7 +205,12 @@ const schema = a
         ]),
         paid: a.boolean().default(false),
         paidAt: a.datetime(),
-        stripeSessionId: a.string(),
+        // Internal payment reference — not public.
+        stripeSessionId: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("sellerUserId").to(["read"]),
+        ]),
         chargeTax: a.boolean().default(false),
         taxRate: a.float().default(6.625),
 
@@ -207,8 +232,17 @@ const schema = a
         buyerReceivedAt: a.datetime(), // buyer-confirmed receipt
         pendingBuyerSub: a.string(), // who holds the PENDING_PAYMENT checkout reservation
         lastOfferSmsAt: a.datetime(),
-        easypostShipmentId: a.string(),
-        shippingLabelUrl: a.string(),
+        easypostShipmentId: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("sellerUserId").to(["read"]),
+        ]),
+        // The label PDF contains the buyer's name and address — never public.
+        shippingLabelUrl: a.string().authorization((allow) => [
+          allow.group("Admin"),
+          allow.group("Seller").to(["read"]),
+          allow.ownerDefinedIn("sellerUserId").to(["read"]),
+        ]),
       })
       .secondaryIndexes((index) => [
         index("sellerUserId").queryField("listingsBySellerUserId"),

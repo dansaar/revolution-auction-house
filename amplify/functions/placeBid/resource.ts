@@ -6,4 +6,7 @@ export const placeBid = defineFunction({
   entry: "./handler.ts",
   runtime: 22,
   resourceGroupName: "data",
+  // Notifications are awaited before returning (Lambda freezes at return);
+  // a heavily-watched lot can take several seconds to fan out.
+  timeoutSeconds: 30,
 });
