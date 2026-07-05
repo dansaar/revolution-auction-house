@@ -517,31 +517,13 @@ export const handler: Schema["placeBid"]["functionHandler"] = async (event) => {
     const buyerBidLimit = Number(buyerProfile?.bidLimit || 1000);
     const buyerTier = String(buyerProfile?.verificationTier || "BASIC");
 
-    if (buyerProfile?.status === "DECLINED") {
-      const message =
-        "Your account is not approved for bidding. Please contact support.";
-
-      await writeBidAuditLogDirect({
-        bidRequestId,
-        auctionId,
-        bidderUserId,
-        bidderEmail,
-        bidderName: bidderDisplayName,
-        requestedMaxBid: formatMoney(maxBid),
-        accepted: false,
-        rejectionReason: "BUYER_DECLINED",
-        buyerTier,
-        buyerBidLimit,
-        resultMessage: message,
-      });
-
-      return {
-        success: false,
-        message,
-        currentPrice: 0,
-        winner: "",
-      };
-    }
+    // NOTE: BuyerProfile.status is the verification/upgrade-review lifecycle
+    // (APPROVED / PENDING_REVIEW / DECLINED). DECLINED means "a limit-increase
+    // request was declined" — the account keeps its existing tier and bidLimit
+    // (see reviewBuyerVerification, which leaves bidLimit untouched on decline).
+    // It is NOT a bidding ban, so it must not gate bidding. The bidLimit check
+    // below is the real gate. If a true suspension is ever needed, add a
+    // distinct status (e.g. SUSPENDED) rather than overloading DECLINED.
 
     if (maxBid > buyerBidLimit) {
       const message = `Your ${buyerTier} bidding limit is ${formatMoney(
