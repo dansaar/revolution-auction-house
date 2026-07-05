@@ -1,6 +1,10 @@
 /**
  * Bidding load test
  *
+ * Config (AppSync URL, user-pool client id, region) is read from
+ * amplify_outputs.json at the repo root — no hardcoded endpoints. Override the
+ * file with --outputs <path> if pointing at a non-default env.
+ *
  * Usage:
  *   node scripts/load-test-bidding.mjs \
  *     --auction-id <id> \
@@ -9,11 +13,21 @@
  *     --concurrency 10 \
  *     --start-bid 50
  *
- * test-users.json format:
+ * You supply your own users file (NOT committed — it holds plaintext
+ * credentials). Format:
  *   [
  *     { "email": "user1@example.com", "password": "Pass1!" },
  *     { "email": "user2@example.com", "password": "Pass2!" }
  *   ]
+ *
+ * PREREQUISITES:
+ *   1. The user-pool app client needs the USER_PASSWORD_AUTH flow (currently
+ *      enabled). If a future deploy disables it, auth fails with "Auth flow
+ *      not enabled for this client" — re-enable it on the client and the
+ *      runtime hint below will point you here.
+ *   2. Cognito threat protection is ENFORCED on this pool, which can flag
+ *      scripted logins as risky and block them. For a load-test window, use
+ *      accounts with known-good history, or relax the risk config temporarily.
  *
  * To stress the version-conflict retry path you need multiple users
  * (same-user bids are rate-limited to one per 3s by the cooldown check).
@@ -23,10 +37,40 @@
  */
 
 import { CognitoIdentityProviderClient, InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { readFile } from "fs/promises";
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
 
-const APPSYNC_URL = "https://gty72gpz3za6npqpjjkhz6kg4i.appsync-api.us-east-1.amazonaws.com/graphql";
-const USER_POOL_CLIENT_ID = "6qvggmvbuvcq0pt9knbllbcd5d";
-const REGION = "us-east-1";
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function argEarly(name, fallback) {
+  const i = process.argv.indexOf(`--${name}`);
+  return i === -1 ? fallback : process.argv[i + 1];
+}
+
+// Endpoints come from the generated outputs, not stale hardcoded values.
+const OUTPUTS_PATH = resolve(
+  __dirname,
+  "..",
+  argEarly("outputs", "amplify_outputs.json"),
+);
+let outputs;
+try {
+  outputs = JSON.parse(await readFile(OUTPUTS_PATH, "utf8"));
+} catch {
+  console.error(`ERROR: could not read ${OUTPUTS_PATH}`);
+  console.error("Run `npx ampx generate outputs --branch main --app-id <id>` first.");
+  process.exit(1);
+}
+
+const APPSYNC_URL = outputs?.data?.url;
+const USER_POOL_CLIENT_ID = outputs?.auth?.user_pool_client_id;
+const REGION = outputs?.data?.aws_region || outputs?.auth?.aws_region || "us-east-1";
+
+if (!APPSYNC_URL || !USER_POOL_CLIENT_ID) {
+  console.error("ERROR: amplify_outputs.json is missing data.url or auth.user_pool_client_id");
+  process.exit(1);
+}
 
 // ── CLI args ──────────────────────────────────────────────────────────────────
 
@@ -59,6 +103,10 @@ async function getToken(email, password) {
     ClientId: USER_POOL_CLIENT_ID,
     AuthParameters: { USERNAME: email, PASSWORD: password },
   }));
+  if (!res.AuthenticationResult?.IdToken) {
+    // e.g. a challenge (MFA/new password) instead of tokens.
+    throw new Error(`no tokens returned (challenge: ${res.ChallengeName || "unknown"})`);
+  }
   return res.AuthenticationResult.IdToken;
 }
 
@@ -114,20 +162,19 @@ async function placeBid(token, auctionId, maxBid, bidRequestId) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-const { readFile } = await import("fs/promises");
-
 let users;
 try {
   users = JSON.parse(await readFile(USERS_FILE, "utf8"));
 } catch {
   console.error(`ERROR: could not read ${USERS_FILE}`);
-  console.error("Create it with: [{\"email\":\"...\",\"password\":\"...\"}]");
+  console.error('Create it with: [{"email":"...","password":"..."}]  (not committed — plaintext credentials)');
   process.exit(1);
 }
 
 console.log(`\nAuthenticating ${users.length} user(s)...`);
 
 const tokens = [];
+let sawFlowDisabled = false;
 for (const u of users) {
   try {
     const token = await getToken(u.email, u.password);
@@ -135,7 +182,15 @@ for (const u of users) {
     console.log(`  ✓ ${u.email}`);
   } catch (err) {
     console.error(`  ✗ ${u.email}: ${err.message}`);
+    if (/auth flow not enabled/i.test(err.message || "")) sawFlowDisabled = true;
   }
+}
+
+if (sawFlowDisabled) {
+  console.error(
+    "\nHINT: enable the USER_PASSWORD_AUTH flow on user-pool client " +
+      `${USER_POOL_CLIENT_ID} (see the prerequisites at the top of this file).`,
+  );
 }
 
 if (tokens.length === 0) {
