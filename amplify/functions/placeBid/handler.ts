@@ -271,7 +271,7 @@ for (const [name, val] of [
   if (!val) throw new Error(`Missing env var: ${name}`);
 }
 
-const BID_COOLDOWN_MS = 0; // TEMP for load test — RESTORE to 3000 immediately after.
+const BID_COOLDOWN_MS = 3000;
 
 // Optimistic-concurrency retry tuning. Under a hot auction many bids contend on
 // the single AuctionState version, so we retry the compare-and-set a number of
