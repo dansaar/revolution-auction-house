@@ -239,13 +239,21 @@ updateShippingByTrackingCfn.addPropertyOverride(
   process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET || process.env.EASYPOST_WEBHOOK_SECRET || "",
 );
 
-// reserveListing reuses the same shared secret — the /api/checkout route and the
-// Stripe webhook pass it to reserve/release listings during checkout.
+// reserveListing's gate — the /api/checkout route and the Stripe webhook pass
+// this secret to reserve/release listings during checkout. Prefer a dedicated
+// LISTING_RESERVATION_SECRET, falling back to the EasyPost secret so nothing
+// changes until that console var is set. The Next runtime (both routes) uses the
+// same fallback chain, so the two sides always resolve to the same value — set
+// the dedicated var to decouple reservation from EasyPost webhook rotation.
 const reserveListingCfn = backend.reserveListing.resources.lambda.node
   .defaultChild as CfnFunction;
 reserveListingCfn.addPropertyOverride(
   "Environment.Variables.WEBHOOK_SECRET",
-  process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET || process.env.EASYPOST_WEBHOOK_SECRET || "",
+  process.env.AMPLIFY_LISTING_RESERVATION_SECRET ||
+    process.env.LISTING_RESERVATION_SECRET ||
+    process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET ||
+    process.env.EASYPOST_WEBHOOK_SECRET ||
+    "",
 );
 
 // In-app ErrorLog: the logError Lambda writes directly to its table (so the

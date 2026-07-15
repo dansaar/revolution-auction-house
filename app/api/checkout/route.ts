@@ -13,11 +13,17 @@ Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
 
-// Shared secret for the reserveListing mutation (only AMPLIFY_-prefixed vars are
-// readable in the Next.js runtime). Reserving keeps a listing from being bought
-// twice while a buyer is in Stripe checkout.
+// Dedicated secret for the reserveListing mutation, falling back to the EasyPost
+// webhook secret so this stays a no-op until LISTING_RESERVATION_SECRET is set in
+// the Amplify console (both the Lambda and this runtime use the same fallback
+// chain, so they always agree). Reserving keeps a listing from being bought twice
+// while a buyer is in Stripe checkout. (amplify.yml writes these into .env.production.)
 const RESERVE_SECRET =
-  process.env.EASYPOST_WEBHOOK_SECRET || process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET || "";
+  process.env.LISTING_RESERVATION_SECRET ||
+  process.env.AMPLIFY_LISTING_RESERVATION_SECRET ||
+  process.env.EASYPOST_WEBHOOK_SECRET ||
+  process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET ||
+  "";
 
 // Abandoned Checkout Sessions expire after this, firing checkout.session.expired
 // so the webhook releases the hold. 30 min is Stripe's minimum.

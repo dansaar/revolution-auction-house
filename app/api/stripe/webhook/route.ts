@@ -13,8 +13,14 @@ const client = generateClient<Schema>();
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Dedicated reservation secret with EasyPost-secret fallback — see the matching
+// note in app/api/checkout/route.ts. Both sides share this chain so they agree.
 const RESERVE_SECRET =
-  process.env.EASYPOST_WEBHOOK_SECRET || process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET || "";
+  process.env.LISTING_RESERVATION_SECRET ||
+  process.env.AMPLIFY_LISTING_RESERVATION_SECRET ||
+  process.env.EASYPOST_WEBHOOK_SECRET ||
+  process.env.AMPLIFY_EASYPOST_WEBHOOK_SECRET ||
+  "";
 
 // Pull the marketplace listing ids out of a session's metadata (single buy or cart).
 function listingIdsFromSession(session: Stripe.Checkout.Session): string[] {

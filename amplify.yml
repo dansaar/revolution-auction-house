@@ -23,6 +23,9 @@ frontend:
         - printf "STRIPE_WEBHOOK_SECRET=%s\n" "$STRIPE_WEBHOOK_SECRET" >> .env.production
         - printf "NEXT_PUBLIC_SITE_URL=%s\n" "$NEXT_PUBLIC_SITE_URL" >> .env.production
         - printf "EASYPOST_WEBHOOK_SECRET=%s\n" "$EASYPOST_WEBHOOK_SECRET" >> .env.production
+        # Optional dedicated reservation secret (no guard — empty is fine, the
+        # routes fall back to EASYPOST_WEBHOOK_SECRET until this is set).
+        - printf "LISTING_RESERVATION_SECRET=%s\n" "$LISTING_RESERVATION_SECRET" >> .env.production
         # Optional — set AMPLIFY_STRIPE_TAX_ENABLED=true to turn on Stripe Tax once
         # the Stripe Tax dashboard (origin address + registrations) is configured.
         - printf "AMPLIFY_STRIPE_TAX_ENABLED=%s\n" "$AMPLIFY_STRIPE_TAX_ENABLED" >> .env.production
